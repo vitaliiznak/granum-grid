@@ -161,6 +161,55 @@ h1 span {
   min-width: 170px;
   color: #a6bab1;
 }
+.row-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 12px;
+}
+.row-controls input,
+.row-controls select,
+.row-controls button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid #657b70;
+  border-radius: 5px;
+  padding: 6px 8px;
+}
+.row-controls input {
+  width: 115px;
+}
+.row-controls button:disabled {
+  opacity: 0.4;
+}
+.demo-explorer .ds-row-dynamic {
+  align-items: flex-start;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.reading-note {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+.reading-note strong {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ds-muted);
+}
+.reading-note p {
+  margin: 8px 0;
+}
+.reading-note button {
+  font-size: 10px;
+  padding: 3px 6px;
+}
+.reading-note .expanded-note {
+  color: var(--ds-muted);
+}
 .reading-time span {
   margin-left: 10px;
   color: #667f76;

@@ -40,7 +40,58 @@ export function Explorer() {
 }
 ```
 
-Memoize providers or define them outside render. All API indices are zero-based; user-facing row numbers are one-based. `fetchRows` returns exactly the requested, ordered rows. Sorting, filtering, or changing source contents requires a new `revision` and resets navigation/cache state. The initial release requires a known row count and fixed row height.
+Memoize providers or define them outside render. All API indices are zero-based; user-facing row numbers are one-based. `fetchRows` returns exactly the requested, ordered rows. Sorting, filtering, or changing source contents requires a new `revision` and resets navigation/cache state. A known row count is required.
+
+## Dynamic heights and standard list APIs
+
+Enable **Dynamic row heights** above the demo to try wrapped notes, expansion, scroll alignment, and save/restore at 100 million rows.
+
+```tsx
+import { useRef } from 'react';
+import { DeepScroll, type DeepScrollEngine } from 'deepscroll';
+
+function Notes() {
+  const controller = useRef<DeepScrollEngine>(null);
+  return <>
+    <button onClick={() => controller.current?.scrollToIndex(73_499_999, { align: 'center' })}>
+      Find row 73,500,000
+    </button>
+    <DeepScroll provider={provider} ariaLabel="Notes" controllerRef={controller}
+      dynamicRowHeight rowHeight={80} overscan={3} maxMeasuredRows={4096}
+      renderRow={({ row }) => <div role="gridcell" style={{ padding: 12 }}>{row.value}</div>}
+    />
+  </>;
+}
+```
+
+With `dynamicRowHeight`, `rowHeight` is the estimate for unloaded/unmeasured rows. One `ResizeObserver` measures the border boxes of loaded DOM rows and batches corrections. Wrapping, expansion, and late content changes are measured automatically. Use padding inside rows rather than external vertical margins; margins are not part of a measured border box. In a headless layout, spread `getRowProps(slot)` on the actual row element, including its measurement `ref`, and do not impose a fixed height on that element.
+
+The engine keeps a sparse cache of measured heights, not an array of 100 million sizes. `maxMeasuredRows` defaults to 4,096; mounted rows are retained even when this temporarily exceeds a very small configured budget. `onStats.measuredRows` reports the count separately from the row-data byte estimate. A width change clears old width-dependent measurements and remeasures mounted content. Provider identity/revision changes create a fresh measurement cache. Hosts can call `resetMeasurements()` when offscreen content or typography changes.
+
+Rows retain the leading row address and pixel offset while content changes, clamping the offset if the anchor row becomes shorter. Lens retains full-size measured focus rows; detail Zoom also uses natural heights. Coarse Zoom and the Atlas rail remain row-address based, so no global pixel-height claim depends on unseen rows.
+
+- `overscan`: extra rows before and after the viewport in Rows/detail Zoom; default 2, allowed 0–1,000. Lens renders its focus band.
+- `controllerRef`: imperative access on the component. The hook exposes the same engine as `controller`.
+- `scrollToIndex(index, { align: 'start' | 'center' | 'end' | 'auto' })`: shows the Rows view and aligns the target. Default `auto` leaves an already-visible row in place. New measurements maintain alignment until another navigation input. Boundary clamping and rows taller than the viewport can prevent full alignment. Aligned jumps are immediate; `goTo(index)` retains the animated exploration behavior.
+- `getLocation()` / `restore(location)` / `initialLocation`: save and restore row address, view, and zoom. A location does not contain cached data or measurements; restore against the same dataset revision. Offscreen estimates can reflow on remount.
+- `getRowKey(row, index)`: optional stable React key for loaded rows. Keep keys unique; the default is the row index. Expansion/selection state that must survive virtualization belongs in the host application.
+- `emptyContent`: optional custom empty state. Existing row placeholders/retries and fixed column-heading slot remain available.
+
+| Capability | Current support |
+| --- | --- |
+| Fixed and automatically measured row heights | Yes, including resize and expandable content |
+| Overscan, exact index navigation, alignment, restoration | Yes |
+| Keyboard navigation, ARIA row addresses, reduced motion | Yes; screen-reader user testing remains outstanding |
+| Headless hook, custom rows/keys, empty/loading/error content | Yes |
+| Remote paging, cancellation, prefetch, bounded caching | Yes |
+| Server rendering | Deterministic placeholder markup verified; DOM measurement begins on the client |
+| Sorting and filtering | Provider responsibility: return a new ordered revision and row count |
+| Fixed top heading | Yes; sticky group headers are not implemented |
+| Unknown-length streams, append/prepend anchoring, follow-output | Not implemented |
+| Horizontal/column virtualization and RTL scrolling | Not implemented |
+| Row selection, column resizing/pinning/reordering, editing | No built-in grid layer; host-managed content can provide controls |
+
+This is a large-dataset explorer with an expanding virtual-list API, not full feature parity with every virtualizer or data grid.
 
 The default component is 600 px tall. Set `style` or `className` to give it another bounded height. The main view has no dataset-height spacer and never uses native vertical scrolling. A floating row index drives a bounded set of DOM rows.
 
@@ -97,20 +148,20 @@ Unit tests cover coordinate round trips, Lens derivatives, endpoints, cache evic
 
 Browser automation cannot establish that a first-time user understands the overview in two seconds or discovers Spike 3 unaided in ten seconds. Those human acceptance checks remain outstanding. WebKit coverage does not establish verification in the installed Safari application. Frame-rate results are measurements on the test machine, not a 60fps guarantee across devices or real remote providers.
 
-The optional DuckDB-WASM/local CSV or Parquet import is not included. Variable row heights, unknown-length streams, editing, sorting controls, and live revision reconciliation are outside the initial release.
+The optional DuckDB-WASM/local CSV or Parquet import is not included. Unknown-length streams, built-in editing/sorting controls, and live revision reconciliation remain outside the implemented surface.
 
 ## Local verification snapshot — 13 October 2026
 
-- Build, 14 unit tests, built ESM import smoke check, and standalone consumer TypeScript check passed.
-- 34 browser checks passed across Chromium, Firefox, and WebKit. The Chromium touch test was rerun successfully after correcting a double-release in its test cleanup. Two CDP-only touch cases are intentionally skipped on Firefox/WebKit.
-- Fresh-load console checks passed. Desktop, Lens, and mobile light-theme screenshots are saved under `output/playwright/`.
-- The 100-frame sustained-scroll scenario mounted at most 9 DOM rows and ended with 1,024 rows cached in each browser.
+- Build, 22 unit tests, built ESM import/SSR smoke checks, and the standalone consumer TypeScript check passed.
+- 43 browser checks passed across Chromium, Firefox, and WebKit, including dynamic expansion, late content resizing, distant alignment, restoration, and mobile reflow. Two CDP-only touch cases are intentionally skipped on Firefox/WebKit.
+- Fresh-load console checks passed. Desktop/mobile dynamic-height screenshots are saved as `output/playwright/dynamic-desktop.png` and `dynamic-mobile.png`; earlier view/theme captures are also in that folder.
+- The fixed-height 100-frame sustained-scroll scenario mounted at most 9 DOM rows and ended with 1,024 rows cached in each browser. Dynamic-height correctness and sparse-cache bounds were tested separately; the timings below are not dynamic-height benchmarks.
 
 | Browser engine | Median frame interval | 95th percentile |
 | --- | ---: | ---: |
-| Chromium | 16.7 ms | 16.7 ms |
-| Firefox | 8.34 ms | 9.18 ms |
-| WebKit | 17 ms | 26 ms |
+| Chromium | 16.7 ms | 16.8 ms |
+| Firefox | 8.34 ms | 9.08 ms |
+| WebKit | 17 ms | 24 ms |
 
 These headless measurements describe this synthetic workload on the test machine. Native Safari, physical touch devices, real remote providers, and timed first-time-user tasks have not been verified.
 

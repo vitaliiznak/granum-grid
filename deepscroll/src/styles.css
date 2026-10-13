@@ -104,6 +104,10 @@
   background: color-mix(in srgb, var(--ds-accent) 5%, transparent);
   box-shadow: inset 2px 0 var(--ds-accent);
 }
+.ds-row-dynamic {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .ds-row-id {
   font:
     11px ui-monospace,

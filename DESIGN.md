@@ -195,7 +195,7 @@ Shortcuts ignore editable fields and nested controls. If no next target exists, 
           04812334  Mar 14 · 12:05  Gamma  ███████ 66.1
 ```
 
-Render only visible rows plus modest overscan using fixed, configurable row height. DOM rows contain accessible text and customizable content. Keep stable geometry while estimates become exact values. Unsupported variable row heights are explicitly outside the first release.
+Render only visible rows plus configurable overscan. Fixed height remains the default; the later dynamic-height extension uses a sparse measured-height cache around a constant estimate. A shared ResizeObserver batches loaded row border-box measurements. Relative distance calculations and sparse prefix corrections translate local pixels to row addresses without allocating by dataset length. The leading row and its pixel offset anchor reflow; width/revision changes invalidate measurements. Mounted rows remain measured even when a tiny configured measurement budget is exceeded. DOM rows contain accessible text and customizable content. Lens focus and detailed Zoom use natural heights, while the global Atlas and coarse summaries stay in row-address coordinates.
 
 ### Lens
 

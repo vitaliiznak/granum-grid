@@ -43,8 +43,7 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
   const pan = (pixels: number, time: number, measure = true) => {
     const state = engine.getSnapshot();
     const scale = state.view === 'zoom' ? state.rowsPerPixel : 1 / state.rowHeight;
-    const desired = state.position + pixels * scale;
-    engine.pan(pixels);
+    const overflow = engine.pan(pixels) ?? 0;
     if (measure) {
       const elapsed = lastTime ? clamp(time - lastTime, 8, 64) : 16;
       velocity = 0.5 * velocity + (0.5 * pixels) / elapsed;
@@ -52,7 +51,7 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
       options.onVelocity(velocity * scale);
     }
     if (options.elasticity && !options.reducedMotion) {
-      edge = clamp(((engine.getSnapshot().position - desired) / scale) * 0.12, -36, 36);
+      edge = clamp(-overflow * 0.12, -36, 36);
       options.onEdge(edge);
     }
     if (

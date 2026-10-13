@@ -1,12 +1,12 @@
 # deepscroll: public API and workspace proposal
 
-Status: approved for implementation. Atlas rail is selected. This document records the agreed API direction; README.md tracks the implemented surface and verification.
+Status: approved for implementation. Atlas rail is selected. This document records the agreed API direction; README.md tracks the implemented surface and verification, including the subsequent dynamic-height extension.
 
 ## Design decisions
 
 - Ship a ready-to-use React explorer and a hook for custom layouts, backed by a framework-independent engine.
 - Make row count, asynchronous row fetching, and a row renderer sufficient for useful navigation. Add overview, chapters, markers, regional aggregates, and search as optional provider capabilities.
-- Use fixed row height in the initial release. Keep rows as customizable DOM content and aggregate graphics on canvas.
+- Use fixed row height by default, with opt-in dynamic measurement. Keep rows as customizable DOM content and aggregate graphics on canvas.
 - Keep the dataset position independent of browser scroll height. Neither the engine nor the React viewport creates a dataset-height spacer.
 - Keep the library independent of the demo's signal, timestamps, worker, and artificial latency.
 - Give every address an explicit convention: API indices are zero-based, user-visible row numbers are one-based, and ranges are half-open `[start, end)`.
@@ -76,6 +76,13 @@ interface DeepScrollProps<Row> {
   renderRow(context: RowRenderContext<Row>): React.ReactNode;
   ariaLabel: string;
   rowHeight?: number;
+  dynamicRowHeight?: boolean; // rowHeight becomes the estimate
+  maxMeasuredRows?: number; // 4096; mounted rows may temporarily exceed the budget
+  overscan?: number; // 2 per side in Rows/detail Zoom
+  initialLocation?: NavigationLocation;
+  controllerRef?: React.Ref<DeepScrollEngine>;
+  getRowKey?(row: Row, index: number): React.Key;
+  emptyContent?: React.ReactNode;
   initialIndex?: number;
   initialView?: View;
   theme?: 'system' | 'light' | 'dark';
@@ -90,6 +97,10 @@ interface DeepScrollProps<Row> {
 ```
 
 `initialIndex` and `initialView` are initialization values, not controlled props. Live external navigation goes through the hook/controller described below; avoid competing position state in the host and engine. Theme overrides also use documented CSS custom properties. The default rail remains visible in every view.
+
+`initialLocation` takes precedence over `initialIndex`/`initialView`. The component's `controllerRef` and hook's `controller` expose `scrollToIndex(index, { align })`, `getLocation()`, `restore(location)`, and `resetMeasurements()`. Alignment supports `start`, `center`, `end`, and `auto` (default); it is immediate, enters Rows view, and follows new measurements until subsequent navigation. `goTo(index)` retains animated travel. Locations serialize address/view/scale, not cached data or measured heights, and must be scoped to a provider revision by the host.
+
+Automatic measurement uses natural row border-box heights. `getRowProps` supplies the measurement ref for headless consumers. Width changes invalidate measurements; offscreen rows remain estimated until they mount. Row-address navigation and the global Atlas do not require measuring the entire dataset. Lens and detail Zoom use full-size measured content; coarse views summarize ranges.
 
 ## Data provider
 

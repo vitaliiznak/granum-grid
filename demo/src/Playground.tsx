@@ -106,6 +106,9 @@ export function Playground({
           <span>
             <strong>{stats?.completedFetches ?? 0}</strong> pages fetched
           </span>
+          <span>
+            <strong>{stats?.measuredRows ?? 0}</strong> measured heights
+          </span>
         </div>
         <p>
           Aggregates are sampled in a Web Worker. Rows are exact and generated on demand. Frame rate
