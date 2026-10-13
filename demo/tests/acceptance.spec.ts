@@ -28,3 +28,17 @@ test('orientation is consistent and the final row is reachable without a tall sp
   const heights = await grid.evaluate(element => ({ height: element.clientHeight, scrollHeight: element.scrollHeight }));
   expect(heights.scrollHeight).toBeLessThan(heights.height + 150);
 });
+test('all views preserve the selected row and Zoom refines back to real rows', async ({ page }) => {
+  await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
+  await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
+  for (const name of ['Lens', 'Zoom', 'Rows']) {
+    await page.getByRole('button', { name, exact: true }).click();
+    await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
+    await expect(page.getByRole('slider', { name: 'Dataset position' })).toHaveAttribute('aria-valuenow', '61700000');
+  }
+  await page.getByRole('button', { name: 'Zoom', exact: true }).click();
+  await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
+  await expect(page.getByText('Aggregate view', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Inspect rows', exact: true }).click();
+  await expect(page.locator('[role=row][aria-rowindex="50000001"]')).toBeVisible();
+});
