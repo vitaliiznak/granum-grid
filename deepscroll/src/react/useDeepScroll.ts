@@ -1,9 +1,11 @@
 import { useEffect, useId, useMemo, useState, useSyncExternalStore, type CSSProperties, type HTMLAttributes } from 'react';
 import { createEngine, wheelPixels, type View } from '../core/index.js';
 import { DataSession } from '../data/session.js';
+import { defaultFeatures, type Features } from '../features.js';
 import type { CacheOptions, DataProvider, RowSlot } from '../data/types.js';
-export interface UseDeepScrollOptions<Row> { provider: DataProvider<Row>; rowHeight?: number; initialIndex?: number; initialView?: View; cache?: CacheOptions<Row> }
-export function useDeepScroll<Row>({ provider, rowHeight = 32, initialIndex = 0, initialView = 'rows', cache }: UseDeepScrollOptions<Row>) {
+export interface UseDeepScrollOptions<Row> { provider: DataProvider<Row>; rowHeight?: number; initialIndex?: number; initialView?: View; cache?: CacheOptions<Row>; features?: Partial<Features> }
+export function useDeepScroll<Row>({ provider, rowHeight = 32, initialIndex = 0, initialView = 'rows', cache, features: overrides }: UseDeepScrollOptions<Row>) {
+  const features = { ...defaultFeatures, ...overrides };
   const id = useId();
   const engine = useMemo(() => createEngine({ rowCount: provider.rowCount, rowHeight, initialIndex, initialView }), [provider.id, provider.revision, provider.rowCount, rowHeight]);
   const snapshot = useSyncExternalStore(engine.subscribe, engine.getSnapshot, engine.getSnapshot);
@@ -27,7 +29,7 @@ export function useDeepScroll<Row>({ provider, rowHeight = 32, initialIndex = 0,
     const common = { index, y: (index - snapshot.position) * rowHeight, height: rowHeight };
     const row = session.read(index);
     const error = session.error(index);
-    const estimate = session.overview.find(bucket => index >= bucket.start && index < bucket.end);
+    const estimate = features.progressiveEstimates ? session.overview.find(bucket => index >= bucket.start && index < bucket.end) : undefined;
     return row !== undefined ? { ...common, status: 'ready', row } : { ...common, status: error ? 'error' : 'loading', error, estimate };
   });
   const getViewportProps = (props: HTMLAttributes<HTMLDivElement> = {}) => ({
@@ -42,7 +44,7 @@ export function useDeepScroll<Row>({ provider, rowHeight = 32, initialIndex = 0,
     },
   });
   return {
-    id, controller: engine, snapshot, rows, provider, session, stats: session.getStats(),
+    id, controller: engine, snapshot, rows, provider, session, stats: session.getStats(), features,
     getViewportProps,
     getRowProps: (slot: RowSlot<Row>) => ({ role: 'row', 'aria-rowindex': slot.index + 1, id: `${id}-row-${slot.index}`, className: 'ds-row', style: { height: slot.height, transform: `translateY(${slot.y}px)` } as CSSProperties }),
     getAnnouncementProps: () => ({ className: 'ds-sr', 'aria-live': 'polite' as const }),
