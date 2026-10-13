@@ -5,3 +5,5 @@ export type { UseDeepScrollOptions, DeepScrollState } from './react/useDeepScrol
 export { AtlasRail } from './react/AtlasRail.js';
 export type * from './data/types.js';
 export type { View, NavigationLocation, NavigationSnapshot } from './core/engine.js';
+export { defaultFeatures } from './features.js';
+export type { Features } from './features.js';
