@@ -42,14 +42,14 @@ test('hover attracts to a peak without navigating; click agrees and Shift bypass
   const { x, y, height, top } = await openMap(page);
   const position = page.getByTestId('position');
   const origin = await position.innerText();
-  const preview = page.locator('.ds-preview > strong');
+  const preview = page.locator('.ds-preview-target');
   const hover = page.locator('.ds-map-hover');
   const nearY = Math.round(y + 2);
   await page.mouse.move(x, nearY);
   await expect(hover).toHaveAttribute('data-attracted', 'true');
   await expect(preview).toHaveText((peak + 1).toLocaleString('en-US'));
   await expect(position).toHaveText(origin);
-  await expect(page.locator('.ds-preview-detail')).toContainText('Hold Shift');
+  await expect(page.locator('.ds-preview-detail')).toContainText('Snapped to peak');
   await page.screenshot({ path: testInfo.outputPath('peak-gravity.png') });
 
   await page.mouse.click(x, nearY);

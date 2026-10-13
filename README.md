@@ -60,7 +60,7 @@ Enter `73,500,000`, `50%`, a loaded event name, or a query your provider underst
 The **View** menu offers two ways to read the same dataset:
 
 - **Rows:** read individual records, one per line.
-- **Range summaries**: compare groups of rows to find patterns. Choosing this from the menu opens summaries around your current row; use **Fit dataset** to see the whole dataset, **Zoom in** to narrow a range, and **Inspect rows** to read its records.
+- **Range summaries**: compare groups of rows to find patterns. Choosing this from the menu opens summaries around your current row. **Group size** sets how much each card covers, **Zoom into group** splits that card into smaller groups, and **Inspect rows** reads its records. **Fit dataset** shows the whole dataset.
 
 **Compare views** opens a small illustrated guide in the explorer. The map on the right always covers the whole dataset, whichever main view you choose. Sampled summaries remain labeled.
 
@@ -83,6 +83,8 @@ Your renderer owns the cells. Your provider supplies the ordering, chapters, lan
 | **4,000,000,000 log lines.** Generated services and incidents. Predicate search verifies a bounded sample and reports partial results.                                | **1,811,709,771 star addresses.** A generated catalog with named-star landmarks; this is not an imported Gaia dataset.                                |
 
 The fifth synthetic demo is the **100,000,000-row signal archive** shown throughout this README. None of these five generated examples requires allocating its full row count in memory. The separate Performance demo holds its bounded recording in memory and identifies that explicitly.
+
+**Bitcoin (live)** is real data: every second of BTC/USDT on Binance since August 2017 (about 289 million rows), fetched on demand from Binance's public market-data API with no key or backend. Row addresses are fixed seconds. Summaries come from the coarsest candles that fit and are exact only where whole candles tile a group. Markers (highest trade, largest daily moves) and `high >= 100000`-style searches are derived from the data in a few requests. The provider stays under half of Binance's 6,000-weight-per-minute limit and pauses on rate-limit responses. It needs a network connection, and Binance refuses some regions. [Provider source](demo/src/data/binance.ts).
 
 ### Explore a real performance recording
 
@@ -177,7 +179,7 @@ Aggregates carry `exact`, `estimated`, or `unavailable` accuracy; missing values
 | Need                       | Use                                                                             |
 | -------------------------- | ------------------------------------------------------------------------------- |
 | Ready-made explorer        | `GranumGrid` with your `renderRow` and optional column `header`                 |
-| Your colors and typography | `granum-grid/styles.css`, `--ds-*` tokens, `classNames`, and `styles`            |
+| Your colors and typography | `granum-grid/styles.css`, `--ds-*` tokens, `classNames`, and `styles`           |
 | Your controls              | `renderToolbar`, `renderFooter`, `renderRail`, or `toolbarActions`              |
 | Your entire layout         | `useGranumGrid`; choose layout-only CSS or no stylesheet                        |
 | Host automation            | `apiRef` exposes `GranumGridApi<Row>`: the mounted provider and controller      |

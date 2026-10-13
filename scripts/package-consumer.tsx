@@ -38,6 +38,11 @@ const provider: DataProvider<{ value: number }> = {
   id: 'consumer',
   revision: '1',
   rowCount: 100_000_000,
+  metric: {
+    label: 'Value',
+    kind: 'value',
+    description: 'Provider-supplied averages across each group of rows.',
+  },
   searchHelp: { examples: ['row'], text: true },
   async search(query) {
     if (query.kind === 'text')
@@ -79,6 +84,8 @@ export const example = (
     dynamicRowHeight
     overscan={3}
     aggregateRowHeight={140}
+    summaryBucketSizes={[{ label: '100 readings', rows: 100 }]}
+    formatBucketSize={(rows) => `${rows} readings`}
     formatRange={({ start, end }) => `${start + 1}–${end}`}
     renderAggregate={({ bucket }: AggregateRenderContext) => <p>{bucket.max ?? 'Unavailable'}</p>}
     getRowKey={(row) => row.value}

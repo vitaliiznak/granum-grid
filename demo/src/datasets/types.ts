@@ -51,6 +51,8 @@ export interface DemoDataset<Row = any> {
   renderRow(context: RowRenderContext<Row>, extras: RowExtras): ReactNode;
   renderAggregate?(context: AggregateRenderContext): ReactNode;
   formatRange?(range: RowRange): string;
+  summaryBucketSizes?: readonly { label: string; rows: number }[];
+  formatBucketSize?(rows: number): string;
   /** The suggested first action, shown before any tour step runs. */
   task: { title: string; action: string; run(controller: NavigationController): void };
   /** Materialized demo adapters must not imply only cached rows occupy memory. */

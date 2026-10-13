@@ -44,6 +44,7 @@ export interface AtlasRailOptions {
   preview?: 'rows' | 'summary' | 'none';
   /** Exact rows requested on hover, limited to 1–5. Default 3. */
   previewRows?: number;
+  /** Crop of the overview beside hover details; reuses its buckets. Default false. */
   showMagnifier?: boolean;
   /** Snap slow drags to visible provider markers. Default true. */
   snapToMarkers?: boolean;
@@ -190,7 +191,7 @@ export function AtlasRail<Row>({
   const preview = options.preview ?? 'rows';
   const showPreviewRows = preview === 'rows' && features.preview;
   const showMagnifier =
-    preview !== 'none' && options.showMagnifier !== false && features.magnifier && showProfile;
+    preview !== 'none' && options.showMagnifier === true && features.magnifier && showProfile;
   const previewVisible =
     !!hover && !helpOpen && (dragging || preview === 'summary' || showPreviewRows || showMagnifier);
   const previewRows = Number.isFinite(options.previewRows)
@@ -350,7 +351,9 @@ export function AtlasRail<Row>({
         </div>
       </div>
       <div id={helpId} className="ds-map-help" hidden={!helpOpen} role="note" tabIndex={0}>
-        <strong>How to use this scrollbar</strong>
+        <strong>
+          {showProfile ? `How to read ${metricLabel.toLowerCase()}` : 'How to use this scrollbar'}
+        </strong>
         <p>
           Top to bottom follows row order, from the first row to the last. Click or drag to move.
           {peakGravity &&
@@ -360,10 +363,13 @@ export function AtlasRail<Row>({
           <p>
             The chart shows {metricLabel.toLowerCase()}. Each horizontal strip summarizes a group of
             rows. The profile extends toward larger{' '}
-            {kind === 'density' ? 'density' : 'average values'} on the horizontal scale.
+            {kind === 'density' ? 'density' : 'average values'} on the horizontal scale. Scale:{' '}
+            {formatValue(domain[0])}–{formatValue(domain[1])}. The value describes the whole group,
+            not a single row.
             {showRange ? ' The faint band shows the minimum to maximum.' : ''}
           </p>
         )}
+        {showProfile && metric?.description && <p>{metric.description}</p>}
         <p>
           Drag the handle on the far right to scroll. The dashed line marks your current row in the
           chart.
@@ -388,6 +394,14 @@ export function AtlasRail<Row>({
         </p>
       )}
       <p className="ds-map-guide">Whole dataset · click or drag to jump</p>
+      {showProfile && (
+        <div
+          className="ds-map-compact-caption"
+          title={`${metricLabel} · higher values to the right`}
+        >
+          {metricLabel} <span aria-hidden="true">→</span>
+        </div>
+      )}
       {showProfile && (
         <div className="ds-map-metric">
           {options.showTracks && session.tracks.length > 0 ? (
@@ -689,64 +703,78 @@ export function AtlasRail<Row>({
           style={{ top: clamp(hover.y + 28, 8, Math.max(8, snapshot.height - previewHeight - 8)) }}
           role="note"
         >
-          <div className="ds-preview-kicker">
-            {dragging ? 'Moving to row' : 'At this row'}{' '}
-            <span>{chapterAt(session.chapters, hover.index)?.label ?? ''}</span>
-          </div>
-          <strong>{(hover.index + 1).toLocaleString()}</strong>
-          <div className="ds-preview-detail">
-            {hover.peak !== undefined ? 'Near peak' : dragging ? precision : 'Row address'}
-            {hover.peak !== undefined ? (
-              <small>Hold Shift to move freely</small>
-            ) : (
-              dragging && features.precision && <small>Move left for precision</small>
-            )}
-          </div>
-          {showProfile && hoverBucket && (
+          {/* Metric first, then the jump target; scale and provenance live in map help. */}
+          {showProfile ? (
             <div className="ds-map-bucket-summary">
-              <span>
-                {hoverBucket.accuracy === 'estimated'
-                  ? 'Sampled group'
-                  : hoverBucket.accuracy === 'exact'
-                    ? 'Exact group'
-                    : 'Unavailable group'}{' '}
-                · rows {(hoverBucket.start + 1).toLocaleString()}–{hoverBucket.end.toLocaleString()}
-              </span>
-              <strong>
-                {metricLabel} · {profileLabel.toLowerCase()}:{' '}
-                {hoverValue === null ? 'Unavailable' : formatValue(hoverValue)}
-              </strong>
-              {showRange && hoverBucket.accuracy !== 'unavailable' && (
+              <div className="ds-preview-kicker">
+                <strong>{metricLabel}</strong>
+                <span>{chapterAt(session.chapters, hover.index)?.label ?? ''}</span>
+              </div>
+              <div className="ds-map-reading-value">
+                {hoverValue === null ? '—' : formatValue(hoverValue)}
                 <span>
-                  Min–max: {hoverBucket.min === null ? '—' : formatValue(hoverBucket.min)}–
+                  {hoverValue === null
+                    ? 'Unavailable'
+                    : `${hoverBucket?.accuracy === 'estimated' ? 'Estimated' : 'Exact'} ${profileLabel.toLowerCase()}`}
+                </span>
+              </div>
+              {showRange && hoverBucket && hoverBucket.accuracy !== 'unavailable' && (
+                <span>
+                  Min–max {hoverBucket.min === null ? '—' : formatValue(hoverBucket.min)}–
                   {hoverBucket.max === null ? '—' : formatValue(hoverBucket.max)}
                 </span>
               )}
             </div>
-          )}
-          {showMagnifier && (
-            <div className="ds-magnifier">
-              <canvas ref={magnifier} aria-label="Magnified overview region" />
-              <span>Local overview · coarse</span>
+          ) : (
+            <div className="ds-preview-kicker">
+              {dragging ? 'Moving to row' : 'Jump to row'}{' '}
+              <span>{chapterAt(session.chapters, hover.index)?.label ?? ''}</span>
             </div>
           )}
-          {showPreviewRows &&
-            !dragging &&
-            previewIndex !== null &&
-            Array.from({ length: Math.min(previewRows, total - previewIndex) }, (_, offset) => {
-              const index = previewIndex + offset,
-                row = session.read(index);
-              return (
-                <div key={index} className="ds-preview-row">
-                  <span>#{(index + 1).toLocaleString()}</span>
-                  {row !== undefined ? (
-                    (renderPreviewRow?.(row, index) ?? <span>{previewText(row)}</span>)
-                  ) : (
-                    <span>{session.error(index) ? 'Preview unavailable' : 'Fetching rows…'}</span>
-                  )}
-                </div>
-              );
-            })}
+          <div className="ds-preview-detail">
+            <span>
+              {showProfile && 'Row '}
+              <strong className="ds-preview-target">{(hover.index + 1).toLocaleString()}</strong>
+            </span>
+            {hover.peak !== undefined ? (
+              <small>Snapped to peak</small>
+            ) : (
+              dragging && (
+                <small>
+                  {features.precision && precision === FULL_SPEED
+                    ? 'Move left for precision'
+                    : precision}
+                </small>
+              )
+            )}
+          </div>
+          {showMagnifier && (
+            <div className="ds-magnifier">
+              <canvas ref={magnifier} aria-label={`${metricLabel} near this row`} />
+              <span>
+                <strong>{metricLabel}</strong>
+                <br />
+                {profileLabel} near this row
+              </span>
+            </div>
+          )}
+          {showPreviewRows && !dragging && previewIndex !== null && (
+            <div className="ds-preview-rows">
+              {Array.from({ length: Math.min(previewRows, total - previewIndex) }, (_, offset) => {
+                const index = previewIndex + offset,
+                  row = session.read(index);
+                return (
+                  <div key={index} className="ds-preview-row">
+                    {row !== undefined ? (
+                      (renderPreviewRow?.(row, index) ?? <span>{previewText(row)}</span>)
+                    ) : (
+                      <span>{session.error(index) ? 'Preview unavailable' : 'Fetching rows…'}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </aside>

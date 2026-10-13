@@ -85,6 +85,14 @@ In the signal demo, the map has 320 groups of 312,500 rows. The worker estimates
 group's mean, minimum, and maximum from 64 evenly spaced samples, and the UI labels
 them as sampled. See the [demo limitations](../README.md#demo-limitations).
 
+Use `metric.description` for a plain-language explanation of the source and calculation.
+It appears in map help with the scale and group size. Hover details stay short: the
+metric, the group's value and accuracy, the jump row, and a few row examples.
+An additional track supplies its own `metric.description`; it does not inherit the
+primary metric's explanation. `showMagnifier` (off by default) adds a crop of the same
+overview buckets and does not fetch finer aggregates. Short rails hide the magnifier and
+row examples so the metric and jump target remain readable.
+
 ## Search
 
 **Go to…** (Cmd/Ctrl+K inside the explorer, or `/` in the viewport) resolves some input
@@ -189,10 +197,12 @@ changes, so React subscribes through `useSyncExternalStore`.
 ## Range summaries and custom bands
 
 With `fetchAggregates`, **Range summaries** shows bounded, interactive summary bands.
-Each band offers **Zoom in**, **Inspect rows**, and **Select**, and keeps its
-exact/estimated/unavailable label even with a custom renderer. While a new range loads,
-stale bands are replaced by a loading state. The library never fetches all rows to build
-a summary.
+Each card is one group. It shows the group number, how much it covers, its row
+boundaries, and an exact, estimated, or unavailable summary. **Zoom into group**
+fills the view with that group and splits it into smaller groups; **Inspect rows**
+reads the records, and **Select this group** selects every row in it. The accuracy
+label stays visible with a custom renderer. While a new range loads, stale cards are
+replaced by a loading state. The library never fetches all rows to build a summary.
 
 ```tsx
 <GranumGrid
@@ -214,6 +224,15 @@ and `rowsPerPixel`, so content can change with scale. Keep it synchronous and ch
 expensive summaries belong in the provider. `formatRange` must handle any valid range in
 the current revision; it labels a range and does not make row addresses a time axis.
 `aggregateRowHeight` sets the target band height and therefore the requested resolution.
+
+The **Group size** control changes zoom around the current location, using a bounded
+number of summary cards. Choose a preset or enter how many rows each group should
+cover. This is a target size, not a fixed partition: panning, viewport changes and
+provider resolution can change the actual sizes shown on the cards. Back restores the
+previous range and scale.
+Hosts can supply `summaryBucketSizes={[{ label: '1 hour', rows: 3600 }]}` and
+`formatBucketSize={(rows) => String(rows / 3600) + ' hours'}` for data with one row per second.
+Duration presets do not imply calendar-aligned boundaries. The default presets use rows.
 
 `controller.zoomToRange({ start, end })` validates a nonempty half-open range, fits it in
 Range summaries, and records the previous location once. The fit follows viewport

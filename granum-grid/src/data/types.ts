@@ -150,6 +150,8 @@ export interface DataProvider<Row> {
   searchHelp?: SearchHelp;
   metric?: {
     label: string;
+    /** Plain-language source or calculation notes, shown in map help and previews. */
+    description?: string;
     unit?: string;
     kind: 'value' | 'density';
     domain?: readonly [number, number];

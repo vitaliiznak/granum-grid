@@ -77,6 +77,21 @@ results describe the test machine; 60 fps is a target, not a claim.
 
 ## Decisions
 
+- **Bucket size is a zoom target.** Presets and custom row counts fit a bounded
+  number of buckets around the current address, shifting the range inside dataset
+  edges. Cards show actual boundaries, size and accuracy. The reading UI calls each
+  summary a group; bucket remains the data type. Host duration labels express fixed
+  row spans, not calendar alignment; resizing and provider resolution can change the
+  resulting size. Zoom into group fits that range, while Back restores the previous
+  scale and location.
+
+- **Explain the map's statistic before its jump address.** Compact rails keep the
+  metric name visible. Hover details show only the metric, the group value with its
+  accuracy, the jump row and row examples; group size, scale and provider-owned
+  `metric.description` live in map help. Alternate tracks own their explanations.
+  The magnifier is opt-in because it reuses the overview and adds no detail; short
+  rails hide it and the row examples to leave room for the metric and navigation target.
+
 - **Granum Grid naming.** The display name is Granum Grid; the package and library
   directory are `granum-grid`. The React component, hook, and associated types use
   `GranumGrid` / `useGranumGrid`, and both stylesheets use the `granum-grid` layer.

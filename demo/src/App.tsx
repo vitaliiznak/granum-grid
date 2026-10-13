@@ -276,6 +276,8 @@ export default function App() {
         ariaLabel={dataset.ariaLabel}
         header={dataset.header}
         formatRange={dataset.formatRange}
+        summaryBucketSizes={dataset.summaryBucketSizes}
+        formatBucketSize={dataset.formatBucketSize}
         renderAggregate={dataset.renderAggregate}
         aggregateRowHeight={isRecording ? 156 : 120}
         rowHeight={dataset.rowHeight}

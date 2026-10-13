@@ -249,15 +249,26 @@
     font-size: 10px;
     color: var(--ds-muted);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-preview > strong) {
-    font-size: 25px;
-    font-weight: 500;
-    letter-spacing: -1px;
-    margin-top: 5px;
-  }
   :where(.ds-root:not([data-unstyled]) .ds-preview-detail) {
+    margin-top: 6px;
     font-size: 11px;
     color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview-target) {
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+    color: var(--ds-text);
+  }
+  /* Beside a metric value, the jump row is secondary. */
+  :where(.ds-root:not([data-unstyled]) .ds-map-bucket-summary + .ds-preview-detail) {
+    margin-top: 4px;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-map-bucket-summary + .ds-preview-detail .ds-preview-target
+  ) {
+    font-size: inherit;
+    letter-spacing: normal;
   }
   :where(.ds-root:not([data-unstyled]) .ds-preview-detail small) {
     font-size: 10px;
@@ -274,11 +285,17 @@
     color: var(--ds-muted);
     font-size: 10px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-preview-row) {
-    padding-top: 7px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-preview-row > span:first-child) {
+  :where(.ds-root:not([data-unstyled]) .ds-magnifier strong) {
+    font-weight: 500;
     color: var(--ds-text);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview-rows) {
+    border-top: 1px solid var(--ds-line);
+    margin-top: 10px;
+    padding-top: 4px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview-row) {
+    padding-top: 5px;
   }
   :where(.ds-root:not([data-unstyled]) .ds-estimate) {
     font-size: 10px;
@@ -348,6 +365,21 @@
   }
   :where(.ds-root:not([data-unstyled]) .ds-scale .ds-button) {
     padding: 3px 7px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-scale-context > strong) {
+    color: var(--ds-text);
+    font-weight: 500;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-scale .ds-input) {
+    padding: 3px 7px;
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-bucket-custom) {
+    padding: 12px;
+    background: var(--ds-panel);
+    border: 1px solid var(--ds-line);
+    border-radius: var(--ds-radius);
+    box-shadow: 0 6px 24px #0002;
   }
   :where(.ds-root:not([data-unstyled]) .ds-aggregate-label) {
     padding: 8px 12px;
@@ -468,6 +500,12 @@
     font-size: 10px;
     line-height: 1.5;
     color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-compact-caption) {
+    margin-bottom: 6px;
+    color: var(--ds-muted);
+    font-size: 9px;
+    line-height: 1.4;
   }
   :where(.ds-root:not([data-unstyled]) .ds-map-metric) {
     font-size: 11px;
@@ -594,15 +632,27 @@
     background: var(--ds-muted);
   }
   :where(.ds-root:not([data-unstyled]) .ds-map-bucket-summary) {
-    margin-top: 10px;
-    border-top: 1px solid var(--ds-line);
-    padding-top: 8px;
     font-size: 10px;
+    line-height: 1.5;
     color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-bucket-summary .ds-preview-kicker) {
+    font-size: 11px;
   }
   :where(.ds-root:not([data-unstyled]) .ds-map-bucket-summary strong) {
     font-weight: 500;
     color: var(--ds-text);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-reading-value) {
+    color: var(--ds-text);
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-reading-value > span) {
+    color: var(--ds-muted);
+    font-size: 10px;
+    font-weight: 400;
   }
   :where(.ds-root:not([data-unstyled]) .ds-map-unavailable) {
     font-size: 10px;
@@ -783,13 +833,40 @@
   }
   :where(
     .ds-root:not([data-unstyled]) .ds-summary-accuracy,
+    .ds-root:not([data-unstyled]) .ds-summary-meta,
+    .ds-root:not([data-unstyled]) .ds-summary-address,
     .ds-root:not([data-unstyled]) .ds-summary-content p
   ) {
     color: var(--ds-muted);
     font-size: 11px;
+    line-height: 1.4;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-heading strong) {
+    color: var(--ds-text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-metric strong) {
+    color: var(--ds-text);
+    font-weight: 600;
   }
   :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-button) {
     font-size: 11px;
     padding: 3px 7px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-button:first-child:not(:disabled)) {
+    background: var(--ds-accent);
+    border-color: var(--ds-accent);
+    color: var(--ds-bg);
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-summary-actions .ds-button:first-child:not(:disabled):hover
+  ) {
+    background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-summary-select) {
+    margin-left: auto;
+    border-color: transparent;
+    color: var(--ds-muted);
   }
 }

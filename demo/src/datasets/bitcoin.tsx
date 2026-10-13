@@ -30,6 +30,26 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
     'Live data from Binance’s public market-data API (BTC/USDT 1-second candles), requested directly by this page without a key. The demo spends at most half of Binance’s per-address rate limit and pauses when Binance asks it to.',
   formatRange: ({ start, end }) =>
     `${secondLabel(timeAt(start))} – ${secondLabel(timeAt(end - 1))} UTC`,
+  summaryBucketSizes: [
+    { label: '1 minute', rows: 60 },
+    { label: '1 hour', rows: 3600 },
+    { label: '1 day', rows: 86400 },
+    { label: '1 week', rows: 604800 },
+    { label: '30 days', rows: 2592000 },
+    { label: '365 days', rows: 31536000 },
+  ],
+  formatBucketSize: (rows) => {
+    const [unit, seconds] =
+      rows >= 86400
+        ? ['days', 86400]
+        : rows >= 3600
+          ? ['hours', 3600]
+          : rows >= 60
+            ? ['minutes', 60]
+            : ['seconds', 1];
+    const value = rows / seconds;
+    return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })} ${value === 1 ? unit.slice(0, -1) : unit}`;
+  },
   task: {
     title: 'Find the sharpest one-day fall, then read the seconds around it.',
     action: 'See whole history',
@@ -68,7 +88,7 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
     },
     {
       feature: 'Search',
-      label: 'Find a trade above $100k',
+      label: 'Next trade above $100k',
       hint: 'Price thresholds descend from weeks to the exact second in a handful of requests.',
       run: ({ search }) => search('high >= 100000'),
     },

@@ -2,11 +2,11 @@
 
 Granum Grid has no styling-framework dependency and imports no CSS from JavaScript. Choose the amount of UI you want to keep.
 
-| Approach                    | Import                  | What you own                                       |
-| --------------------------- | ----------------------- | -------------------------------------------------- |
+| Approach                    | Import                   | What you own                                       |
+| --------------------------- | ------------------------ | -------------------------------------------------- |
 | Default component           | `granum-grid/styles.css` | Theme tokens, row content, optional part overrides |
 | Component with your styling | `granum-grid/base.css`   | Colors, type, spacing, controls, borders           |
-| Headless hook               | No CSS import           | All markup and presentation                        |
+| Headless hook               | No CSS import            | All markup and presentation                        |
 
 The demo's **Use it in your app** section has live examples of all three approaches. The `unstyled` prop also disables the default skin on one instance when another instance on the same page uses `styles.css`. Structural layout is preserved.
 
@@ -128,7 +128,7 @@ Chapter labels come from `fetchChapters`. They represent time only when your pro
 | `maxAxisTicks`     | Maximum axis labels; default 5, clamped to 2–12 and available height                                                                                                                             |
 | `preview`          | `rows` (default, summary plus exact rows), `summary` (no row requests), or `none`. Drag position feedback remains available.                                                                     |
 | `previewRows`      | Exact rows per hover preview; default 3, clamped to 1–5 and remaining rows                                                                                                                       |
-| `showMagnifier`    | Local profile in hover details; defaults to true. Requires a profile and hover details.                                                                                                          |
+| `showMagnifier`    | Local profile crop in hover details; defaults to false. Reuses the overview buckets. Requires a profile and hover details.                                                                       |
 | `snapToMarkers`    | Snap slow map drags to visible provider events; defaults to true. Shift temporarily bypasses snapping.                                                                                           |
 | `snapToPeaks`      | Gently attract hover previews, clicks, and slow full-speed drags to nearby visible chart peaks; defaults to true. Shift bypasses attraction. Does not affect range selection or precision drags. |
 | `formatValue`      | Display formatter for the primary metric's scale and group details, including any desired unit. Additional metrics use their own `metric.unit`.                                                  |
@@ -225,12 +225,12 @@ No stylesheet is required for positioning, clipping, touch navigation, or visual
 
 `scroll.rows` holds only the bounded visible slots. Each slot is `ready` with a `row`, or `loading`/`error` with an optional aggregate `estimate`; error slots carry an `error` message. Placeholder estimates are never presented as `Row` values.
 
-Headless mode gives you the navigation state; render empty/error/retry UI, focus styles, and any optional view controls you need. `AtlasRail`, `JumpBar`, and `ViewCanvas` are exported for composition. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows row addresses unless you pass `renderPreviewRow(row, index)`. A headless layout that enables Range summaries must render `ViewCanvas` as well as rows. Render `scroll.edgeOffset` on your own pan wrapper if you want elastic edge feedback.
+Headless mode gives you the navigation state; render empty/error/retry UI, focus styles, and any optional view controls you need. `AtlasRail`, `JumpBar`, and `ViewCanvas` are exported for composition. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. A headless layout that enables Range summaries must render `ViewCanvas` as well as rows. Render `scroll.edgeOffset` on your own pan wrapper if you want elastic edge feedback.
 
 ## Summary bands
 
 Range summary bands expose `[data-ds-part="aggregate"]`. Their bounded placement belongs to
-the library. Style `.ds-summary-content`, `.ds-summary-heading`, `.ds-summary-accuracy`,
-and `.ds-summary-actions` to adapt their appearance, or supply `renderAggregate` for the
+the library. Style `.ds-summary-content`, `.ds-summary-heading`, `.ds-summary-metric`,
+`.ds-summary-accuracy`, and `.ds-summary-actions` to adapt their appearance, or supply `renderAggregate` for the
 inner content. The base stylesheet provides geometry; the optional skin supplies palette,
 borders, and control styling. `unstyled` also applies to summary bands.
