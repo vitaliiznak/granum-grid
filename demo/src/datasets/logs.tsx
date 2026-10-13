@@ -13,6 +13,8 @@ import { LogsIcon } from './icons';
 import { formatCount, type DemoDataset } from './types';
 
 const at = (x: number) => Math.round(x * (LOG_COUNT - 1));
+const errorRateDescription =
+  'Synthetic demo: each group averages up to 64 evenly spaced error-rate model values. This is not a count of errors in every log line.';
 const days = logTime.chapters(
   Array.from({ length: 30 }, (_, i) => LOG_START + i * DAY),
   (time, i) => {
@@ -29,7 +31,13 @@ const days = logTime.chapters(
 const provider = syntheticProvider<LogLine>({
   id: 'logs',
   revision: '2',
-  metric: { label: 'Error rate', unit: '%', kind: 'value', domain: [0, 30] },
+  metric: {
+    label: 'Error rate',
+    description: errorRateDescription,
+    unit: '%',
+    kind: 'value',
+    domain: [0, 30],
+  },
   rowAt: logAt,
   markers: [
     ...INCIDENTS.map((i) => ({ id: i.id, index: at(i.x), label: i.label, kind: 'error' as const })),
@@ -95,7 +103,7 @@ export const logs: DemoDataset<LogLine> = {
     tracks: 'Show latency track',
     explain:
       'Down follows time. Right means more failing requests. Red diamonds are incidents; others are deploys.',
-    sampling: 'Each map group samples 64 lines from the synthetic error-rate model.',
+    sampling: errorRateDescription,
   },
   header: (
     <>

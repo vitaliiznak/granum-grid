@@ -86,6 +86,18 @@ test('one named chart uses its own scale and preview without moving the current 
   const profile = rail.getByTestId('overview');
   const errorChart = await profile.evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
 
+  const primaryTrack = (await rail.locator('.ds-track').boundingBox())!;
+  await page.mouse.move(primaryTrack.x + 8, primaryTrack.y + primaryTrack.height / 2);
+  const summary = rail.locator('.ds-map-bucket-summary');
+  await expect(summary).toContainText('Error rate');
+  await expect(summary).toContainText('Estimated average');
+  // Group extent, scale, and provenance stay in map help, not the hover card.
+  await expect(rail.locator('.ds-preview')).not.toContainText('evenly spaced');
+  const help = rail.locator('.ds-map-help');
+  await expect(help).toContainText('12,500,000 rows per group');
+  await expect(help).toContainText('64 evenly spaced error-rate model values');
+  await expect(help).toContainText('0%–30%');
+
   await chart.selectOption({ label: 'p95 latency' });
   await expect(axis).toHaveAttribute('aria-label', 'p95 latency scale: 0 ms to 2,600 ms');
   await expect
@@ -95,8 +107,9 @@ test('one named chart uses its own scale and preview without moving the current 
   const track = (await rail.locator('.ds-track').boundingBox())!;
   await page.mouse.move(track.x + track.width / 2, track.y + track.height / 2);
   await expect(rail.locator('.ds-map-bucket-summary strong')).toContainText('p95 latency');
-  await expect(rail.locator('.ds-map-bucket-summary strong')).toContainText('ms');
-  await expect(rail.locator('.ds-map-bucket-summary strong')).not.toContainText('%');
+  await expect(summary.locator('.ds-map-reading-value')).toContainText('ms');
+  await expect(summary).not.toContainText('%');
+  await expect(summary).not.toContainText('error-rate model');
 
   // A native selector owns its keys; the scrollbar keeps its own row navigation.
   await chart.focus();

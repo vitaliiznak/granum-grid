@@ -42,6 +42,10 @@ export interface GranumGridProps<Row> extends UseGranumGridOptions<Row>, GranumG
   renderAggregate?(context: AggregateRenderContext): ReactNode;
   /** Describe a half-open range in domain units, such as elapsed time or base pairs. */
   formatRange?(range: RowRange): string;
+  /** Target rows per summary bucket. Host labels may use fixed durations or domain units. */
+  summaryBucketSizes?: readonly { label: string; rows: number }[];
+  /** A readable size for a group of rows, such as "1 hour" for second-indexed data. */
+  formatBucketSize?(rows: number): string;
   ariaLabel: string;
   className?: string;
   style?: CSSProperties;
@@ -223,7 +227,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
       )}
       <div {...partProps('header', props, 'ds-legend')}>
         <span>
-          {summaryCards ? 'Range summaries · zoom in or inspect rows' : (props.header ?? 'RECORDS')}
+          {summaryCards ? 'Zoom into a group, or inspect its rows' : (props.header ?? 'RECORDS')}
         </span>
         <span>
           <i />
@@ -258,6 +262,9 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
           appearance={props}
           summaryCards={summaryCards}
           formatRange={props.formatRange}
+          bucketSizes={props.summaryBucketSizes}
+          formatBucketSize={props.formatBucketSize}
+          bucketHeight={props.aggregateRowHeight ?? 120}
         />
       )}
       {props.stickyChapters && chapter && (
@@ -284,6 +291,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
                   scroll={scroll}
                   renderAggregate={props.renderAggregate}
                   formatRange={props.formatRange}
+                  formatBucketSize={props.formatBucketSize}
                 />
               ) : (
                 <ViewCanvas scroll={scroll} />

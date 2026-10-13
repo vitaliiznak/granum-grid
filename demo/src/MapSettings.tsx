@@ -207,7 +207,7 @@ export function MapSettings({
           <label className="map-range-option">
             <input
               type="checkbox"
-              checked={value.showMagnifier ?? true}
+              checked={value.showMagnifier ?? false}
               disabled={value.preview === 'none' || value.variant === 'markers'}
               onChange={(e) => onChange({ showMagnifier: e.target.checked })}
             />

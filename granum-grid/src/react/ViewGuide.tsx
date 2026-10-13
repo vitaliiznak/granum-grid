@@ -44,12 +44,12 @@ function ViewDiagram({ view }: { view: View }) {
 
 const explanations: Record<View, string> = {
   rows: 'Read one record per line. Best for checking individual values.',
-  zoom: 'Each band summarizes a group of rows. Zoom in to narrow the range, then use Inspect rows to read individual records.',
+  zoom: 'Each card summarizes one group of rows. Group size sets how much a card covers. Zoom into a group to split it into smaller groups. Inspect rows reads the records; Back returns to this view.',
 };
 
 const descriptions: Record<View, string> = {
   rows: 'Read individual records, one per line.',
-  zoom: 'See patterns in grouped rows. Zoom in, then inspect individual records.',
+  zoom: 'See patterns in grouped rows. Zoom into a group to split it; Inspect rows reads the records.',
 };
 
 export const ViewGuide = memo(function ViewGuide({

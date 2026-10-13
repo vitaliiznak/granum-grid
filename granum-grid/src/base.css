@@ -471,9 +471,8 @@
   :where(.ds-preview-kicker, .ds-preview-detail) {
     display: flex;
     justify-content: space-between;
-  }
-  :where(.ds-preview > strong) {
-    display: block;
+    align-items: baseline;
+    gap: 8px;
   }
   :where(.ds-magnifier) {
     display: flex;
@@ -486,8 +485,6 @@
     height: 35px;
   }
   :where(.ds-preview-row) {
-    display: flex;
-    flex-direction: column;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -677,6 +674,10 @@
     flex-shrink: 0;
     margin: 0 0 10px;
   }
+  :where(.ds-map-compact-caption) {
+    display: var(--ds-map-compact-display);
+    flex-shrink: 0;
+  }
   :where(.ds-map-metric > label) {
     display: flex;
     align-items: center;
@@ -843,6 +844,12 @@
     flex-direction: column;
     gap: 4px;
   }
+  :where(.ds-map-reading-value) {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
   :where(.ds-rail[data-layout='compact']) {
     --ds-map-axis-width: 0px;
     --ds-map-events-width: 20px;
@@ -872,6 +879,12 @@
         min-height: 28px;
         align-items: center;
       }
+    }
+  }
+  /* Keep the metric and jump target readable in a short rail. */
+  @container ds-map (max-height: 520px) {
+    :where(.ds-preview .ds-magnifier, .ds-preview-rows) {
+      display: none;
     }
   }
   @media (max-width: 650px) {
@@ -927,6 +940,61 @@
     align-items: baseline;
     gap: 10px;
   }
+  :where(.ds-summary-meta) {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+    margin-bottom: 3px;
+  }
+  :where(.ds-summary-meta > span:nth-child(2), .ds-summary-address) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  :where(.ds-summary-meta > span:first-child, .ds-summary-accuracy) {
+    flex-shrink: 0;
+  }
+  :where(.ds-summary-accuracy) {
+    margin-left: auto;
+  }
+  :where(.ds-scale) {
+    position: relative;
+    flex-wrap: wrap;
+  }
+  :where(.ds-scale .ds-scale-context) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    min-width: 0;
+  }
+  :where(
+    .ds-scale .ds-scale-controls,
+    .ds-bucket-size,
+    .ds-bucket-custom,
+    .ds-bucket-custom label
+  ) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  :where(.ds-bucket-size select) {
+    max-width: 190px;
+  }
+  :where(.ds-bucket-custom) {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 10px;
+    right: 10px;
+    z-index: 9;
+  }
+  :where(.ds-bucket-custom input) {
+    width: 150px;
+  }
   :where(.ds-summary-heading strong) {
     flex: 1;
     overflow: hidden;
@@ -935,6 +1003,22 @@
   }
   :where(.ds-summary-content p) {
     margin: 3px 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :where(.ds-summary-metric) {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  :where(.ds-summary-metric strong) {
+    flex-shrink: 0;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  :where(.ds-summary-metric span) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
