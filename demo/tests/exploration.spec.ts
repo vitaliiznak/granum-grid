@@ -1,29 +1,28 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, MOBILE, openSignal, fitsViewportWidth } from './fixtures';
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/?dataset=signal');
-  await expect(page.getByRole('button', { name: 'Spike 3', exact: true })).toBeVisible();
+  await openSignal(page);
 });
 
-test('range summaries, linked comparison, saved views and dialog focus', async ({ page }) => {
+test('range summaries, linked comparison, bookmarks and dialog focus', async ({ page }) => {
   await page.getByRole('button', { name: 'Select rows', exact: true }).click();
   await expect(page.getByLabel('From row', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Enter row numbers', exact: false }).click();
   await page.getByLabel('From row', { exact: true }).fill('1000000');
   await page.getByLabel('To row', { exact: true }).fill('1000100');
   await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
-  const selected = page.getByRole('region', { name: 'Your selection' });
+  const selected = page.getByRole('region', { name: 'Your selection', exact: true });
   await expect(selected).toContainText('101 rows selected');
   await expect(page.getByLabel('From row', { exact: true })).toHaveCount(0);
   await expect(selected.getByRole('button', { name: 'View selection' })).toBeFocused();
   await expect(page.getByText('Estimated summary', { exact: true })).toHaveCount(0);
   await selected.getByText('Show summary', { exact: true }).click();
   await expect(selected.getByText('Estimated summary', { exact: true })).toBeVisible();
-  await selected.getByRole('button', { name: 'Save view', exact: true }).click();
-  await expect(page.getByLabel('View name')).toBeFocused();
-  await page.getByLabel('View name').fill('Sample A');
-  await page.getByRole('button', { name: 'Save view', exact: true }).click();
+  await selected.getByRole('button', { name: 'Save bookmark', exact: true }).click();
+  await expect(page.getByLabel('Bookmark name')).toBeFocused();
+  await page.getByLabel('Bookmark name').fill('Sample A');
+  await page.getByRole('button', { name: 'Save bookmark', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Saved “Sample A”');
   await page.getByRole('button', { name: 'Compare ranges', exact: true }).click();
   const setup = page.getByRole('region', { name: 'Range comparison' });
@@ -72,8 +71,19 @@ test('range summaries, linked comparison, saved views and dialog focus', async (
   await expect(setup).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Change selection' })).toBeFocused();
   await page.reload();
-  await page.getByRole('button', { name: /^Saved views/ }).click();
-  await page.getByRole('button', { name: /^Sample A/ }).click();
+  // Saved bookmarks join the provider's markers on the map, and the panel lists both.
+  await expect(page.getByRole('button', { name: 'Sample A', exact: true })).toHaveAttribute(
+    'data-kind',
+    'bookmark',
+  );
+  await page.getByRole('button', { name: /^Bookmarks/ }).click();
+  await expect(
+    page.getByRole('list', { name: 'Dataset markers' }).getByRole('button', { name: /^Spike 3/ }),
+  ).toBeVisible();
+  await page
+    .getByRole('list', { name: 'Saved bookmarks' })
+    .getByRole('button', { name: /^Sample A/ })
+    .click();
   await expect(selected).toContainText('Rows 1,000,000–1,000,100');
   await page.getByRole('button', { name: 'Change selection' }).click();
   await page.getByRole('button', { name: /^Enter row numbers/ }).click();
@@ -84,10 +94,10 @@ test('range summaries, linked comparison, saved views and dialog focus', async (
 test('selection choices, validation and single-row summary stay contextual on a phone', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize(MOBILE);
   await page.getByRole('button', { name: 'Select rows', exact: true }).click();
   await page.getByRole('button', { name: /^Rows on screen/ }).click();
-  const selected = page.getByRole('region', { name: 'Your selection' });
+  const selected = page.getByRole('region', { name: 'Your selection', exact: true });
   await expect(selected).toContainText('selected');
   const original = await selected.textContent();
   await page.getByRole('button', { name: 'Change selection' }).click();
@@ -95,6 +105,7 @@ test('selection choices, validation and single-row summary stay contextual on a 
   await page.getByLabel('From row', { exact: true }).fill('0');
   await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Enter whole row numbers');
+  await expect(page.getByLabel('From row', { exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(selected).toHaveText(original!);
   await page.getByRole('button', { name: 'Change selection' }).click();
@@ -109,7 +120,7 @@ test('selection choices, validation and single-row summary stay contextual on a 
   await expect(selected.getByText('Value', { exact: true })).toBeVisible();
   await expect(selected.getByText('Lowest', { exact: true })).toHaveCount(0);
   await expect(selected.getByText('Highest', { exact: true })).toHaveCount(0);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await fitsViewportWidth(page)).toBe(true);
   await selected.getByRole('button', { name: 'Open row' }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
   await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
@@ -147,7 +158,7 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
       'aria-valuenow',
       '50000000',
     );
-    await popup.locator('.ds-map-axis-heading').hover();
+    await popup.locator('.ds-rail-title').hover();
     await popup.mouse.wheel(0, 400);
     await expect(popup.getByTestId('position')).toHaveText('Row 50,000,010 of 100,000,000');
     // Scrubbing the map updates the native scrollbar in the reverse direction.
@@ -165,7 +176,7 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
     await popup.getByRole('grid').hover();
     await popup.mouse.wheel(0, -120);
     await expect(popup.getByTestId('position')).toHaveText('Row 99,999,997 of 100,000,000');
-    await popup.setViewportSize({ width: 390, height: 844 });
+    await popup.setViewportSize(MOBILE);
     await expect
       .poll(() =>
         popup
@@ -173,9 +184,7 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
           .evaluate((e) => Math.abs(e.getBoundingClientRect().height - innerHeight)),
       )
       .toBeLessThan(1);
-    expect(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-      true,
-    );
+    expect(await fitsViewportWidth(popup)).toBe(true);
     await expect(popup.getByRole('combobox', { name: 'View', exact: true })).toBeVisible();
   } finally {
     await popup.close();
@@ -185,6 +194,8 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
 test('map selection can be canceled and optional channel tracks stay bounded', async ({ page }) => {
   await page.getByRole('button', { name: 'Select rows', exact: true }).click();
   await page.getByRole('button', { name: /^Draw on map/ }).click();
+  // The map scrolls into view in the frame that focuses Cancel; measure after it.
+  await expect(page.getByRole('button', { name: 'Cancel map selection' })).toBeFocused();
   const rect = (await page.locator('.ds-track').boundingBox())!;
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height * 0.3);
   await page.mouse.down();
@@ -194,15 +205,21 @@ test('map selection can be canceled and optional channel tracks stay bounded', a
   await page.mouse.up();
   await expect(page.locator('.ds-map-selection')).toHaveCount(0);
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
-  await page.getByRole('button', { name: 'Map settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Scrollbar settings', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Show channel tracks' }).check();
+  await page.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(page.locator('.ds-overview-tracks canvas')).toHaveCount(4);
+  const chart = page.getByRole('combobox', { name: 'Scrollbar chart' });
+  await expect(chart.locator('option')).toHaveCount(5);
+  await chart.selectOption({ label: 'North' });
+  await expect(page.locator('.ds-track canvas')).toHaveCount(1);
+  await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
 });
 
-test('live append follows the end, preserves a reader and resumes explicitly', async ({ page }) => {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+test('live append follows the end, preserves a reader and resumes explicitly', async ({
+  page,
+  pageErrors,
+}) => {
   await page.getByText('Try a live feed', { exact: false }).first().click();
   const grid = page.getByRole('grid', { name: 'Live example events' });
   await expect(grid.locator('[aria-rowindex="200"]')).toHaveAttribute('data-status', 'ready');
@@ -216,7 +233,7 @@ test('live append follows the end, preserves a reader and resumes explicitly', a
   await page.getByRole('button', { name: 'Jump to latest', exact: true }).click();
   await expect(grid.locator(`[aria-rowindex="${count}"]`)).toHaveAttribute('data-status', 'ready');
   await expect(page.locator('.ds-live-status')).toContainText('up to date');
-  expect(errors).toEqual([]);
+  expect(pageErrors).toEqual([]);
 });
 test('a shared full-page link restores its selected range', async ({ page }) => {
   const view = {

@@ -1,0 +1,44 @@
+.http-example {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.http-example h1 {
+  font-size: clamp(24px, 4vw, 36px);
+  margin: 20px 0 8px;
+}
+.http-example p {
+  max-width: 850px;
+}
+.http-example output {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  margin: 20px 0;
+}
+.http-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.http-explorer .ds-legend {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--ds-rail-width, 232px);
+  padding: 9px 0;
+  gap: 0;
+}
+.http-explorer .ds-legend > span {
+  padding: 0 12px;
+}
+.http-explorer .ds-legend > span:first-child {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 650px) {
+  .http-explorer .ds-legend {
+    grid-template-columns: minmax(0, 1fr) var(--ds-rail-width-mobile, 72px);
+  }
+  .http-explorer .ds-legend > span:last-child {
+    font-size: 8px;
+  }
+}

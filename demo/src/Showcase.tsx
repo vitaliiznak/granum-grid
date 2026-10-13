@@ -1,7 +1,7 @@
-import type { DeepScrollEngine, ScrollStats } from 'deepscroll';
+import type { GranumGridApi, ScrollStats } from 'granum-grid';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { datasets, type DemoDataset, type TourContext } from './datasets';
-import { compact, formatCount } from './datasets/types';
+import { compact, formatCount, showAll } from './datasets/types';
 import { models } from './data/models';
 
 const sparklines = new Map<string, string>();
@@ -42,12 +42,11 @@ function Sparkline({ id, values }: { id: string; values?: (number | null)[] }) {
 }
 
 export function DatasetGallery({
-  value,
   current,
   onChange,
 }: {
-  value: string;
-  current?: DemoDataset;
+  /** The selected dataset, which may be an imported recording rather than the default. */
+  current: DemoDataset;
   onChange(id: string): void;
 }) {
   const strip = useRef<HTMLElement>(null);
@@ -56,16 +55,16 @@ export function DatasetGallery({
     const card = strip.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
     if (strip.current && card && strip.current.scrollWidth > strip.current.clientWidth)
       strip.current.scrollTo({ left: card.offsetLeft - strip.current.offsetLeft - 16 });
-  }, [value]);
+  }, [current.id]);
   return (
     <nav ref={strip} className="dataset-gallery" aria-label="Datasets">
       {datasets.map((item) => {
-        const dataset = item.id === value && current ? current : item;
+        const dataset = item.id === current.id ? current : item;
         return (
           <button
             key={dataset.id}
             className={`dataset-card dataset-${dataset.id}`}
-            aria-pressed={dataset.id === value}
+            aria-pressed={dataset.id === current.id}
             onClick={() => onChange(dataset.id)}
           >
             <span className="dataset-card-icon">{dataset.icon}</span>
@@ -79,6 +78,32 @@ export function DatasetGallery({
           </button>
         );
       })}
+    </nav>
+  );
+}
+
+export function DatasetSwitcher({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange(id: string): void;
+}) {
+  return (
+    <nav className="dataset-switcher" aria-label="Datasets">
+      {datasets.map((dataset) => (
+        <button
+          key={dataset.id}
+          type="button"
+          className={`dataset-switcher-button dataset-${dataset.id}`}
+          aria-label={dataset.name}
+          title={dataset.name}
+          aria-pressed={dataset.id === value}
+          onClick={() => onChange(dataset.id)}
+        >
+          {dataset.icon}
+        </button>
+      ))}
     </nav>
   );
 }
@@ -108,12 +133,14 @@ export function DatasetIntro({
         <div>
           <dt>Navigable {dataset.unit}</dt>
           <dd>{compact(total)}</dd>
-          <small>{dataset.facts.slice(1).join(' · ')}</small>
+          <small>{dataset.facts.join(' · ')}</small>
         </div>
         <div>
           <dt>{dataset.sourceNote ? 'Source' : 'If fully loaded'}</dt>
           <dd>
-            {dataset.sourceNote ? 'Browser trace' : `≈ ${bytes(total * dataset.bytesPerRow)}`}
+            {dataset.sourceNote
+              ? (dataset.sourceLabel ?? 'Browser trace')
+              : `≈ ${bytes(total * dataset.bytesPerRow)}`}
           </dd>
         </div>
         <div className="scale-live">
@@ -127,65 +154,36 @@ export function DatasetIntro({
   );
 }
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-/** Type into the explorer's own jump bar, so the tour shows the real search UI. */
-async function typeIntoJumpBar(root: HTMLElement, text: string, signal: { cancelled: boolean }) {
-  root.querySelector<HTMLButtonElement>('.ds-jump-trigger')?.click();
-  const input = root.querySelector<HTMLInputElement>(
-    'input[aria-label="Go to row, date, or event"]',
-  );
-  if (!input) return;
-  for (let i = 0; i < 20 && !input.closest('dialog')?.open; i++) await wait(25);
-  await wait(60);
-  const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
-  const instant = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  for (let i = instant ? text.length : 1; i <= text.length; i++) {
-    if (signal.cancelled || !input.closest('dialog')?.open) return;
-    setValue.call(input, text.slice(0, i));
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    await wait(34);
-  }
-}
 export function FeatureTour({
   dataset,
-  controller,
-  explorer,
+  api,
   children,
 }: {
   dataset: DemoDataset;
-  controller: RefObject<DeepScrollEngine | null>;
-  explorer(): HTMLElement | null;
+  api: RefObject<GranumGridApi<unknown> | null>;
   /** Explorer options shown beside the hint. */
   children?: ReactNode;
 }) {
   const [active, setActive] = useState<number | null>(null);
-  const typing = useRef({ cancelled: false });
   useEffect(() => {
     setActive(null);
-    return () => {
-      typing.current.cancelled = true;
-    };
   }, [dataset.id]);
   const run = (i: number) => {
-    const engine = controller.current,
-      root = explorer();
-    if (!engine || !root) return;
-    typing.current.cancelled = true;
-    typing.current = { cancelled: false };
+    const mounted = api.current;
+    if (!mounted) return;
+    const engine = mounted.controller;
     const step = dataset.tour[i];
     const origin = engine.getLocation();
     setActive(i);
     if (step.requiredView && engine.getSnapshot().view !== step.requiredView) {
       engine.setView(step.requiredView);
     }
-    const signal = typing.current;
     const tour: TourContext = {
       controller: engine,
-      search: (text) => typeIntoJumpBar(root, text, signal),
+      search: (text) => mounted.openSearch(text),
       fit: () => {
         engine.restore(origin);
-        const snapshot = engine.getSnapshot();
-        if (snapshot.rowCount) engine.zoomToRange({ start: 0, end: snapshot.rowCount });
+        showAll(engine);
       },
     };
     void step.run?.(tour);
@@ -200,7 +198,10 @@ export function FeatureTour({
             key={s.label}
             className="tour-step"
             data-active={i === active || undefined}
-            onClick={() => run(i)}
+            onClick={(event) => {
+              event.currentTarget.focus();
+              run(i);
+            }}
           >
             <small>{s.feature}</small>
             {s.label}
@@ -216,22 +217,19 @@ export function FeatureTour({
             </>
           ) : (
             <>
-              <b>{dataset.task ? 'Start here' : 'Tip'}</b>
-              {dataset.task?.title ?? dataset.help}
+              <b>Start here</b>
+              {dataset.task.title}
             </>
           )}
         </p>
-        {dataset.task && (
-          <button
-            className="task-start"
-            onClick={() => {
-              if (controller.current) dataset.task?.run(controller.current);
-              explorer()?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
-            }}
-          >
-            {dataset.task.action} →
-          </button>
-        )}
+        <button
+          className="task-start"
+          onClick={() => {
+            if (api.current) dataset.task.run(api.current.controller);
+          }}
+        >
+          {dataset.task.action} →
+        </button>
         {children && <div className="explorer-options">{children}</div>}
       </div>
     </div>

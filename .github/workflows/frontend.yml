@@ -1,8 +1,9 @@
 name: Frontend CI/CD
 
 on:
+  # Merges/pushes to main and manual runs on main publish both app and wiki.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -11,8 +12,9 @@ permissions:
 
 concurrency:
   group: frontend-${{ github.event.pull_request.number || github.ref }}
-  # Let an active default-branch deployment finish; replace stale PR/branch checks.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref_name != github.event.repository.default_branch }}
+  # Let an active main deployment finish; replace stale PR/branch checks.
+  # Pull request runs use refs/pull/<n>/merge, so a ref test alone excludes them.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   verify:
@@ -34,6 +36,12 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Lint hooks and library browser APIs
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Type-check source and tests, then run unit tests
         run: npm run check
 
@@ -42,6 +50,9 @@ jobs:
 
       - name: Build media studio
         run: npm run media:build
+
+      - name: Build wiki with links to the verified source commit
+        run: npm run build:wiki
 
       - name: Verify npm tarball with React 18.2 and React 19
         run: npm run test:package
@@ -54,10 +65,16 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install browser dependencies
         run: npx playwright install --with-deps chromium firefox webkit
 
-      - name: Test production frontend in all browsers
+      - name: Test production frontend in Chromium, Firefox, and WebKit
         run: npm run test:e2e
 
       - name: Verify Pages project paths and navigation
@@ -76,15 +93,24 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload verified frontend for Pages
-        if: ${{ github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: actions/upload-pages-artifact@v4
         with:
           path: demo/dist
 
+      - name: Upload verified wiki
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: wiki
+          path: output/wiki
+          retention-days: 14
+          if-no-files-found: error
+
   deploy:
     name: Deploy frontend
     needs: verify
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch }}
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -103,3 +129,56 @@ jobs:
       - name: Deploy verified frontend
         id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy-wiki:
+    name: Deploy wiki
+    needs: verify
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    concurrency:
+      group: github-wiki
+      cancel-in-progress: false
+    steps:
+      - name: Check out sync script
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      # Create the first wiki page in GitHub once before this checkout can work.
+      - name: Check out initialized wiki
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki-checkout
+
+      - name: Download verified wiki
+        uses: actions/download-artifact@v4
+        with:
+          name: wiki
+          path: output/wiki
+
+      - name: Sync managed wiki pages
+        run: node scripts/wiki.mjs sync output/wiki wiki-checkout
+
+      - name: Publish changed wiki pages
+        working-directory: wiki-checkout
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "docs: sync wiki from ${SOURCE_SHA}"
+          git push origin HEAD

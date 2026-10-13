@@ -1,4 +1,4 @@
-import type { AggregateRenderContext } from 'deepscroll';
+import type { AggregateRenderContext } from 'granum-grid';
 import rawTrace from '../data/fixtures/exploration-trace.json?raw';
 import {
   elapsed,
@@ -9,8 +9,9 @@ import {
   type TraceRecording,
   type TraceRow,
 } from '../data/trace';
+import { splitRange } from '../data/ranges';
 import { SignalIcon } from './icons';
-import type { DemoDataset } from './types';
+import { showAll, type DemoDataset } from './types';
 
 function TraceSummary({
   recording,
@@ -35,10 +36,7 @@ function TraceSummary({
       </div>
       {wide ? (
         <div className="trace-duration-bars" aria-label="Maximum event duration in each subgroup">
-          {Array.from({ length: Math.min(32, count) }, (_, i) => {
-            const n = Math.min(32, count),
-              start = bucket.start + Math.floor((i * count) / n),
-              end = bucket.start + Math.floor(((i + 1) * count) / n);
+          {splitRange(bucket.start, bucket.end, Math.min(32, count)).map(({ start, end }, i) => {
             let max = 0;
             for (let j = start; j < end; j++) max = Math.max(max, recording.rows[j].duration);
             return (
@@ -71,11 +69,7 @@ export function performanceDataset(
     title: 'Inside a browser recording',
     description:
       'Explore recorded browser activity. Zoom from activity windows into event groups, then inspect individual events without losing your place.',
-    facts: [
-      `${recording.rows.length.toLocaleString()} events`,
-      elapsed(recording.duration),
-      filename,
-    ],
+    facts: [elapsed(recording.duration), filename],
     icon: <SignalIcon />,
     profileValues: traceBuckets(recording, { start: 0, end: provider.rowCount, buckets: 96 }).map(
       (bucket) => bucket.max,
@@ -85,11 +79,10 @@ export function performanceDataset(
     bytesPerRow: 200,
     sourceNote: `${filename} · ${recording.rows.length.toLocaleString()} complete / instant events · ${recording.ignored.toLocaleString()} unsupported or invalid events omitted. Recording held in memory; no upload.`,
     ariaLabel: 'Performance recording events',
-    help: 'Zoom into a window, then inspect its events. Back restores the previous scale.',
     task: {
       title: `Find the longest recorded event (${elapsed(longest.duration)}), then inspect its neighbours.`,
       action: 'See whole recording',
-      run: (controller) => controller.zoomToRange({ start: 0, end: provider.rowCount }),
+      run: showAll,
     },
     formatRange: (range) => traceRangeLabel(recording, range),
     renderAggregate: (context) => <TraceSummary recording={recording} context={context} />,
@@ -145,12 +138,6 @@ export function performanceDataset(
         hint: 'Search supported events in this local recording. Search results report when truncated.',
         run: ({ search }) => search('duration > 10'),
       },
-      {
-        feature: 'History',
-        label: 'Back a level',
-        hint: 'Restore your previous position and scale.',
-        run: ({ controller }) => controller.back(),
-      },
     ],
     renderRow: ({ row, rowNumber }) => (
       <>
@@ -172,8 +159,15 @@ export function performanceDataset(
     ),
   };
 }
+/** A content-derived revision, so saved views never restore against a re-recorded trace. */
+function contentRevision(text: string): string {
+  // FNV-1a over UTF-16 code units; identity only, not a security boundary.
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
+  return `bundled-${(hash >>> 0).toString(16).padStart(8, '0')}-${text.length}`;
+}
 export const performance = performanceDataset(
   parseTrace(rawTrace),
   'Bundled Chromium recording',
-  'bundled-2026-10-13',
+  contentRevision(rawTrace),
 );

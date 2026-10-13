@@ -1,16 +1,7 @@
-import {
-  CHROMOSOMES,
-  GENES,
-  GENOME_LENGTH,
-  baseAt,
-  gcAt,
-  locusAt,
-  regionAt,
-  type Locus,
-} from '../data/genome';
+import { CHROMOSOMES, GENES, baseAt, gcAt, locusAt, regionAt, type Locus } from '../data/genome';
 import { syntheticProvider } from '../data/synthetic';
 import { GenomeIcon } from './icons';
-import { formatCount, type DemoDataset } from './types';
+import { formatCount, showAll, type DemoDataset } from './types';
 
 const where = (index: number) => {
   const locus = locusAt(index);
@@ -34,7 +25,7 @@ const provider = syntheticProvider<Locus>({
     breadcrumb: ['Genome', `Chromosome ${c.name}`],
   })),
   search: {
-    examples: 'gc > 55, gene = "TP53", or chr = "X"',
+    examples: ['gc > 55', 'gene = "TP53"', 'chr = "X"'],
     fields: {
       gc: { kind: 'number', read: (i) => gcAt(i) ?? Number.NaN },
       base: { kind: 'text', read: baseAt },
@@ -47,29 +38,39 @@ const provider = syntheticProvider<Locus>({
       const value = String(query.value).toUpperCase().replace(/^CHR/, '');
       if (query.field === 'gene') {
         const gene = GENES.find((g) => g.name === value);
-        return gene
-          ? [
-              {
-                id: `gene-${gene.name}`,
-                index: gene.index,
-                label: `${gene.name} · ${where(gene.index)}`,
-                kind: 'search',
-              },
-            ]
-          : [];
+        return {
+          complete: !gene,
+          message: gene ? 'Gene start shown; more base rows belong to this gene.' : undefined,
+          matches: gene
+            ? [
+                {
+                  id: `gene-${gene.name}`,
+                  index: gene.index,
+                  label: `${gene.name} · ${where(gene.index)}`,
+                  kind: 'search',
+                },
+              ]
+            : [],
+        };
       }
       if (query.field === 'chr') {
         const chromosome = CHROMOSOMES.find((c) => c.name === value);
-        return chromosome
-          ? [
-              {
-                id: `chr-${value}`,
-                index: chromosome.start,
-                label: `chr${chromosome.name} start`,
-                kind: 'search',
-              },
-            ]
-          : [];
+        return {
+          complete: !chromosome,
+          message: chromosome
+            ? 'Chromosome start shown; more base rows belong to this chromosome.'
+            : undefined,
+          matches: chromosome
+            ? [
+                {
+                  id: `chr-${value}`,
+                  index: chromosome.start,
+                  label: `chr${chromosome.name} start`,
+                  kind: 'search',
+                },
+              ]
+            : [],
+        };
       }
       return null;
     },
@@ -99,11 +100,7 @@ export const genome: DemoDataset<Locus> = {
   title: 'Human-scale genome',
   description:
     'One row per base pair: 24 chromosomes at GRCh38 lengths, with well-known genes at their approximate positions. The sequence itself is synthetic.',
-  facts: [
-    `${formatCount(GENOME_LENGTH)} bases`,
-    '24 chromosomes',
-    `${GENES.length} landmark genes`,
-  ],
+  facts: ['24 chromosomes', `${GENES.length} landmark genes`],
   icon: <GenomeIcon />,
   provider,
   ariaLabel: 'Synthetic genome bases',
@@ -114,9 +111,8 @@ export const genome: DemoDataset<Locus> = {
   task: {
     title: 'Explore chromosome boundaries, then zoom into the sequence.',
     action: 'See whole genome',
-    run: (controller) => controller.zoomToRange({ start: 0, end: GENOME_LENGTH }),
+    run: showAll,
   },
-  help: 'Every row is one base. Use the map to jump to a chromosome or gene.',
   atlas: { axisLabel: 'Chr', formatValue: (v) => `${v.toFixed(0)}%` },
   map: {
     chapters: 'Chromosomes',
@@ -159,12 +155,6 @@ export const genome: DemoDataset<Locus> = {
       label: 'Next chromosome',
       hint: 'Chromosomes are chapters. Ctrl/⌘ + ↓ steps forward; the sticky header names the current one.',
       run: ({ controller }) => controller.nextChapter(),
-    },
-    {
-      feature: 'Focus',
-      requiredView: 'lens',
-      label: 'Focused rows',
-      hint: 'Bases near the focus stay readable while the surrounding megabases compress.',
     },
     {
       feature: 'Zoom',

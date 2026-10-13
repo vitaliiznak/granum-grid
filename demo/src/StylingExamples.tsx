@@ -1,4 +1,4 @@
-import { DeepScroll, useDeepScroll, type DataProvider } from 'deepscroll';
+import { GranumGrid, useGranumGrid, type DataProvider } from 'granum-grid';
 import { useState } from 'react';
 
 const rows = [
@@ -20,25 +20,25 @@ const examples = {
     label: 'CSS variables',
     description:
       'Keep the default controls. Change the palette, spacing, and shape with your own CSS.',
-    code: `import 'deepscroll/styles.css';\n\n<DeepScroll className="my-explorer"\n  provider={provider} ariaLabel="Readings"\n  renderRow={({ row }) => <Cell row={row} />}\n/>\n\n.my-explorer {\n  --ds-accent: #536aa1;\n  --ds-radius: 2px;\n}`,
+    code: `import 'granum-grid/styles.css';\n\n<GranumGrid className="my-explorer"\n  provider={provider} ariaLabel="Readings"\n  renderRow={({ row }) => <Cell row={row} />}\n/>\n\n.my-explorer {\n  --ds-accent: #536aa1;\n  --ds-radius: 2px;\n}`,
   },
   components: {
     label: 'Your components',
     description:
       'Bring your buttons, toolbar, and footer. Style individual parts with utility classes, CSS Modules, or inline styles.',
-    code: `import 'deepscroll/base.css';\n\n<DeepScroll\n  unstyled\n  classNames={{ row: styles.row }}\n  renderToolbar={({ controller }) => (\n    <Button onClick={() => controller.goTo(0)}>\n      Back to start\n    </Button>\n  )}\n  renderFooter={() => null}\n  // provider, ariaLabel, renderRow…\n/>`,
+    code: `import 'granum-grid/base.css';\n\n<GranumGrid\n  unstyled\n  classNames={{ row: styles.row }}\n  renderToolbar={({ controller }) => (\n    <Button onClick={() => controller.goTo(0)}>\n      Back to start\n    </Button>\n  )}\n  renderFooter={() => null}\n  // provider, ariaLabel, renderRow…\n/>`,
   },
   headless: {
     label: 'Headless',
     description:
       'Own the entire layout. The hook handles loading, keyboard navigation, and row positioning. No library CSS required.',
-    code: `const scroll = useDeepScroll({\n  provider,\n  features: { flight: false,\n    automaticAggregation: false },\n});\n\n<div {...scroll.getViewportProps({\n  style: { height: 180 },\n  'aria-label': 'Readings',\n})}>\n  {scroll.rows.map(slot => (\n    <div key={slot.index}\n      {...scroll.getRowProps(slot)}>\n      <Cell slot={slot} />\n    </div>\n  ))}\n</div>`,
+    code: `const scroll = useGranumGrid({\n  provider,\n  features: { flight: false,\n    automaticAggregation: false },\n});\n\n<div {...scroll.getViewportProps({\n  style: { height: 180 },\n  'aria-label': 'Readings',\n})}>\n  {scroll.rows.map(slot => (\n    <div key={slot.index}\n      {...scroll.getRowProps(slot)}>\n      <Cell slot={slot} />\n    </div>\n  ))}\n</div>`,
   },
 } as const;
 type Example = keyof typeof examples;
 
 function HeadlessExample() {
-  const scroll = useDeepScroll({
+  const scroll = useGranumGrid({
     provider: exampleProvider,
     rowHeight: 54,
     features: { automaticAggregation: false },
@@ -139,7 +139,7 @@ export function StylingExamples() {
                 {selected === 'headless' ? (
                   <HeadlessExample />
                 ) : (
-                  <DeepScroll
+                  <GranumGrid
                     key={selected}
                     provider={exampleProvider}
                     ariaLabel="Styled channels"

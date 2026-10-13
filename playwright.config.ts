@@ -26,9 +26,18 @@ export default defineConfig({
     // Own the server by default so an agent cannot test a stale or unrelated app.
     reuseExistingServer: !isCI && process.env.PLAYWRIGHT_REUSE_SERVER === '1',
   },
+  // Frame-timing thresholds are measured in Chromium only; `npm run test:perf` runs just them.
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      testIgnore: '**/performance.spec.ts',
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+      testIgnore: '**/performance.spec.ts',
+    },
   ],
 });

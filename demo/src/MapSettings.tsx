@@ -1,4 +1,4 @@
-import type { AtlasRailOptions } from 'deepscroll';
+import type { AtlasRailOptions } from 'granum-grid';
 import { useEffect, useId, useRef, useState } from 'react';
 
 export function MapSettings({
@@ -6,15 +6,13 @@ export function MapSettings({
   onChange,
   onReset,
   labels,
-  chapters,
 }: {
   value: AtlasRailOptions;
   /** Only changed options, so dataset defaults stay with their dataset. */
   onChange(patch: AtlasRailOptions): void;
   onReset(): void;
-  labels: { profile: string; tracks: string; explain: string; sampling: string };
-  /** Name of the dataset's chapters, such as Years or Chromosomes. */
-  chapters: string;
+  /** `chapters` names the dataset's chapters, such as Years or Chromosomes. */
+  labels: { chapters: string; profile: string; tracks: string; explain: string; sampling: string };
 }) {
   const panelId = useId();
   const [open, setOpen] = useState(false);
@@ -55,9 +53,9 @@ export function MapSettings({
         ref={trigger}
         type="button"
         className="map-settings-trigger"
-        aria-label="Map settings"
+        aria-label="Scrollbar settings"
         aria-expanded={open}
-        title="Map settings"
+        title="Scrollbar settings"
         popoverTarget={panelId}
         onClick={positionPanel}
       >
@@ -85,14 +83,14 @@ export function MapSettings({
         aria-labelledby={`${panelId}-title`}
         className="map-settings-panel"
       >
-        <strong id={`${panelId}-title`}>Map settings</strong>
+        <strong id={`${panelId}-title`}>Scrollbar settings</strong>
         <p>Changes apply now and stay with this dataset while you explore.</p>
         <fieldset className="map-settings-group">
           <legend>Layout</legend>
           <label>
             Display
             <select
-              aria-label="Map display"
+              aria-label="Scrollbar display"
               value={value.variant ?? 'profile'}
               onChange={(e) => onChange({ variant: e.target.value as AtlasRailOptions['variant'] })}
             >
@@ -103,18 +101,18 @@ export function MapSettings({
           <label>
             Vertical axis
             <select
-              aria-label="Map vertical axis"
+              aria-label="Scrollbar vertical axis"
               value={value.axis ?? 'chapters'}
               onChange={(e) => onChange({ axis: e.target.value as AtlasRailOptions['axis'] })}
             >
-              <option value="chapters">{chapters}</option>
+              <option value="chapters">{labels.chapters}</option>
               <option value="rows">Row numbers</option>
             </select>
           </label>
           <label>
             Axis labels
             <select
-              aria-label="Map axis labels"
+              aria-label="Scrollbar axis labels"
               value={value.maxAxisTicks ?? 5}
               onChange={(e) => onChange({ maxAxisTicks: +e.target.value })}
             >
@@ -126,7 +124,7 @@ export function MapSettings({
           <label>
             Width
             <select
-              aria-label="Map width"
+              aria-label="Scrollbar width"
               value={value.layout ?? 'auto'}
               onChange={(e) => onChange({ layout: e.target.value as AtlasRailOptions['layout'] })}
             >
@@ -141,7 +139,7 @@ export function MapSettings({
           <label>
             Event labels
             <select
-              aria-label="Map event labels"
+              aria-label="Scrollbar event labels"
               value={value.markerLabels ?? 'label'}
               disabled={value.showMarkers === false}
               onChange={(e) =>
@@ -160,26 +158,31 @@ export function MapSettings({
               ['showRange', 'Show sampled min–max range', false],
               ['showVisibleRange', 'Show visible row range', true],
               ['showTrail', 'Show visited trail', true],
-              ['showLegend', 'Show map legend', true],
+              ['showLegend', 'Show legend', true],
             ] as const
           ).map(([key, label, fallback]) => (
             <label className="map-range-option" key={key}>
               <input
                 type="checkbox"
                 checked={value[key] ?? fallback}
-                disabled={key === 'showRange' && value.variant === 'markers'}
+                disabled={
+                  (key === 'showRange' || key === 'showTracks') && value.variant === 'markers'
+                }
                 onChange={(e) => onChange({ [key]: e.target.checked })}
               />
               {label}
             </label>
           ))}
+          {value.showTracks && value.variant !== 'markers' && (
+            <p>Choose one chart at a time above the scrollbar in expanded width.</p>
+          )}
         </fieldset>
         <fieldset className="map-settings-group">
           <legend>Hover & navigation</legend>
           <label>
             Hover details
             <select
-              aria-label="Map hover details"
+              aria-label="Scrollbar hover details"
               value={value.preview ?? 'rows'}
               onChange={(e) => onChange({ preview: e.target.value as AtlasRailOptions['preview'] })}
             >
@@ -191,7 +194,7 @@ export function MapSettings({
           <label>
             Preview rows
             <select
-              aria-label="Map preview rows"
+              aria-label="Scrollbar preview rows"
               value={value.previewRows ?? 3}
               disabled={value.preview === 'summary' || value.preview === 'none'}
               onChange={(e) => onChange({ previewRows: +e.target.value })}
@@ -219,12 +222,21 @@ export function MapSettings({
             />
             Snap to events while dragging
           </label>
+          <label className="map-range-option">
+            <input
+              type="checkbox"
+              checked={value.snapToPeaks ?? true}
+              disabled={value.variant === 'markers'}
+              onChange={(e) => onChange({ snapToPeaks: e.target.checked })}
+            />
+            Attract pointer to chart peaks
+          </label>
         </fieldset>
         <p>{labels.explain}</p>
         <p className="map-sampling-note">{labels.sampling}</p>
         <div className="map-settings-actions">
           <button type="button" onClick={onReset}>
-            Reset map
+            Reset scrollbar
           </button>
           <button type="button" onClick={close}>
             Done

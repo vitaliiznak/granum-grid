@@ -1,8 +1,8 @@
 import { models, type Model } from './models';
-import type { AggregateRequest, Bucket, OverviewTrack } from 'deepscroll';
+import { splitRange } from './ranges';
+import type { AggregateRequest, Bucket, OverviewTrack } from 'granum-grid';
 
 function summarize(
-  model: Model,
   value: (index: number) => number | null,
   start: number,
   end: number,
@@ -23,31 +23,26 @@ function summarize(
   };
 }
 function aggregate(model: Model, range: AggregateRequest): Bucket[] {
-  const buckets: Bucket[] = [];
-  const count = Math.min(range.buckets, range.end - range.start);
-  for (let i = 0; i < count; i++) {
-    const start = range.start + Math.floor((i * (range.end - range.start)) / count);
-    const end = range.start + Math.floor(((i + 1) * (range.end - range.start)) / count);
-    buckets.push({
-      start,
-      end,
-      count: end - start,
-      ...summarize(model, model.value, start, end, 64),
-      label: model.label(start),
-    });
-  }
-  return buckets;
+  const parts = Math.min(range.buckets, range.end - range.start);
+  return splitRange(range.start, range.end, parts).map(({ start, end }) => ({
+    start,
+    end,
+    count: end - start,
+    ...summarize(model.value, start, end, 64),
+    label: model.label(start),
+  }));
 }
 function tracks(model: Model, buckets: number): OverviewTrack[] {
   return (model.tracks ?? []).map((track) => ({
     id: track.id,
     label: track.label,
-    metric: { label: track.label, kind: 'value', domain: track.domain },
-    buckets: Array.from({ length: buckets }, (_, i) => {
-      const start = Math.floor((i * model.rowCount) / buckets),
-        end = Math.floor(((i + 1) * model.rowCount) / buckets);
-      return { start, end, count: null, ...summarize(model, track.value, start, end, 16) };
-    }),
+    metric: { label: track.label, unit: track.unit, kind: 'value', domain: track.domain },
+    buckets: splitRange(0, model.rowCount, buckets).map(({ start, end }) => ({
+      start,
+      end,
+      count: null,
+      ...summarize(track.value, start, end, 16),
+    })),
   }));
 }
 self.onmessage = (

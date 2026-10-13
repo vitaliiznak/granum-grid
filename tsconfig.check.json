@@ -1,21 +1,18 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "./tsconfig.source.json",
   "compilerOptions": {
-    "noEmit": true,
-    "types": ["node", "vite/client"],
-    "paths": {
-      "deepscroll": ["./deepscroll/src/index.ts"]
-    }
+    "types": ["node", "vite/client"]
   },
   "include": [
-    "deepscroll/src",
-    "deepscroll/tests",
+    "granum-grid/src",
+    "granum-grid/tests",
     "demo/src",
     "demo/unit",
     "demo/tests",
     "demo/vite.config.ts",
     "media/src",
     "media/vite.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "vitest.config.ts"
   ]
 }

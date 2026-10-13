@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));
-const manifest = JSON.parse(readFileSync(join(root, 'deepscroll/package.json'), 'utf8'));
-const temporary = mkdtempSync(join(tmpdir(), 'deepscroll-package-'));
+const manifest = JSON.parse(readFileSync(join(root, 'granum-grid/package.json'), 'utf8'));
+const temporary = mkdtempSync(join(tmpdir(), 'granum-grid-package-'));
 
 function npm(args, cwd = root) {
   // npm_execpath avoids shell quoting and npm.cmd differences on Windows.
@@ -33,7 +33,7 @@ try {
   const [packed] = JSON.parse(
     npm([
       'pack',
-      '--workspace=deepscroll',
+      '--workspace=granum-grid',
       '--json',
       '--foreground-scripts=false',
       '--ignore-scripts=false',
@@ -44,6 +44,11 @@ try {
   assert.equal(packed.name, manifest.name);
   assert.equal(packed.version, manifest.version);
   assert.equal(manifest.license, 'Apache-2.0');
+  assert.deepEqual(
+    Object.keys(manifest.exports),
+    ['.', './core', './data', './base.css', './styles.css'],
+    'Public entry points changed; update the package README, docs/GUIDE.md, and the consumer fixtures deliberately',
+  );
   const files = new Set(packed.files.map(({ path }) => path));
   const targets = Object.values(manifest.exports).flatMap((entry) =>
     typeof entry === 'string' ? [entry] : Object.values(entry),
@@ -66,7 +71,6 @@ try {
     );
     assert.ok(!/(^|\/)(?:tests?|node_modules|demo|media)(\/|\.)/.test(path), path);
   }
-  assert.ok(!files.has('dist/tools.js'), 'Removed entry point must not be shipped');
 
   const archive = join(temporary, packed.filename);
   const installedVersion = (name) => lock.packages[`node_modules/${name}`].version;
@@ -92,7 +96,7 @@ try {
     writeFileSync(
       join(cwd, 'package.json'),
       JSON.stringify({
-        name: 'deepscroll-package-consumer',
+        name: 'granum-grid-package-consumer',
         private: true,
         type: 'module',
         dependencies: {

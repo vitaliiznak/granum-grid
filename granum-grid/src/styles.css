@@ -1,0 +1,795 @@
+@import './base.css';
+
+/* Optional skin. Only library-owned controls carry ds-button / ds-input.
+   All selectors have zero specificity; host styles and utility classes win. */
+@layer granum-grid {
+  :where(.ds-root:not([data-unstyled])) {
+    --ds-bg: #fff;
+    --ds-panel: #f8f9fb;
+    --ds-text: #242830;
+    --ds-muted: #69717e;
+    --ds-line: #e5e8ed;
+    --ds-accent: #3264c8;
+    --ds-hover: #f0f2f6;
+    --ds-mark: #996821;
+    --ds-radius: 6px;
+    color: var(--ds-text);
+    background: var(--ds-bg);
+    border: 1px solid var(--ds-line);
+    border-radius: var(--ds-radius);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    color-scheme: light;
+  }
+  :where(.ds-root:not([data-unstyled])[data-theme='dark']) {
+    --ds-bg: #191c21;
+    --ds-panel: #20242a;
+    --ds-text: #e7e9ed;
+    --ds-muted: #9fa6b2;
+    --ds-line: #303640;
+    --ds-accent: #8aaef5;
+    --ds-hover: #2a303a;
+    --ds-mark: #d8b275;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :where(.ds-root:not([data-unstyled])[data-theme='system']) {
+      --ds-bg: #191c21;
+      --ds-panel: #20242a;
+      --ds-text: #e7e9ed;
+      --ds-muted: #9fa6b2;
+      --ds-line: #303640;
+      --ds-accent: #8aaef5;
+      --ds-hover: #2a303a;
+      --ds-mark: #d8b275;
+      color-scheme: dark;
+    }
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-button, .ds-root:not([data-unstyled]) .ds-input) {
+    font: inherit;
+    color: inherit;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-button) {
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--ds-line);
+    border-radius: 5px;
+    padding: 6px 10px;
+    line-height: 1.4;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-button:hover) {
+    background: var(--ds-hover);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-button:disabled) {
+    opacity: 0.35;
+    cursor: default;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-button:focus-visible,
+    .ds-root:not([data-unstyled]) .ds-input:focus-visible,
+    .ds-root:not([data-unstyled]) .ds-thumb:focus-visible,
+    .ds-root:not([data-unstyled]) .ds-viewport:focus-visible
+  ) {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: -2px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-toolbar) {
+    min-height: 58px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--ds-line);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-toolbar-main) {
+    gap: 14px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-toolbar-actions) {
+    gap: 14px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-context) {
+    font-size: 12px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-guide) {
+    background: var(--ds-panel);
+    border-bottom: 1px solid var(--ds-line);
+    color: var(--ds-muted);
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-guide strong) {
+    color: var(--ds-text);
+    font-weight: 600;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-guide > summary strong) {
+    margin-right: 8px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-guide-toggle) {
+    color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-guide-content) {
+    background: var(--ds-panel);
+    border-bottom: 1px solid var(--ds-line);
+    box-shadow: 0 8px 16px #00000012;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-guide > summary:focus-visible) {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: -2px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-guide-option) {
+    background: var(--ds-bg);
+    border: 1px solid var(--ds-line);
+    border-radius: 5px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-guide-option[data-current]) {
+    border-color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-view-diagram) {
+    color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-history) {
+    gap: 4px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-history .ds-button) {
+    border-color: transparent;
+    font-size: 16px;
+    padding: 3px 8px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-trigger) {
+    color: var(--ds-muted);
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-trigger kbd) {
+    font: inherit;
+    font-size: 10px;
+    opacity: 0.75;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-legend) {
+    font-size: 10px;
+    color: var(--ds-muted);
+    padding: 9px 18px;
+    border-bottom: 1px solid var(--ds-line);
+    background: var(--ds-panel);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-legend i) {
+    display: inline-block;
+    height: 3px;
+    width: 14px;
+    background: var(--ds-accent);
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-row) {
+    gap: 22px;
+    padding: 0 18px;
+    background: var(--ds-bg);
+    border-bottom: 1px solid color-mix(in srgb, var(--ds-line) 60%, transparent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-row[data-focused]) {
+    background: color-mix(in srgb, var(--ds-accent) 5%, var(--ds-bg));
+    box-shadow: inset 2px 0 var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-row-id) {
+    font: inherit;
+    font-size: 12px;
+    color: var(--ds-muted);
+    min-width: 88px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-loading) {
+    color: var(--ds-muted);
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-empty) {
+    padding: 30px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail) {
+    background: var(--ds-panel);
+    border-left: 1px solid var(--ds-line);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail-title) {
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-track) {
+    background: var(--ds-bg);
+    border-radius: 3px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-thumb) {
+    border: 1px solid var(--ds-accent);
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--ds-accent) 10%, transparent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-track-line) {
+    border-top: 1px solid var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail-end) {
+    font: inherit;
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-marker) {
+    border: 0;
+    padding: 4px 0 4px 6px;
+    color: var(--ds-mark);
+    font-size: 11px;
+    background: var(--ds-panel);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-marker span) {
+    font: inherit;
+    font-size: 10px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-marker[data-kind='bookmark']) {
+    color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-trail) {
+    background: var(--ds-accent);
+    opacity: 0.3;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-footer) {
+    padding: 12px 18px;
+    border-top: 1px solid var(--ds-line);
+    color: var(--ds-muted);
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-footer strong) {
+    color: var(--ds-text);
+    font-weight: 500;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview) {
+    padding: 14px;
+    background: var(--ds-panel);
+    border: 1px solid var(--ds-line);
+    border-radius: 6px;
+    box-shadow: 0 6px 24px #00000018;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview-kicker) {
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview > strong) {
+    font-size: 25px;
+    font-weight: 500;
+    letter-spacing: -1px;
+    margin-top: 5px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview-detail) {
+    font-size: 11px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview-detail small) {
+    font-size: 10px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-magnifier) {
+    border-top: 1px solid var(--ds-line);
+    margin-top: 10px;
+    padding-top: 6px;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-magnifier span,
+    .ds-root:not([data-unstyled]) .ds-preview-row
+  ) {
+    color: var(--ds-muted);
+    font-size: 10px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview-row) {
+    padding-top: 7px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-preview-row > span:first-child) {
+    color: var(--ds-text);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-estimate) {
+    font-size: 10px;
+    margin-left: 12px;
+    color: var(--ds-muted);
+    border: 1px solid var(--ds-line);
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump) {
+    background: var(--ds-panel);
+    color: var(--ds-text);
+    border: 1px solid var(--ds-line);
+    border-radius: var(--ds-radius);
+    box-shadow: 0 22px 100px #0003;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump)::backdrop {
+    background: #16181266;
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-inner) {
+    padding: 22px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-heading) {
+    font-size: 13px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump .ds-input) {
+    margin-top: 16px;
+    background: var(--ds-bg);
+    border: 1px solid var(--ds-line);
+    padding: 14px;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump p) {
+    font-size: 12px;
+    color: var(--ds-muted);
+    min-height: 18px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-results .ds-button) {
+    padding: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-results small) {
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-results .selected) {
+    background: var(--ds-hover);
+    border-color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-examples) {
+    margin-top: 20px;
+    border-top: 1px solid var(--ds-line);
+    padding-top: 14px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-jump-examples .ds-button) {
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-scale) {
+    min-height: 38px;
+    padding: 6px 18px;
+    border-bottom: 1px solid var(--ds-line);
+    font-size: 11px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-scale .ds-button) {
+    padding: 3px 7px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-aggregate-label) {
+    padding: 8px 12px;
+    background: var(--ds-panel);
+    border: 1px solid var(--ds-line);
+    border-radius: 5px;
+    color: var(--ds-muted);
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-aggregate-label span) {
+    color: var(--ds-text);
+    margin-top: 3px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-hint) {
+    background: var(--ds-panel);
+    border: 1px solid var(--ds-line);
+    color: var(--ds-text);
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    box-shadow: 0 5px 20px #0001;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-hint .ds-button) {
+    border: 0;
+    padding: 0 3px;
+    line-height: 1.2;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-meta-error) {
+    border: 1px solid var(--ds-line);
+    background: var(--ds-panel);
+    padding: 8px;
+    border-radius: 5px;
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled])[data-motion='on'] .ds-row[data-status='ready']) {
+    animation: ds-refine 0.14s ease-out;
+  }
+  @keyframes ds-refine {
+    from {
+      opacity: 0.6;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @media (max-width: 650px) {
+    :where(.ds-root:not([data-unstyled]) .ds-row) {
+      padding: 0 12px;
+      gap: 10px;
+    }
+    :where(.ds-root:not([data-unstyled]) .ds-toolbar) {
+      padding: 8px 10px;
+    }
+    :where(
+      .ds-root:not([data-unstyled]) .ds-toolbar-actions,
+      .ds-root:not([data-unstyled]) .ds-toolbar-main
+    ) {
+      gap: 6px;
+    }
+    :where(.ds-root:not([data-unstyled]) .ds-jump-trigger) {
+      gap: 12px;
+    }
+    :where(.ds-root:not([data-unstyled]) .ds-legend, .ds-root:not([data-unstyled]) .ds-footer) {
+      padding: 9px 10px;
+      font-size: 10px;
+    }
+    :where(.ds-root:not([data-unstyled]) .ds-rail-title),
+    :where(.ds-root:not([data-unstyled]) .ds-rail-end) {
+      font-size: 8px;
+    }
+    :where(.ds-root:not([data-unstyled]) .ds-jump-results small) {
+      max-width: 110px;
+      text-align: right;
+    }
+    :where(.ds-root:not([data-unstyled]) .ds-scale) {
+      font-size: 10px;
+      padding: 6px 10px;
+    }
+  }
+}
+
+@layer granum-grid {
+  :where(.ds-root:not([data-unstyled]) .ds-rail-title) {
+    font-size: 12px;
+    color: var(--ds-text);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail-title strong) {
+    font-weight: 500;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-help-button) {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 11px;
+    color: var(--ds-muted);
+    flex-shrink: 0;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-help) {
+    padding: 14px;
+    background: var(--ds-bg);
+    border: 1px solid var(--ds-line);
+    border-radius: 6px;
+    box-shadow: 0 6px 24px #0002;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ds-text);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-help p) {
+    margin: 8px 0 0;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-axis-heading) {
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-guide) {
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-metric) {
+    font-size: 11px;
+    color: var(--ds-text);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-metric select) {
+    padding: 6px;
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-value-axis) {
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-track) {
+    background: transparent;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-plot) {
+    background: var(--ds-bg);
+    border-left: 1px solid var(--ds-line);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-tick) {
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-tick::after) {
+    border-top: 1px solid color-mix(in srgb, var(--ds-line) 65%, transparent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-scrollbar-track) {
+    background: color-mix(in srgb, var(--ds-line) 70%, transparent);
+    border-radius: 999px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-thumb) {
+    background: var(--ds-muted);
+    background-clip: padding-box;
+    border: 0 solid transparent;
+    border-inline-width: 3px;
+    border-radius: 999px;
+    cursor: grab;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-thumb:hover,
+    .ds-root:not([data-unstyled]) .ds-thumb:focus-visible
+  ) {
+    background-color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-thumb:active) {
+    cursor: grabbing;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-track-line) {
+    border-top: 1px dashed var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-marker) {
+    font-size: 10px;
+    padding: 4px 2px;
+    gap: 4px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-marker-symbol) {
+    font-size: 9px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-marker-more) {
+    font-weight: 600;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling] .ds-thumb) {
+    background-color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-thumb-direction) {
+    color: var(--ds-bg);
+    background: var(--ds-accent);
+    border-radius: 50%;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling] .ds-thumb)::after {
+    content: '';
+    position: absolute;
+    inset: 4px 2px;
+    background: repeating-linear-gradient(to bottom, transparent 0 4px, var(--ds-bg) 4px 6px);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling] .ds-track-line) {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 14%, transparent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scroll-motion='on'] .ds-thumb) {
+    transition:
+      background-color 160ms ease,
+      box-shadow 220ms ease;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scroll-motion='on'] .ds-track-line) {
+    transition: box-shadow 220ms ease;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-rail[data-scroll-motion='on'][data-scrolling] .ds-thumb
+  )::after {
+    animation: ds-scroll-grip 360ms linear infinite;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-rail[data-scroll-motion='on'][data-scrolling='up'] .ds-thumb
+  )::after {
+    animation-direction: reverse;
+  }
+  @keyframes ds-scroll-grip {
+    to {
+      background-position-y: 6px;
+    }
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail-end) {
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-legend) {
+    font-size: 10px;
+    color: var(--ds-muted);
+    padding-top: 10px;
+    border-top: 1px solid var(--ds-line);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-mean-key) {
+    width: 12px;
+    border-top: 1px solid var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-position-key) {
+    width: 6px;
+    height: 10px;
+    margin: 0 3px;
+    border: 1px solid var(--ds-muted);
+    border-radius: 3px;
+    background: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-bucket-summary) {
+    margin-top: 10px;
+    border-top: 1px solid var(--ds-line);
+    padding-top: 8px;
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-bucket-summary strong) {
+    font-weight: 500;
+    color: var(--ds-text);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-unavailable) {
+    font-size: 10px;
+    color: var(--ds-muted);
+  }
+}
+
+@layer granum-grid {
+  :where(
+    .ds-root:not([data-unstyled]) .ds-view-menu .ds-input,
+    .ds-root:not([data-unstyled]) .ds-explorer-panel .ds-input
+  ) {
+    border: 1px solid var(--ds-line);
+    border-radius: 5px;
+    padding: 6px 8px;
+    background: var(--ds-bg);
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-explore-toggle,
+    .ds-root:not([data-unstyled]) .ds-explorer-panel
+  ) {
+    border-bottom: 1px solid var(--ds-line);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-explore-toggle) {
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-range-summary p) {
+    margin: 5px 0;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-range-summary dt,
+    .ds-root:not([data-unstyled]) .ds-tool-message,
+    .ds-root:not([data-unstyled]) .ds-explore-toggle > span
+  ) {
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-range-summary dd) {
+    font-size: 17px;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-selection-card,
+    .ds-root:not([data-unstyled]) .ds-map-prompt
+  ) {
+    background: var(--ds-panel);
+    border-bottom: 1px solid var(--ds-line);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-flow-heading strong) {
+    font-size: 14px;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-flow-heading p,
+    .ds-root:not([data-unstyled]) .ds-selection-method > span,
+    .ds-root:not([data-unstyled]) .ds-range-confirm > span,
+    .ds-root:not([data-unstyled]) .ds-selection-description > span,
+    .ds-root:not([data-unstyled]) .ds-summary-note,
+    .ds-root:not([data-unstyled]) .ds-map-prompt p,
+    .ds-root:not([data-unstyled]) .ds-saved-view > span,
+    .ds-root:not([data-unstyled]) .ds-bookmarks-heading
+  ) {
+    color: var(--ds-muted);
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-description .ds-selection-kicker) {
+    color: var(--ds-accent);
+    font-weight: 600;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-description > strong) {
+    font-size: 14px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-method) {
+    padding: 12px;
+    background: var(--ds-panel);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-method:hover) {
+    border-color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-details > summary) {
+    color: var(--ds-muted);
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-details > summary:focus-visible) {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 2px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-quality) {
+    padding: 2px 7px;
+    border: 1px solid var(--ds-line);
+    border-radius: 4px;
+    color: var(--ds-muted);
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-form-error) {
+    color: var(--ds-text);
+    border-left: 2px solid var(--ds-mark);
+    padding-left: 10px;
+    margin: 12px 0 0;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled)) {
+    background: var(--ds-accent);
+    border-color: var(--ds-accent);
+    color: var(--ds-bg);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled):hover) {
+    background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-setup) {
+    background: var(--ds-panel);
+    border-bottom: 1px solid var(--ds-line);
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-setup:focus-visible) {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: -2px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range) {
+    border: 1px solid var(--ds-line);
+    border-radius: var(--ds-radius);
+    background: var(--ds-bg);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range[data-empty]) {
+    border-style: dashed;
+    background: transparent;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range > strong) {
+    font-size: 13px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range > span) {
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range .ds-comparison-step) {
+    color: var(--ds-accent);
+    font-weight: 600;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled)) {
+    background: var(--ds-accent);
+    border-color: var(--ds-accent);
+    color: var(--ds-bg);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled):hover) {
+    background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-compare) {
+    color: var(--ds-text);
+    background: var(--ds-bg);
+    border: 1px solid var(--ds-line);
+    border-radius: 8px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-compare::backdrop) {
+    background: #0006;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-row[data-selected]) {
+    background: color-mix(in srgb, var(--ds-accent) 12%, var(--ds-bg));
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-map-selection) {
+    background: color-mix(in srgb, var(--ds-mark) 30%, transparent);
+    outline: 1px solid var(--ds-mark);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-visible-range) {
+    background: color-mix(in srgb, var(--ds-accent) 18%, transparent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-sticky-chapter) {
+    background: var(--ds-panel);
+    color: var(--ds-muted);
+    border-bottom: 1px solid var(--ds-line);
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-open-page) {
+    text-decoration: none;
+    font-size: 12px;
+  }
+}
+
+@layer granum-grid {
+  :where(.ds-root:not([data-unstyled]) .ds-summary-content) {
+    background: var(--ds-panel);
+    border: 1px solid var(--ds-line);
+    border-radius: var(--ds-radius);
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-summary-accuracy,
+    .ds-root:not([data-unstyled]) .ds-summary-content p
+  ) {
+    color: var(--ds-muted);
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-button) {
+    font-size: 11px;
+    padding: 3px 7px;
+  }
+}

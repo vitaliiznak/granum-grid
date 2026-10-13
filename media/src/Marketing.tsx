@@ -2,19 +2,43 @@ import type { Scene } from './scenes';
 import { scenes } from './scenes';
 import './marketing.css';
 
-// Shared with the encoder: live footage fits inside this window without covering copy.
-export const filmWindow = { x: 80, y: 280, width: 1760, height: 704 };
+const previews = import.meta.glob<string>('../images/*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
+
+// Shared with the encoder: live footage never covers the headline or evidence labels.
+export const filmWindow = { x: 80, y: 248, width: 1760, height: 736 };
 export const titleCards = [
   {
     id: 'intro',
-    seconds: 4,
-    title: 'Go beyond the scroll. Turn massive datasets into places you can explore.',
+    seconds: 7,
+    title:
+      'Turn data into clarity. Transform rows of information into a visual experience people can explore and understand.',
+  },
+  {
+    id: 'capabilities',
+    seconds: 10,
+    title:
+      'Built for your data. Designed for your app. React + TypeScript, custom providers, row renderers, themes, cancellation, and bounded rendering.',
   },
   {
     id: 'outro',
-    seconds: 5,
-    title: 'Make big data feel small. Build your next explorer with deepscroll.',
+    seconds: 8,
+    title:
+      'Make your data make sense. See the pattern. Understand the detail. Build with Granum Grid.',
   },
+] as const;
+export type FilmCard = (typeof titleCards)[number]['id'];
+
+const capabilities = [
+  ['React + TypeScript', 'A typed component and headless engine.'],
+  ['Bring your provider', 'Connect indexed data and fetch pages on demand.'],
+  ['Render your own rows', 'Domain-specific cells, details, and interactions.'],
+  ['Make it look like you', 'CSS variables, custom styles, and themes.'],
+  ['Stay in sync', 'Abortable requests and revision-aware caches.'],
+  ['Keep the work bounded', 'Render the viewport. Cache nearby pages.'],
 ];
 
 function Brand() {
@@ -25,7 +49,39 @@ function Brand() {
         <i />
         <i />
       </span>
-      deepscroll<span className="film-brand-tag">THE REACT DATA EXPLORER</span>
+      Granum Grid<span className="film-brand-tag">THE REACT DATA EXPLORER</span>
+    </div>
+  );
+}
+
+function AddressMap() {
+  return (
+    <div className="film-map" aria-hidden="true">
+      <div className="film-map-top">
+        A PLACE FOR EVERY ROW <span>↓</span>
+      </div>
+      {[
+        '000,000,001',
+        '012,500,000',
+        '025,000,000',
+        '037,500,000',
+        '050,000,000',
+        '061,700,000',
+        '073,500,000',
+        '087,500,000',
+        '100,000,000',
+      ].map((row, i) => (
+        <div className={`film-map-row ${i === 6 ? 'film-map-selected' : ''}`} key={row}>
+          <span>{row}</span>
+          <i style={{ width: `${22 + ((i * 37) % 62)}%` }} />
+          {i === 6 && <b>YOU ARE HERE ↗</b>}
+        </div>
+      ))}
+      <div className="film-map-bottom">
+        THE SCALE OF YOUR DATA.
+        <br />
+        <strong>THE CLARITY OF A SINGLE ROW.</strong>
+      </div>
     </div>
   );
 }
@@ -36,7 +92,7 @@ export function Marketing({
   plate = false,
 }: {
   scene: Scene;
-  card?: 'intro' | 'outro';
+  card?: FilmCard;
   plate?: boolean;
 }) {
   const index = scenes.findIndex((item) => item.id === scene.id);
@@ -46,89 +102,87 @@ export function Marketing({
         <Brand />
         <span className="film-edition">
           {card
-            ? 'EXPLORE WITHOUT LOSING YOUR PLACE'
+            ? 'FROM THE BIG PICTURE TO THE EXACT ROW'
             : `${String(index + 1).padStart(2, '0')} / ${String(scenes.length).padStart(2, '0')} — ${scene.label.toUpperCase()}`}
         </span>
       </header>
-      {card ? (
+      {card === 'capabilities' ? (
+        <>
+          <div className="film-capabilities-copy">
+            <p className="film-kicker">MADE TO BECOME PART OF YOUR PRODUCT</p>
+            <h1>
+              Built for your data.
+              <br />
+              <em>Designed for your app.</em>
+            </h1>
+          </div>
+          <div className="film-capability-grid">
+            {capabilities.map(([title, detail], i) => (
+              <div key={title}>
+                <span>{String(i + 1).padStart(2, '0')}</span>
+                <h2>{title}</h2>
+                <p>{detail}</p>
+              </div>
+            ))}
+          </div>
+          <footer className="film-card-footer">
+            <span>YOUR DATA. YOUR COMPONENTS. YOUR EXPERIENCE.</span>
+            <span>Core engine + data layer + React bindings</span>
+          </footer>
+        </>
+      ) : card ? (
         <>
           <div className="film-card-copy">
             <p className="film-kicker">
               {card === 'intro'
-                ? 'BIG DATA DESERVES A BETTER WAY IN'
-                : 'BUILD SOMETHING WORTH EXPLORING'}
+                ? 'FROM INFORMATION TO UNDERSTANDING'
+                : 'LESS SEARCHING. MORE UNDERSTANDING.'}
             </p>
             <h1>
               {card === 'intro' ? (
                 <>
-                  Go beyond
+                  Turn data
                   <br />
-                  the <em>scroll.</em>
+                  <em>into clarity.</em>
                 </>
               ) : (
                 <>
-                  Make big data
+                  Make your data
                   <br />
-                  feel <em>small.</em>
+                  <em>make sense.</em>
                 </>
               )}
             </h1>
             <p className="film-card-promise">
               {card === 'intro' ? (
                 <>
-                  Turn massive datasets into
+                  Turn rows of information into a visual experience
                   <br />
-                  places you can explore.
+                  people can explore and understand.
                 </>
               ) : (
                 <>
-                  Your rows. Your renderers. Your next big idea.
+                  See the pattern. Understand the detail.
                   <br />
-                  Bring it to life with deepscroll.
+                  Give people a clearer way to explore your data.
                 </>
               )}
             </p>
             {card === 'outro' && (
               <div className="film-cta">
-                Build with deepscroll <span>↗</span>
+                Build with Granum Grid <span>↗</span>
               </div>
             )}
           </div>
-          <div className="film-map" aria-hidden="true">
-            <div className="film-map-top">
-              YOUR NEXT DISCOVERY <span>↓</span>
-            </div>
-            {[
-              '000,000,001',
-              '012,500,000',
-              '025,000,000',
-              '037,500,000',
-              '050,000,000',
-              '061,700,000',
-              '073,500,000',
-              '087,500,000',
-              '100,000,000',
-            ].map((row, i) => (
-              <div className={`film-map-row ${i === 6 ? 'film-map-selected' : ''}`} key={row}>
-                <span>{row}</span>
-                <i style={{ width: `${22 + ((i * 37) % 62)}%` }} />
-                {i === 6 && <b>YOU ARE HERE ↗</b>}
-              </div>
-            ))}
-            <div className="film-map-bottom">
-              A PLACE FOR EVERY ROW.
-              <br />
-              <strong>A WAY TO GET THERE.</strong>
-            </div>
-          </div>
+          <AddressMap />
           <footer className="film-card-footer">
             <span>
-              JUMP PRECISELY <i /> SEE THE PATTERNS <i /> KEEP THE CONTEXT
+              FIND YOUR ROW <i /> SEE THE PATTERN <i /> KEEP YOUR PLACE
             </span>
             <span>
               {card === 'intro'
                 ? 'Generated demo data · real product interactions'
-                : 'React + TypeScript · Custom renderers · Provider-powered data'}
+                : 'Music: Firefly by Scott Buckley · CC-BY 4.0 · scottbuckley.com.au'}
             </span>
           </footer>
         </>
@@ -147,12 +201,27 @@ export function Marketing({
               height: filmWindow.height,
             }}
           >
-            {!plate && <img src={`/images/${scene.id}.png`} alt={`${scene.label} demo preview`} />}
+            {!plate &&
+              (previews[`../images/${scene.id}.png`] ? (
+                <img
+                  src={previews[`../images/${scene.id}.png`]}
+                  alt={`${scene.label} demo preview`}
+                />
+              ) : (
+                <p className="film-preview-pending">
+                  Capture this scene to preview its product footage.
+                </p>
+              ))}
           </div>
           <footer className="film-scene-footer">
-            <span>{scene.detail}</span>
+            <div className="film-feature-strip">
+              {scene.features.map((feature) => (
+                <span key={feature}>{feature}</span>
+              ))}
+            </div>
+            <span className="film-source">{scene.detail}</span>
             <strong>
-              GO BEYOND THE SCROLL <span>↗</span>
+              EVERY ROW. WITHIN REACH. <span>↗</span>
             </strong>
           </footer>
           <div className="film-chapters" aria-hidden="true">

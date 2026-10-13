@@ -1,7 +1,47 @@
-import { provider } from '../data/provider';
-import { ROW_COUNT, SPIKES, rowAt, type Reading } from '../data/signal';
+import {
+  CHANNELS,
+  ROW_COUNT,
+  SPIKES,
+  rowAt,
+  signalTime,
+  valueAt,
+  type Reading,
+} from '../data/signal';
+import { syntheticProvider } from '../data/synthetic';
 import { SignalIcon } from './icons';
-import type { DemoDataset } from './types';
+import { showAll, type DemoDataset } from './types';
+
+const provider = syntheticProvider<Reading>({
+  // The original demo's id; saved views and full-page links depend on it.
+  id: 'signal-observatory',
+  model: 'signal',
+  metric: { label: 'Signal amplitude', unit: 'mV', kind: 'value', domain: [0, 180] },
+  rowAt,
+  markers: SPIKES.map((p, i) => ({
+    id: `spike-${i + 1}`,
+    index: Math.round(p * (ROW_COUNT - 1)),
+    label: `Spike ${i + 1}`,
+    kind: 'spike',
+  })),
+  chapters: signalTime.chapters(
+    Array.from({ length: 20 }, (_, i) => Date.UTC(2010 + i, 0, 1)),
+    (time) => {
+      const year = `${new Date(time).getUTCFullYear()}`;
+      return { id: `year-${year}`, label: year, breadcrumb: ['Signal archive', year] };
+    },
+  ),
+  search: {
+    examples: ['value > 150', 'category = "North"', '2017-03'],
+    fields: {
+      value: { kind: 'number', read: valueAt },
+      category: { kind: 'text', read: (index) => CHANNELS[index % 4] },
+    },
+    date: (text) => signalTime.dateIndex(text),
+    // Every 5,000th row, cycling through the four interleaved channels.
+    candidate: (_query, i, from) => (from + i * 5000 + (i % 4)) % ROW_COUNT,
+    label: (_index, field, value) => `${field}: ${value}`,
+  },
+});
 
 export const signal: DemoDataset<Reading> = {
   id: 'signal',
@@ -9,8 +49,8 @@ export const signal: DemoDataset<Reading> = {
   unit: 'readings',
   title: 'Signal archive',
   description:
-    'Twenty years of readings from four synthetic channels, with regime changes and four numbered spikes. The original deepscroll demo.',
-  facts: ['100,000,000 rows', '4 channels', '2010–2030'],
+    'Twenty years of readings from four synthetic channels, with regime changes and four numbered spikes. The original Granum Grid demo.',
+  facts: ['4 channels', '2010–2030'],
   icon: <SignalIcon />,
   provider,
   ariaLabel: 'Synthetic signal readings',
@@ -21,9 +61,8 @@ export const signal: DemoDataset<Reading> = {
   task: {
     title: 'Find a spike, then inspect the readings around it.',
     action: 'See whole archive',
-    run: (controller) => controller.zoomToRange({ start: 0, end: ROW_COUNT }),
+    run: showAll,
   },
-  help: 'Scroll to inspect. Use the dataset map to jump to a year or event.',
   atlas: { axisLabel: 'Year', showRange: false },
   map: {
     chapters: 'Years',
@@ -61,23 +100,11 @@ export const signal: DemoDataset<Reading> = {
       run: ({ search }) => search('2017-03'),
     },
     {
-      feature: 'Focus',
-      requiredView: 'lens',
-      label: 'Focused rows',
-      hint: 'Read nearby rows in the middle. Compressed summaries above and below show the rest; click them to move there.',
-    },
-    {
       feature: 'Zoom',
       requiredView: 'zoom',
       label: 'See all 100M rows',
       hint: 'Range summaries group readings into bands. Ctrl + wheel or pinch to zoom; “Inspect rows” returns.',
       run: ({ fit }) => fit(),
-    },
-    {
-      feature: 'History',
-      label: 'Undo last jump',
-      hint: 'Return to the previous location while keeping your selected view and zoom.',
-      run: ({ controller }) => controller.back({ preserveView: true }),
     },
   ],
   renderRow: ({ row, rowNumber, index }, { dynamic, expanded, toggle }) =>

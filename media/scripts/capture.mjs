@@ -1,27 +1,32 @@
-import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { chromium } from '@playwright/test';
+import { build, preview } from 'vite';
 import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import path from 'node:path';
+import { renderSoundtrack, soundtrack, soundtrackSource } from './soundtrack.mjs';
+
+const usage = 'Usage: node media/scripts/capture.mjs screenshots|video|all [--scene=hero]';
+let args;
+try {
+  args = parseArgs({ allowPositionals: true, options: { scene: { type: 'string' } } });
+} catch {
+  throw new Error(usage);
+}
+const [mode = 'screenshots', ...extra] = args.positionals;
+const filter = args.values.scene;
+if (!['screenshots', 'video', 'all'].includes(mode) || extra.length) throw new Error(usage);
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
-const mode = process.argv[2] ?? 'screenshots';
-const filter = process.argv
-  .slice(3)
-  .find((arg) => arg.startsWith('--scene='))
-  ?.slice(8);
-if (
-  !['screenshots', 'video', 'all'].includes(mode) ||
-  process.argv.slice(3).some((arg) => !arg.startsWith('--scene='))
-) {
-  throw new Error('Usage: node media/scripts/capture.mjs screenshots|video|all [--scene=hero]');
-}
 const video = mode !== 'screenshots';
 const screenshots = mode !== 'video';
 const output = path.join(root, 'media/output');
 const images = path.join(root, 'media/images');
 const size = { width: 1920, height: 1080 };
+// Compose the actual full-page explorer, rather than shrinking the entire demo site.
+const recordingSize = { width: 1440, height: 640 };
+const embeddedSize = { width: 1440, height: 946 };
 const ffmpeg = process.env.FFMPEG_PATH || 'ffmpeg';
 
 function run(command, args) {
@@ -33,12 +38,29 @@ function run(command, args) {
     });
     child.on('error', reject);
     child.on('exit', (code) =>
-      code === 0 ? resolve() : reject(new Error(`${command} exited ${code}: ${stderr}`)),
+      code === 0 ? resolve(stderr) : reject(new Error(`${command} exited ${code}: ${stderr}`)),
     );
   });
 }
+// FFmpeg arguments are grouped per option; this overwrites outputs and reports only errors.
+const runFFmpeg = (...groups) => run(ffmpeg, ['-y', '-loglevel', 'error', ...groups.flat()]);
+const loopImage = (file) => ['-loop', '1', '-framerate', '30', '-i', file];
+const concatList = (file) => ['-f', 'concat', '-safe', '0', '-i', file];
+// Silent H.264 clips; the soundtrack is muxed once over the finished sequence.
+const h264 = ['-c:v', 'libx264', '-preset', 'fast', '-crf', '19', '-pix_fmt', 'yuv420p', '-an'];
+
 const pause = (page, milliseconds) => page.waitForTimeout(milliseconds);
 const explorer = (page) => page.locator('.demo-explorer').first();
+const rowLabel = (index) => (index + 1).toLocaleString('en-US');
+function collectErrors(page, errors) {
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+}
+// Every take gets a fresh context; an English locale and UTC keep numbers and dates stable.
+const sceneContext = (options) =>
+  browser.newContext({ viewport: recordingSize, locale: 'en-US', timezoneId: 'UTC', ...options });
 async function settled(page) {
   await explorer(page).waitFor();
   await page.waitForFunction(() => {
@@ -47,6 +69,7 @@ async function settled(page) {
       root &&
       !root.querySelector('[data-status="loading"], [data-status="error"]') &&
       !root.querySelector('.ds-meta-error') &&
+      !root.querySelector('.ds-summary-status') &&
       !root.querySelector('.ds-legend')?.textContent.includes('loading') &&
       !root.textContent.includes('Traveling through the overview')
     );
@@ -60,19 +83,28 @@ async function click(page, target) {
   await target.click();
 }
 async function prepare(page, url, scene, filming) {
-  await page.goto(`${url}?capture=1&scene=${scene.id}${filming ? '&film=1' : ''}`);
+  // The demo's theme switch lives in its normal header. Keep that one scene in
+  // embedded mode; all other scenes use the existing full-page product view.
+  const embedded = scene.theme === 'dark';
+  await page.setViewportSize(embedded ? embeddedSize : recordingSize);
+  await page.goto(
+    `${url}?capture=1${embedded ? '' : '&page=1'}&scene=${scene.id}${filming ? '&film=1' : ''}`,
+  );
   await settled(page);
   await explorer(page).locator('[role="row"][data-status="ready"]').first().waitFor();
-  if (scene.theme === 'dark')
-    await page.getByRole('button', { name: 'Toggle color theme' }).click();
+  if (embedded) await page.getByRole('button', { name: 'Toggle color theme' }).click();
   if (scene.action === 'expand') {
+    await page.getByRole('button', { name: 'Debug', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Dynamic row heights', exact: true }).check();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     await settled(page);
   }
   // Move the camera to the table, without changing the product's CSS or markup.
-  await explorer(page).evaluate((node) =>
-    node.scrollIntoView({ block: 'start', behavior: 'instant' }),
-  );
+  if (embedded) {
+    await explorer(page).evaluate((node) =>
+      node.scrollIntoView({ block: 'start', behavior: 'instant' }),
+    );
+  }
   await pause(page, 400);
   await page.mouse.move(20, 20);
   return explorer(page).boundingBox();
@@ -80,42 +112,92 @@ async function prepare(page, url, scene, filming) {
 async function perform(page, scene, filming) {
   const hold = (ms) => (filming ? pause(page, ms) : Promise.resolve());
   const table = explorer(page);
+  const rowReady = (index) =>
+    table.locator(`[role="row"][aria-rowindex="${index + 1}"][data-status="ready"]`).waitFor();
+  const openJump = async () => {
+    await click(page, table.getByRole('button', { name: /Go to…/ }));
+    return page.getByRole('textbox', { name: 'Go to row, date, or event' });
+  };
+  const jumpResult = (index) =>
+    page.locator('.ds-jump-results button').filter({ hasText: `Row ${rowLabel(index)}` });
+  const select = async (first, last) => {
+    await click(page, page.getByRole('button', { name: /^Enter row numbers/ }));
+    await page.getByLabel('From row', { exact: true }).fill(String(first));
+    await page.getByLabel('To row', { exact: true }).fill(String(last));
+    await click(page, page.getByRole('button', { name: 'Use these rows', exact: true }));
+  };
+  const jumpTo = async (index) => {
+    const input = await openJump();
+    await input.pressSequentially(rowLabel(index), { delay: filming ? 60 : 0 });
+    await jumpResult(index).waitFor();
+    await hold(350);
+    await input.press('Enter');
+    await rowReady(index);
+    await settled(page);
+  };
   await hold(650);
   if (scene.action === 'jump') {
-    await click(page, table.getByRole('button', { name: /Go to…/ }));
-    const input = page.getByRole('textbox', { name: 'Go to row, date, or event' });
-    const query =
-      scene.id === 'jump'
-        ? '73,500,000'
-        : scene.id === 'genome'
-          ? 'BRCA1'
-          : scene.id === 'market'
-            ? 'Flash crash'
-            : 'Sirius';
-    await input.pressSequentially(query, { delay: filming ? 75 : 0 });
-    await page
-      .locator('.ds-jump-results button')
-      .filter({ hasText: `Row ${(scene.target + 1).toLocaleString('en-US')}` })
-      .waitFor();
-    await hold(550);
+    if (!scene.query) throw new Error(`Jump scene ${scene.id} needs a query in scenes.ts`);
+    const input = await openJump();
+    await input.pressSequentially(scene.query, { delay: filming ? 75 : 0 });
+    await jumpResult(scene.target).first().waitFor();
+    // Named markers can arrive before the provider search finishes. Enter is
+    // intentionally ignored while busy, so wait for the actual search status.
+    await page.waitForFunction(() => {
+      const status = document.querySelector('dialog[open] [role="status"]');
+      return status && !status.textContent.includes('Searching');
+    });
+    await hold(1100);
     await input.press('Enter');
-    await table
-      .locator(`[role="row"][aria-rowindex="${scene.target + 1}"][data-status="ready"]`)
-      .waitFor();
+    await rowReady(scene.target);
+  } else if (scene.action === 'history') {
+    await jumpTo(scene.target);
+    await hold(1100);
+    await click(
+      page,
+      table.getByRole('button', { name: 'Back to previous location', exact: true }),
+    );
+    await rowReady(scene.index);
+    await settled(page);
+    await hold(1400);
+    await click(page, table.getByRole('button', { name: 'Forward', exact: true }));
+    await rowReady(scene.target);
+  } else if (scene.action === 'select') {
+    await click(page, table.getByRole('button', { name: 'Select rows', exact: true }));
+    await select(73_500_000, 73_500_100);
+    const selection = table.getByRole('region', { name: 'Your selection', exact: true });
+    await click(page, selection.getByText('Show summary', { exact: true }));
+    await selection.getByText('Estimated summary', { exact: true }).waitFor();
+    await hold(1700);
+  } else if (scene.action === 'save') {
+    await click(page, table.getByRole('button', { name: /^Bookmarks/ }));
+    await click(
+      page,
+      table.getByRole('button', { name: 'Bookmark current position', exact: true }),
+    );
+    await page.getByLabel('Bookmark name', { exact: true }).fill('Signal investigation');
+    await hold(500);
+    await click(page, table.getByRole('button', { name: 'Save bookmark', exact: true }));
+    await table.getByRole('status').filter({ hasText: 'Saved “Signal investigation”' }).waitFor();
+    await hold(600);
+    await jumpTo(scene.target);
+    await hold(700);
+    await click(page, table.getByRole('button', { name: /^Bookmarks/ }));
+    await hold(900);
+    await click(page, table.getByRole('button', { name: /^Signal investigation/ }));
+    await rowReady(scene.index);
   } else if (scene.action === 'overview') {
     await table.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
     await click(page, table.getByRole('button', { name: 'Fit dataset', exact: true }));
-  } else if (scene.action === 'lens') {
-    await table.getByRole('combobox', { name: 'View', exact: true }).selectOption('lens');
+    await table.locator('.ds-summary-band[aria-rowindex="1"]').waitFor();
   } else if (scene.action === 'search') {
-    await click(page, table.getByRole('button', { name: /Go to…/ }));
-    const input = page.getByRole('textbox', { name: 'Go to row, date, or event' });
+    const input = await openJump();
     await input.pressSequentially('status >= 500', { delay: filming ? 55 : 0 });
     await page
       .getByRole('button', { name: /^status 50\d/ })
       .first()
       .waitFor();
-    await hold(1200);
+    await hold(1800);
     if (filming) {
       await input.press('Enter');
       await table
@@ -131,17 +213,11 @@ async function perform(page, scene, filming) {
     await table.locator('.expanded-note').waitFor();
   } else if (scene.action === 'compare') {
     await click(page, table.getByRole('button', { name: 'Select rows', exact: true }));
-    const select = async (first, last) => {
-      await click(page, page.getByRole('button', { name: /^Enter row numbers/ }));
-      await page.getByLabel('From row', { exact: true }).fill(String(first));
-      await page.getByLabel('To row', { exact: true }).fill(String(last));
-      await click(page, page.getByRole('button', { name: 'Use these rows', exact: true }));
-    };
     await select(1_000_000, 1_000_100);
     await click(page, page.getByRole('button', { name: 'Compare ranges', exact: true }));
     await click(page, page.getByRole('button', { name: 'Choose second range', exact: true }));
     await select(61_700_000, 61_700_100);
-    await hold(300);
+    await hold(900);
     await click(page, page.getByRole('button', { name: 'Show comparison', exact: true }));
     const dialog = page.getByRole('dialog', { name: 'Compare selected ranges' });
     await dialog
@@ -161,7 +237,7 @@ async function perform(page, scene, filming) {
         ).length === 2,
     );
     if (filming) {
-      await hold(600);
+      await hold(1600);
       await dialog.getByRole('grid', { name: 'First range rows' }).hover();
       await page.mouse.wheel(0, 160);
     }
@@ -176,35 +252,38 @@ async function perform(page, scene, filming) {
   await pause(page, 500);
 }
 async function still(page, scene, file) {
+  const table = explorer(page);
   await page.mouse.move(20, 20);
   if (scene.action === 'compare') {
     await page.getByRole('dialog', { name: 'Compare selected ranges' }).screenshot({ path: file });
   } else if (scene.action === 'search') {
-    const table = await explorer(page).boundingBox();
-    const dialog = await page.getByRole('dialog', { name: 'Jump to a location' }).boundingBox();
-    const left = Math.min(table.x, dialog.x),
-      top = Math.min(table.y, dialog.y);
-    await page.screenshot({
-      path: file,
-      clip: {
-        x: left,
-        y: top,
-        width: Math.max(table.x + table.width, dialog.x + dialog.width) - left,
-        height: Math.max(table.y + table.height, dialog.y + dialog.height) - top,
-      },
-    });
-  } else if (scene.id === 'hero') {
-    await page.evaluate(() => window.scrollTo(0, 0));
-    const header = await page.locator('.site-header').boundingBox();
-    const table = await explorer(page).boundingBox();
-    await page.screenshot({
-      path: file,
-      fullPage: true,
-      clip: { x: header.x, y: 0, width: header.width, height: table.y + table.height + 1 },
-    });
+    // A search image should let readers read the query and completeness label,
+    // not surround a tiny dialog with a large, blurred, inactive table.
+    await page.getByRole('dialog', { name: 'Jump to a location' }).screenshot({ path: file });
+  } else if (scene.action === 'save') {
+    // The restored rows alone look like an ordinary table. Show the bookmark
+    // alongside its destination so this still actually explains the feature.
+    await click(page, table.getByRole('button', { name: /^Bookmarks/ }));
+    await table.getByRole('button', { name: /^Signal investigation/ }).waitFor();
+    await page.mouse.move(0, 0);
+    await table.screenshot({ path: file, animations: 'disabled' });
   } else {
-    await explorer(page).screenshot({ path: file, animations: 'disabled' });
+    await table.screenshot({ path: file, animations: 'disabled' });
   }
+}
+
+// Title cards are exported as three layers so FFmpeg can reveal the headline and
+// diagram independently, while the logo/footer stay still and legible.
+const cardCopy = '.film-card-copy, .film-capabilities-copy';
+const cardVisual = '.film-map, .film-capability-grid';
+const transparentCard =
+  'html, body, .media-artwork-preview, .film-canvas { background: transparent !important; } .film-canvas::before, .film-header, .film-card-footer { visibility: hidden; }';
+const hidden = (selectors) => `${selectors} { visibility: hidden; }`;
+const cardLayer = (id, name) => path.join(scratch, `${id}-${name}.png`);
+async function screenshotWith(page, css, options) {
+  const style = await page.addStyleTag({ content: css });
+  await page.screenshot(options);
+  await style.evaluate((node) => node.remove());
 }
 
 let server;
@@ -214,12 +293,15 @@ let failed = false;
 const manifest = {
   generatedAt: new Date().toISOString(),
   viewport: size,
+  recordingViewport: video ? recordingSize : undefined,
+  screenshotScale: screenshots ? 2 : undefined,
   synthetic: true,
   scenes: [],
   sequence: [],
 };
 try {
   if (video) {
+    await soundtrackSource();
     try {
       await run(ffmpeg, ['-version']);
     } catch {
@@ -231,12 +313,19 @@ try {
   await mkdir(output, { recursive: true });
   await mkdir(images, { recursive: true });
   scratch = await mkdtemp(path.join(output, '.capture-'));
-  server = await createServer({
+  // Freeze a build for this take: edits in the shared checkout must not hot-reload a recording.
+  const studioBuild = path.join(scratch, 'studio');
+  await build({
     configFile: path.join(root, 'media/vite.config.ts'),
-    server: { port: 0, strictPort: false, open: false },
+    build: { outDir: studioBuild },
     logLevel: 'error',
   });
-  await server.listen();
+  server = await preview({
+    configFile: path.join(root, 'media/vite.config.ts'),
+    build: { outDir: studioBuild },
+    preview: { host: '127.0.0.1', port: 0, strictPort: false, open: false },
+    logLevel: 'error',
+  });
   const url = server.resolvedUrls.local[0];
   browser = await chromium.launch({ headless: true });
   const discovery = await browser.newPage();
@@ -245,8 +334,8 @@ try {
   let filmWindow;
   try {
     await discovery.goto(`${url}?capture=1`);
-    await discovery.waitForFunction(() => window.__deepscrollMedia);
-    ({ scenes, titleCards, filmWindow } = await discovery.evaluate(() => window.__deepscrollMedia));
+    await discovery.waitForFunction(() => window.__granumGridMedia);
+    ({ scenes, titleCards, filmWindow } = await discovery.evaluate(() => window.__granumGridMedia));
   } finally {
     await discovery.close();
   }
@@ -258,15 +347,25 @@ try {
     try {
       const page = await context.newPage();
       const errors = [];
-      page.on('pageerror', (error) => errors.push(error.message));
-      page.on('console', (message) => {
-        if (message.type() === 'error') errors.push(message.text());
-      });
+      collectErrors(page, errors);
       await page.goto(`${url}?artwork=${card ? id : 'scene'}&scene=${id}&plate=1`);
       await page.locator('.film-canvas').waitFor();
       await page.evaluate(() => document.fonts.ready);
       const file = path.join(scratch, `${id}-artwork.png`);
       await page.screenshot({ path: file });
+      if (card) {
+        await screenshotWith(page, hidden(`${cardCopy}, ${cardVisual}`), {
+          path: cardLayer(id, 'base'),
+        });
+        await screenshotWith(page, `${transparentCard} ${hidden(cardVisual)}`, {
+          path: cardLayer(id, 'copy'),
+          omitBackground: true,
+        });
+        await screenshotWith(page, `${transparentCard} ${hidden(cardCopy)}`, {
+          path: cardLayer(id, 'visual'),
+          omitBackground: true,
+        });
+      }
       if (errors.length) throw new Error(`${id} artwork errors:\n${errors.join('\n')}`);
       return file;
     } finally {
@@ -275,32 +374,19 @@ try {
   }
   async function titleCard(id) {
     const card = titleCards.find((item) => item.id === id);
-    const image = await artwork(id, true);
-    await run(ffmpeg, [
-      '-y',
-      '-loglevel',
-      'error',
-      '-loop',
-      '1',
-      '-framerate',
-      '30',
-      '-i',
-      image,
-      '-vf',
-      `scale=3840:2160,zoompan=z='1+0.00006*on':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30,fade=t=in:st=0:d=0.25,fade=t=out:st=${card.seconds - 0.3}:d=0.3`,
-      '-t',
-      String(card.seconds),
-      '-c:v',
-      'libx264',
-      '-preset',
-      'fast',
-      '-crf',
-      '19',
-      '-pix_fmt',
-      'yuv420p',
-      '-an',
+    await artwork(id, true);
+    await runFFmpeg(
+      loopImage(cardLayer(id, 'base')),
+      loopImage(cardLayer(id, 'copy')),
+      loopImage(cardLayer(id, 'visual')),
+      [
+        '-filter_complex',
+        `[1:v]format=rgba,fade=t=in:st=0.1:d=0.55:alpha=1[copy];[2:v]format=rgba,fade=t=in:st=0.35:d=0.65:alpha=1[visual];[0:v][copy]overlay=0:'40*pow(1-min(t/0.75,1),3)'[text];[text][visual]overlay='85*pow(1-min(t/1.05,1),3)':0,fade=t=out:st=${card.seconds - 0.3}:d=0.3,format=yuv420p[film]`,
+      ],
+      ['-map', '[film]', '-t', String(card.seconds)],
+      h264,
       path.join(scratch, `${id}.mp4`),
-    ]);
+    );
     manifest.sequence.push({ ...card, kind: 'title' });
   }
   if (video && !filter) {
@@ -311,11 +397,8 @@ try {
   for (const scene of scenes) {
     console.log(`Capturing ${scene.id}…`);
     const background = video ? await artwork(scene.id) : undefined;
-    const context = await browser.newContext({
-      viewport: size,
-      deviceScaleFactor: 1,
-      locale: 'en-US',
-      timezoneId: 'UTC',
+    const context = await sceneContext({
+      deviceScaleFactor: video ? 1 : 2,
       reducedMotion: 'no-preference',
       colorScheme: scene.theme ?? 'light',
     });
@@ -329,10 +412,7 @@ try {
     try {
       page = await context.newPage();
       page.setDefaultTimeout(20000);
-      page.on('pageerror', (error) => errors.push(error.message));
-      page.on('console', (message) => {
-        if (message.type() === 'error') errors.push(message.text());
-      });
+      collectErrors(page, errors);
       const camera = await prepare(page, url, scene, video);
       if (video) {
         // Chromium emits frames only when content changes. Timestamp each still and let
@@ -380,64 +460,52 @@ try {
           );
           const clip = path.join(scratch, `${scene.id}.mp4`);
           const crop =
-            scene.action === 'compare'
-              ? ''
-              : `crop=${Math.round(camera.width)}:${Math.round(camera.height)}:${Math.round(camera.x)}:${Math.round(camera.y)},`;
+            scene.theme === 'dark'
+              ? `crop=${Math.round(camera.width)}:${Math.round(camera.height)}:${Math.round(camera.x)}:${Math.round(camera.y)},`
+              : '';
           const { x, y, width, height } = filmWindow;
-          await run(ffmpeg, [
-            '-y',
-            '-loglevel',
-            'error',
-            '-loop',
-            '1',
-            '-framerate',
-            '30',
-            '-i',
-            background,
-            '-f',
-            'concat',
-            '-safe',
-            '0',
-            '-i',
-            path.join(frameDir, 'frames.txt'),
-            '-filter_complex',
-            `[1:v]${crop}scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=0x151c18,setsar=1[live];[0:v][live]overlay=${x}:${y}:shortest=1,fade=t=in:st=0:d=0.18,fps=30[film]`,
-            '-map',
-            '[film]',
-            '-t',
-            length.toFixed(3),
-            '-c:v',
-            'libx264',
-            '-preset',
-            'fast',
-            '-crf',
-            '19',
-            '-pix_fmt',
-            'yuv420p',
-            '-an',
+          await runFFmpeg(
+            loopImage(background),
+            concatList(path.join(frameDir, 'frames.txt')),
+            [
+              '-filter_complex',
+              `[1:v]${crop}scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=${scene.theme === 'dark' ? '0x181b22' : '0xe8e9ed'},setsar=1[live];[0:v][live]overlay=${x}:${y}:shortest=1,fade=t=in:st=0:d=0.18,fps=30[film]`,
+            ],
+            ['-map', '[film]', '-t', length.toFixed(3)],
+            h264,
             clip,
-          ]);
+          );
           return { clip, length };
         };
       }
       await perform(page, scene, video);
       let clip;
       if (video) {
-        await pause(page, Math.max(1000, scene.seconds * 1000 - (Date.now() - began)));
+        // Reserve a readable result, regardless of how long loading/typing took.
+        await pause(page, Math.max(3000, scene.seconds * 1000 - (Date.now() - began)));
         clip = await encoder();
       }
       if (screenshots) {
         // Always capture the same deterministic still, independently of the film's end state.
         if (video) {
-          await prepare(page, url, scene, false);
-          await perform(page, scene, false);
+          const stillContext = await sceneContext({ deviceScaleFactor: 2 });
+          try {
+            const stillPage = await stillContext.newPage();
+            collectErrors(stillPage, errors);
+            await prepare(stillPage, url, scene, false);
+            await perform(stillPage, scene, false);
+            await still(stillPage, scene, path.join(scratch, `${scene.id}.png`));
+          } finally {
+            await stillContext.close();
+          }
+        } else {
+          await still(page, scene, path.join(scratch, `${scene.id}.png`));
         }
-        await still(page, scene, path.join(scratch, `${scene.id}.png`));
       }
       if (errors.length) throw new Error(`${scene.id} browser errors:\n${errors.join('\n')}`);
       manifest.scenes.push({
         id: scene.id,
-        title: scene.title.replace('\n', ' '),
+        title: scene.title,
         headline: scene.headline,
         seconds: clip?.length,
         screenshot: screenshots ? `media/images/${scene.id}.png` : undefined,
@@ -458,30 +526,35 @@ try {
   }
   if (video) {
     if (!filter) {
+      console.log('Rendering integration features…');
+      await titleCard('capabilities');
       console.log('Rendering closing card…');
       await titleCard('outro');
     }
     const list = manifest.sequence.map((scene) => `file '${scene.id}.mp4'`).join('\n');
     await writeFile(path.join(scratch, 'clips.txt'), list);
-    const filename = filter ? `deepscroll-${filter}.mp4` : 'deepscroll-launch.mp4';
+    const filename = filter ? `granum-grid-${filter}.mp4` : 'granum-grid-launch.mp4';
     manifest.video = `media/output/${filename}`;
-    await run(ffmpeg, [
-      '-y',
-      '-loglevel',
-      'error',
-      '-f',
-      'concat',
-      '-safe',
-      '0',
-      '-i',
-      path.join(scratch, 'clips.txt'),
-      '-c',
-      'copy',
-      '-movflags',
-      '+faststart',
+    const duration = manifest.sequence.reduce((sum, item) => sum + item.seconds, 0);
+    const scoreName = filename.replace('.mp4', '-score.wav');
+    console.log('Mixing Firefly by Scott Buckley…');
+    manifest.audio = {
+      ...(await renderSoundtrack(path.join(scratch, scoreName), duration, { encode: run, ffmpeg })),
+      mix: 'AAC stereo, 192 kb/s, two-pass -17 LUFS target, -2 dBTP master ceiling',
+    };
+    await runFFmpeg(
+      concatList(path.join(scratch, 'clips.txt')),
+      ['-i', path.join(scratch, scoreName)],
+      ['-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy'],
+      ['-c:a', 'aac', '-b:a', '192k', '-ar', '48000'],
+      ['-shortest', '-movflags', '+faststart'],
       path.join(scratch, filename),
-    ]);
+    );
     await rename(path.join(scratch, filename), path.join(output, filename));
+    await writeFile(
+      path.join(output, filename.replace('.mp4', '-description.txt')),
+      `Turn data into clarity with Granum Grid. Explore, search, compare, and save useful views.\n\nGenerated demonstration data; sampled summaries and partial search are labeled.\n\n${soundtrack.credit}\nTrack: ${soundtrack.source}\nLicense: ${soundtrack.licenseUrl}\nMusic edited to picture with fades and loudness adjustment.\n\nKeep this music credit in the description when publishing the video.\n`,
+    );
     const cueTime = (seconds) => {
       const ms = Math.round(seconds * 1000);
       return `${String(Math.floor(ms / 3600000)).padStart(2, '0')}:${String(Math.floor(ms / 60000) % 60).padStart(2, '0')}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')},${String(ms % 1000).padStart(3, '0')}`;
@@ -495,7 +568,9 @@ try {
       })
       .join('\n');
     await writeFile(path.join(output, filename.replace('.mp4', '.srt')), captions);
-    console.log(`Video: media/output/${filename} (${position.toFixed(1)}s, 1920×1080, silent)`);
+    console.log(
+      `Video: media/output/${filename} (${position.toFixed(1)}s, 1920×1080, licensed music)`,
+    );
   }
   if (screenshots) {
     for (const scene of manifest.scenes)

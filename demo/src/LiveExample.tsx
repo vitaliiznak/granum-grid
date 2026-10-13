@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DeepScroll, type DataProvider } from 'deepscroll';
+import { GranumGrid, type DataProvider } from 'granum-grid';
 
 function Feed() {
   const [count, setCount] = useState(200),
@@ -31,9 +31,10 @@ function Feed() {
       <button onClick={() => setRunning(!running)}>
         {running ? 'Pause events' : 'Start events'}
       </button>
-      <DeepScroll
+      <GranumGrid
         provider={provider}
         ariaLabel="Live example events"
+        dataMode="append"
         followOutput
         initialIndex={199}
         rowHeight={36}

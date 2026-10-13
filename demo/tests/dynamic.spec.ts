@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test, MOBILE } from './fixtures';
 
 async function assertAdjacent(page: Page) {
   await expect
@@ -17,15 +18,17 @@ async function assertAdjacent(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('deepscroll-hints-v1', 'done'));
   await page.goto('/?dataset=signal');
+  await page.getByRole('button', { name: 'Debug', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Dynamic row heights' }).check();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Expand row 1', exact: true })).toBeVisible();
 });
 
-test('dynamic rows resize, remain adjacent, and keep the viewport anchor', async ({ page }) => {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+test('dynamic rows resize, remain adjacent, and keep the viewport anchor', async ({
+  page,
+  pageErrors,
+}) => {
   const grid = page.getByRole('grid');
   const first = grid.locator('[aria-rowindex="1"]');
   await assertAdjacent(page);
@@ -51,7 +54,7 @@ test('dynamic rows resize, remain adjacent, and keep the viewport anchor', async
   await assertAdjacent(page);
   await expect.poll(async () => (await first.boundingBox())!.height).toBeCloseTo(before!.height, 0);
   expect(await grid.locator('[role=row]').count()).toBeLessThan(40);
-  expect(errors).toEqual([]);
+  expect(pageErrors).toEqual([]);
 });
 
 test('distant jumps honor each alignment, auto is stable, and location restores', async ({
@@ -60,8 +63,10 @@ test('distant jumps honor each alignment, auto is stable, and location restores'
   const grid = page.getByRole('grid');
   const target = grid.locator('[aria-rowindex="73500000"]');
   for (const align of ['start', 'center', 'end']) {
+    await page.getByRole('button', { name: 'Debug', exact: true }).click();
     await page.getByRole('combobox', { name: 'Row alignment' }).selectOption(align);
     await page.getByRole('button', { name: 'Go to row', exact: true }).click();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(target).toHaveAttribute('data-status', 'ready');
     await expect
       .poll(async () => {
@@ -79,30 +84,36 @@ test('distant jumps honor each alignment, auto is stable, and location restores'
     await assertAdjacent(page);
   }
   const position = await page.getByTestId('position').innerText();
+  await page.getByRole('button', { name: 'Debug', exact: true }).click();
   await page.getByRole('combobox', { name: 'Row alignment' }).selectOption('auto');
   await page.getByRole('button', { name: 'Go to row', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText(position);
   await page.getByRole('button', { name: 'Save position', exact: true }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await grid.press('Home');
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
+  await page.getByRole('button', { name: 'Debug', exact: true }).click();
   await page.getByRole('button', { name: 'Restore position', exact: true }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText(position);
   await assertAdjacent(page);
 });
 
-test('wrapping responds to width and measured detail works in Lens and Zoom', async ({ page }) => {
+test('wrapping responds to width and measured detail works in Range summaries and Rows', async ({
+  page,
+}) => {
   await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
   const target = page.getByRole('grid').locator('[aria-rowindex="61700000"]');
   await expect(target).toHaveAttribute('data-status', 'ready');
   await assertAdjacent(page);
   const desktopHeight = (await target.boundingBox())!.height;
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize(MOBILE);
   await expect
     .poll(async () => (await target.boundingBox())!.height)
     .toBeGreaterThan(desktopHeight);
   await assertAdjacent(page);
-  for (const view of ['Lens', 'Zoom', 'Rows']) {
+  for (const view of ['Zoom', 'Rows']) {
     await page
       .getByRole('combobox', { name: 'View', exact: true })
       .selectOption(view.toLowerCase());

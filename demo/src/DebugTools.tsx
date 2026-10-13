@@ -1,7 +1,5 @@
-import { useRef } from 'react';
-import type { ScrollStats } from 'deepscroll';
-import { LatencyControl } from './Playground';
-import { DEFAULT_LATENCY } from './data/provider';
+import { useRef, type ReactNode } from 'react';
+import type { Features, ScrollStats } from 'granum-grid';
 
 function BugIcon() {
   return (
@@ -24,14 +22,46 @@ function BugIcon() {
   );
 }
 
+const labels: Record<keyof Features, string> = {
+  overview: 'Overview graph',
+  chapters: 'Year chapters',
+  markers: 'Event markers',
+  magnetism: 'Magnetic snapping',
+  magnifier: 'Track magnifier',
+  precision: 'Precision scrubbing',
+  preview: 'Real row previews',
+  trail: 'Visited trail',
+  inertia: 'Touch inertia',
+  edgeElasticity: 'Elastic edges',
+  automaticAggregation: 'Zoom out at speed',
+  flight: 'Fly-to animation',
+  transitions: 'View transitions',
+  progressiveEstimates: 'Progressive estimates',
+  prefetch: 'Predictive prefetch',
+  hints: 'Context hints',
+};
 export function DebugTools({
   latency,
   onLatency,
+  simulateLatency,
+  features,
+  onFeatures,
+  reduced,
+  onReduced,
   stats,
+  onReset,
+  children,
 }: {
   latency: number;
   onLatency(value: number): void;
+  simulateLatency: boolean;
+  features: Features;
+  onFeatures(value: Features): void;
+  reduced: boolean;
+  onReduced(value: boolean): void;
   stats: ScrollStats | null;
+  onReset(): void;
+  children?: ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   return (
@@ -39,33 +69,98 @@ export function DebugTools({
       <button
         className="ds-button debug-trigger"
         aria-haspopup="dialog"
-        title="Adjust the artificial delay added to each new data request"
-        onClick={() => dialog.current?.showModal()}
+        title="Developer tools: simulation, behavior, and performance"
+        onClick={(event) => {
+          // WebKit does not focus buttons on click; give the dialog a return target.
+          event.currentTarget.focus({ preventScroll: true });
+          dialog.current?.showModal();
+        }}
       >
-        <BugIcon />
-        Simulated server latency: {latency / 1000} s
+        <BugIcon /> Debug
       </button>
-      <dialog ref={dialog} className="debug-dialog" aria-label="Debug and simulation settings">
+      <dialog ref={dialog} className="debug-dialog" aria-label="Debug">
         <div className="debug-heading">
           <h2>
-            <BugIcon /> Debug and simulation settings
+            <BugIcon /> Debug
           </h2>
           <button className="ds-button" onClick={() => dialog.current?.close()}>
             Close
           </button>
         </div>
-        <p>This demo adds an artificial delay to simulate a slower server.</p>
-        <LatencyControl latency={latency} onLatency={onLatency} />
-        <p className="debug-help">
-          Applies immediately to new requests. Cached rows stay instant. Close this panel to try
-          scrolling or jumping to another row.
-        </p>
-        <div className="debug-stats">
-          <span>{stats?.activeRequests ?? 0} requests in flight</span>
-          <span>{stats?.cachedRows.toLocaleString() ?? '0'} cached rows</span>
-        </div>
-        <button className="ds-button" onClick={() => onLatency(DEFAULT_LATENCY)}>
-          Reset to {DEFAULT_LATENCY / 1000} s
+        {simulateLatency && (
+          <section className="debug-section" aria-label="Server simulation">
+            <label className="latency-label">
+              <span>Simulated server latency</span>
+              <input
+                aria-label="Simulated server latency"
+                type="range"
+                min="0"
+                max="10000"
+                step="40"
+                value={latency}
+                onChange={(event) => onLatency(+event.target.value)}
+              />
+              <output>{latency / 1000} s</output>
+            </label>
+            <p className="debug-help">
+              Artificial delay for new requests. Cached rows stay instant. Close Debug to try
+              scrolling or jumping to another row.
+            </p>
+          </section>
+        )}
+        <section className="debug-section" aria-label="Behavior">
+          <h3>Behavior</h3>
+          <label className="feature-switch">
+            <input
+              type="checkbox"
+              checked={reduced}
+              onChange={(event) => onReduced(event.target.checked)}
+            />
+            Emulate reduced motion
+          </label>
+          <div className="feature-grid">
+            {(Object.keys(labels) as (keyof Features)[]).map((key) => (
+              <label key={key} className="feature-switch">
+                <input
+                  type="checkbox"
+                  checked={features[key]}
+                  onChange={(event) => onFeatures({ ...features, [key]: event.target.checked })}
+                />
+                {labels[key]}
+              </label>
+            ))}
+          </div>
+        </section>
+        {children}
+        <section className="debug-section" aria-label="Performance">
+          <h3>Performance</h3>
+          <div className="debug-stats">
+            <span>
+              <strong>{stats?.cachedRows.toLocaleString() ?? '0'}</strong> cached rows
+            </span>
+            <span>
+              <strong>{((stats?.cachedBytes ?? 0) / 1024).toFixed(0)} KiB</strong> estimated cache
+            </span>
+            <span>
+              <strong>{stats?.activeRequests ?? 0}</strong> in flight
+            </span>
+            <span>
+              <strong>{stats?.abortedRequests ?? 0}</strong> canceled
+            </span>
+            <span>
+              <strong>{stats?.fps ?? '—'}</strong> measured fps
+            </span>
+            <span>
+              <strong>{stats?.completedFetches ?? 0}</strong> pages fetched
+            </span>
+            <span>
+              <strong>{stats?.measuredRows ?? 0}</strong> measured heights
+            </span>
+          </div>
+          <p className="debug-help">Frame rate is measured during navigation on this device.</p>
+        </section>
+        <button className="ds-button" onClick={onReset}>
+          Reset defaults
         </button>
       </dialog>
     </>

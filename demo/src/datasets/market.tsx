@@ -1,26 +1,24 @@
 import {
   ALL_TIME_HIGH,
   MARKET_EVENTS,
-  MARKET_START,
-  MARKET_END,
   TRADE_COUNT,
-  marketIndexAt,
+  marketTime,
   priceAt,
   tradeAt,
   type Trade,
 } from '../data/market';
 import { syntheticProvider } from '../data/synthetic';
 import { MarketIcon } from './icons';
-import { compact, formatCount, type DemoDataset } from './types';
+import { compact, formatCount, showAll, type DemoDataset } from './types';
 
 const eventIndex = (x: number) => Math.round(x * (TRADE_COUNT - 1));
-const years = Array.from({ length: 10 }, (_, i) => ({
-  id: `year-${2016 + i}`,
-  start: marketIndexAt(Date.UTC(2016 + i, 0, 1)),
-  end: i === 9 ? TRADE_COUNT : marketIndexAt(Date.UTC(2017 + i, 0, 1)),
-  label: `${2016 + i}`,
-  breadcrumb: ['Market tape', `${2016 + i}`],
-}));
+const years = marketTime.chapters(
+  Array.from({ length: 10 }, (_, i) => Date.UTC(2016 + i, 0, 1)),
+  (time) => {
+    const year = `${new Date(time).getUTCFullYear()}`;
+    return { id: `year-${year}`, label: year, breadcrumb: ['Market tape', year] };
+  },
+);
 const provider = syntheticProvider<Trade>({
   id: 'market',
   metric: { label: 'Price', unit: 'USD', kind: 'value', domain: [0, 360] },
@@ -36,21 +34,14 @@ const provider = syntheticProvider<Trade>({
   ].sort((a, b) => a.index - b.index),
   chapters: years,
   search: {
-    examples: 'size > 5000, price < 120, side = "SELL", or 2020-03',
+    examples: ['size > 5000', 'price < 120', 'side = "SELL"', '2020-03'],
     fields: {
       price: { kind: 'number', read: priceAt },
       size: { kind: 'number', read: (i) => tradeAt(i).size },
       side: { kind: 'text', read: (i) => tradeAt(i).side },
       venue: { kind: 'text', read: (i) => tradeAt(i).venue },
     },
-    date(text) {
-      const time = Date.parse(
-        `${text.length === 4 ? `${text}-01-01` : text.length === 7 ? `${text}-01` : text}T00:00:00Z`,
-      );
-      return Number.isFinite(time) && time >= MARKET_START && time < MARKET_END
-        ? marketIndexAt(time)
-        : null;
-    },
+    date: (text) => marketTime.dateIndex(text),
     label: (index, field, value) =>
       `${field} ${typeof value === 'number' ? formatCount(value) : value} · ${tradeAt(index).time.slice(0, 16).replace('T', ' ')}`,
   },
@@ -63,7 +54,7 @@ export const market: DemoDataset<Trade> = {
   title: 'Market tape',
   description:
     'Ten years of tick-by-tick trades in DSX, a fictional 24/7 composite. Crashes, a rate shock, and block trades are all in the tape.',
-  facts: [`${formatCount(TRADE_COUNT)} trades`, '10 years', '2016–2025'],
+  facts: ['10 years', '2016–2025'],
   icon: <MarketIcon />,
   provider,
   ariaLabel: 'Synthetic trades',
@@ -74,9 +65,8 @@ export const market: DemoDataset<Trade> = {
   task: {
     title: 'Find a sharp price change, then inspect the trades around it.',
     action: 'See whole tape',
-    run: (controller) => controller.zoomToRange({ start: 0, end: TRADE_COUNT }),
+    run: showAll,
   },
-  help: 'Every row is one trade. Use the map to find a crash or a year.',
   atlas: { axisLabel: 'Year', formatValue: (v) => `$${v.toFixed(0)}` },
   map: {
     chapters: 'Years',
@@ -127,12 +117,6 @@ export const market: DemoDataset<Trade> = {
       label: 'Ten years at once',
       hint: 'The overview turns 750 million trades into a readable chart. Ctrl + wheel to zoom.',
       run: ({ fit }) => fit(),
-    },
-    {
-      feature: 'Focus',
-      requiredView: 'lens',
-      label: 'Focused rows',
-      hint: 'Read the trades around you while the rest of the decade compresses beside them.',
     },
   ],
   renderRow: ({ row }) => (

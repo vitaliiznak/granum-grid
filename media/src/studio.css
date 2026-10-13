@@ -60,7 +60,7 @@
 .media-preview-link {
   display: block;
   margin: 12px 0;
-  color: #354b21;
+  color: #2459ee;
   font-size: 12px;
 }
 .media-note {
@@ -82,6 +82,13 @@
   pointer-events: none;
   z-index: 2147483647;
   transform-origin: 2px 2px;
+}
+.media-artwork-preview {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #14171e;
 }
 @media (max-width: 800px) {
   .media-studio {

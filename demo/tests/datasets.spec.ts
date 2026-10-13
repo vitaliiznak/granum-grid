@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { GENES } from '../src/data/genome';
 
 const brca1 = GENES.find((gene) => gene.name === 'BRCA1')!;

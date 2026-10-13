@@ -1,4 +1,13 @@
-import type { AggregateRequest, Bucket, DataProvider, RowRange } from 'deepscroll';
+// Type-only library imports: the dev server's trace plugin loads this file without a build.
+import type { AggregateRequest, Bucket, DataProvider, RowRange } from 'granum-grid';
+import { splitRange } from './ranges';
+import {
+  NUMBER_OPERATORS,
+  TEXT_OPERATORS,
+  checkPredicate,
+  compare,
+  yieldToEventLoop,
+} from './search';
 
 export const MAX_TRACE_BYTES = 25 * 1024 * 1024;
 export const MAX_TRACE_EVENTS = 150_000;
@@ -89,10 +98,8 @@ export function traceRangeLabel(recording: TraceRecording, range: RowRange) {
     : 'Empty range';
 }
 export function traceBuckets(recording: TraceRecording, range: AggregateRequest): Bucket[] {
-  const n = Math.min(range.buckets, range.end - range.start);
-  return Array.from({ length: n }, (_, i) => {
-    const start = range.start + Math.floor((i * (range.end - range.start)) / n);
-    const end = range.start + Math.floor(((i + 1) * (range.end - range.start)) / n);
+  const parts = Math.min(range.buckets, range.end - range.start);
+  return splitRange(range.start, range.end, parts).map(({ start, end }) => {
     let min = Infinity,
       max = 0,
       sum = 0;
@@ -120,6 +127,17 @@ export function traceProvider(recording: TraceRecording, revision: string): Data
     id: 'performance-recording',
     revision,
     rowCount: rows.length,
+    searchHelp: {
+      text: true,
+      placeholder: 'Text, row number, percentage, or field query…',
+      examples: ['duration > 10', 'name = "Layout"'],
+      dates: false,
+      fields: [
+        { name: 'duration', type: 'number', operators: NUMBER_OPERATORS },
+        { name: 'name', type: 'text', operators: TEXT_OPERATORS },
+        { name: 'thread', type: 'text', operators: TEXT_OPERATORS },
+      ],
+    },
     metric: {
       label: 'Event duration',
       unit: 'ms',
@@ -144,10 +162,7 @@ export function traceProvider(recording: TraceRecording, revision: string): Data
     },
     async fetchChapters(signal) {
       signal.throwIfAborted();
-      const n = Math.min(5, rows.length);
-      return Array.from({ length: n }, (_, i) => {
-        const start = Math.floor((i * rows.length) / n),
-          end = Math.floor(((i + 1) * rows.length) / n);
+      return splitRange(0, rows.length, Math.min(5, rows.length)).map(({ start, end }, i) => {
         return {
           id: `part-${i}`,
           start,
@@ -159,29 +174,27 @@ export function traceProvider(recording: TraceRecording, revision: string): Data
     },
     async search(query, context) {
       context.signal.throwIfAborted();
-      if (query.kind !== 'predicate' || !['duration', 'name', 'thread'].includes(query.field))
-        return {
-          matches: [],
-          complete: true,
-          message: 'Try duration > 10 or name = "Layout". Durations are milliseconds.',
-        };
+      if (query.kind === 'date') throw new Error('This dataset does not support date search.');
+      if (query.kind === 'text' && !query.value.trim())
+        throw new Error('Enter text to search for.');
+      if (query.kind === 'predicate') {
+        if (!['duration', 'name', 'thread'].includes(query.field))
+          throw new Error('Search supports duration, name, and thread.');
+        checkPredicate(query, query.field === 'duration' ? 'number' : 'text');
+      }
       const matches = [];
       for (let index = 0; index < rows.length; index++) {
-        const value = rows[index][query.field as 'duration' | 'name' | 'thread'];
-        const target = query.value;
-        if (typeof value !== typeof target) continue;
+        if (index % 512 === 0) await yieldToEventLoop(context.signal);
         const match =
-          query.operator === '='
-            ? value === target
-            : query.operator === '!='
-              ? value !== target
-              : query.operator === '>'
-                ? value > target
-                : query.operator === '>='
-                  ? value >= target
-                  : query.operator === '<'
-                    ? value < target
-                    : value <= target;
+          query.kind === 'text'
+            ? [rows[index].name, rows[index].thread, rows[index].category].some((value) =>
+                value.toLowerCase().includes(query.value.trim().toLowerCase()),
+              )
+            : compare(
+                rows[index][query.field as 'duration' | 'name' | 'thread'],
+                query.operator,
+                query.value,
+              );
         if (match) {
           if (matches.length === context.limit)
             return {

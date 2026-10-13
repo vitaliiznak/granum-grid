@@ -1,6 +1,6 @@
 # AI-callable tools example
 
-This folder belongs to the demo application. It is not exported or shipped by the `deepscroll` package. The library provides the `DeepScrollApi<Row>` interface, accessible through `apiRef` on the mounted component or `api` on the headless hook.
+This folder belongs to the demo application. It is not exported or shipped by the `granum-grid` package. The library provides the `GranumGridApi<Row>` interface, accessible through `apiRef` on the mounted component or `api` on the headless hook.
 
 Open **Try AI-callable tools** below the main table to run structured calls and inspect results and tool definitions. This is a manual tool demonstration; no model is connected.
 
@@ -9,7 +9,7 @@ import { createTableTools } from './table-tools';
 
 const tools = createTableTools({
   provider,
-  getTable: () => apiRef.current, // DeepScrollApi<Row> | null
+  getTable: () => apiRef.current, // GranumGridApi<Row> | null
   columns: [{ name: 'value', type: 'number' }],
 });
 const result = await tools.execute('read_rows', { start: 73_499_999, count: 5 });

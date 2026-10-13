@@ -1,14 +1,16 @@
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 
-// Run against an already-running demo. This captures real browser work, not generated events.
+// Run against an already-running demo (`npm run dev`). This captures real browser work,
+// not generated events. The fixture path does not depend on the current directory.
+const fixtures = new URL('../demo/src/data/fixtures/', import.meta.url);
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
     reducedMotion: 'reduce',
   });
-  await page.goto(`${process.env.DEEPSCROLL_DEMO_URL ?? 'http://127.0.0.1:5193'}/?dataset=signal`);
+  await page.goto(`${process.env.GRANUM_GRID_DEMO_URL ?? 'http://127.0.0.1:5173'}/?dataset=signal`);
   await page.locator('.demo-explorer [data-status=ready]').first().waitFor();
   const client = await page.context().newCDPSession(page);
   const events = [];
@@ -36,7 +38,7 @@ try {
   } finally {
     clearTimeout(deadline);
   }
-  await mkdir('demo/src/data/fixtures', { recursive: true });
+  await mkdir(fixtures, { recursive: true });
   const output = {
     traceEvents: events.map(({ name, cat, ph, ts, dur, pid, tid }) => ({
       name,
@@ -48,13 +50,13 @@ try {
       tid,
     })),
     metadata: {
-      source: 'Chromium CDP recording of the local deepscroll signal demo',
+      source: 'Chromium CDP recording of the local Granum Grid signal demo',
       recordedOn: new Date().toISOString().slice(0, 10),
       activity: 'Jump to row 73500000, scroll, fit overview, inspect a summary range',
       redaction: 'Event arguments and environment metadata omitted',
     },
   };
-  await writeFile('demo/src/data/fixtures/exploration-trace.json', `${JSON.stringify(output)}\n`);
+  await writeFile(new URL('exploration-trace.json', fixtures), `${JSON.stringify(output)}\n`);
   console.log(
     `Captured ${events.length} events (${events.filter((e) => e.ph === 'X').length} complete).`,
   );

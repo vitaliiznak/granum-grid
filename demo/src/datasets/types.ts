@@ -1,28 +1,28 @@
 import type {
   AtlasRailOptions,
   DataProvider,
-  DeepScrollEngine,
+  NavigationController,
   RowRenderContext,
   View,
   AggregateRenderContext,
   RowRange,
-} from 'deepscroll';
+} from 'granum-grid';
 import type { ReactNode } from 'react';
 
 /** Signal-only row state owned by the page. */
-export interface RowExtras {
+interface RowExtras {
   dynamic: boolean;
   expanded: ReadonlySet<number>;
   toggle(index: number): void;
 }
 export interface TourContext {
-  controller: DeepScrollEngine;
-  /** Open the jump bar and type a query into it. */
-  search(text: string): Promise<void>;
+  controller: NavigationController;
+  /** Open the explorer's search UI with a query. */
+  search(text: string): void;
   /** Switch to Overview and fit every row. */
   fit(): void;
 }
-export interface TourStep {
+interface TourStep {
   feature: string;
   label: string;
   hint: string;
@@ -37,6 +37,7 @@ export interface DemoDataset<Row = any> {
   unit: string;
   title: string;
   description: string;
+  /** Short facts shown under the row count. */
   facts: string[];
   icon: ReactNode;
   provider: DataProvider<Row>;
@@ -50,17 +51,27 @@ export interface DemoDataset<Row = any> {
   renderRow(context: RowRenderContext<Row>, extras: RowExtras): ReactNode;
   renderAggregate?(context: AggregateRenderContext): ReactNode;
   formatRange?(range: RowRange): string;
-  task?: { title: string; action: string; run(controller: DeepScrollEngine): void };
+  /** The suggested first action, shown before any tour step runs. */
+  task: { title: string; action: string; run(controller: NavigationController): void };
   /** Materialized demo adapters must not imply only cached rows occupy memory. */
   sourceNote?: string;
+  /** Where the rows come from, shown with `sourceNote`; defaults to the browser trace. */
+  sourceLabel?: string;
   /** Small provider-derived profile for the dataset gallery. */
   profileValues?: (number | null)[];
   atlas: AtlasRailOptions;
-  help: string;
   map: { chapters: string; profile: string; tracks: string; explain: string; sampling: string };
   tour: TourStep[];
 }
 const formatter = new Intl.NumberFormat('en-US');
+const compactFormatter = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
 export const formatCount = (value: number) => formatter.format(value);
-export const compact = (value: number) =>
-  Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+export const compact = (value: number) => compactFormatter.format(value);
+/** Fit every row in Range summaries. */
+export function showAll(controller: NavigationController) {
+  const { rowCount } = controller.getSnapshot();
+  if (rowCount) controller.zoomToRange({ start: 0, end: rowCount });
+}
