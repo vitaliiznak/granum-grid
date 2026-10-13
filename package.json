@@ -1,0 +1,26 @@
+{
+  "name": "deepscroll-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "deepscroll",
+    "demo"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w demo",
+    "build": "npm run build -w deepscroll && npm run build -w demo",
+    "test": "vitest run deepscroll/tests",
+    "test:e2e": "playwright test",
+    "test:perf": "playwright test --grep performance"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vitest": "^5.0.4"
+  }
+}
