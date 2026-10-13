@@ -40,7 +40,11 @@ export function AtlasRail<Row>({ scroll, ariaLabel = 'Dataset position', renderP
     return { index: Math.round(progressToRow((clientY - rect.top) / rect.height, total)), y: clamp(clientY - rect.top, 0, rect.height) };
   };
   const finish = (cancel = false) => {
-    if (cancel && drag.current) scroll.controller.scrub(drag.current.origin);
+    if (drag.current) {
+      const state = drag.current;
+      if (!state.moved && !cancel) { scroll.controller.endScrub(true); scroll.controller.goTo(Math.round(state.position)); }
+      else scroll.controller.endScrub(cancel);
+    }
     drag.current = null; setDragging(false);
   };
   return <aside className="ds-rail"><div className="ds-rail-title">ATLAS <span>↕</span></div><div ref={track} className="ds-track" role="slider" tabIndex={0} aria-label={ariaLabel} aria-valuemin={total ? 1 : 0} aria-valuemax={total} aria-valuenow={total ? (snapshot.activeIndex ?? 0) + 1 : 0} aria-valuetext={`Row ${total ? (snapshot.activeIndex ?? 0) + 1 : 0} of ${total}${chapterAt(snapshot.position) ? `, ${chapterAt(snapshot.position)!.label}` : ''}`}
@@ -49,9 +53,10 @@ export function AtlasRail<Row>({ scroll, ariaLabel = 'Dataset position', renderP
       event.preventDefault(); event.currentTarget.focus(); event.currentTarget.setPointerCapture(event.pointerId);
       const target = atPointer(event.clientY), rect = track.current!.getBoundingClientRect();
       const nearThumb = Math.abs(target.y - snapshot.progress * rect.height) <= 14;
+      scroll.controller.beginScrub();
       drag.current = { x: event.clientX, y: event.clientY, origin: snapshot.position, position: nearThumb ? snapshot.position : target.index, moved: false };
       setDragging(true); setPrecision('Full speed'); setHover(target);
-      if (!nearThumb) scroll.controller.scrub(target.index);
+
     }}
     onPointerMove={event => {
       const target = atPointer(event.clientY);
@@ -80,7 +85,7 @@ export function AtlasRail<Row>({ scroll, ariaLabel = 'Dataset position', renderP
     }}>
     <canvas ref={canvas} className="ds-overview-canvas" aria-hidden="true" data-testid="overview"/>
     {features.chapters && session.chapters.map((chapter, i) => <div key={chapter.id} title={chapter.label} className="ds-chapter" style={{ top: `${rowToProgress(chapter.start, total) * 100}%` }}>{i % 5 === 0 && <span>{chapter.label}</span>}</div>)}
-    {features.markers && session.markers.map((marker, index) => <button key={marker.id} className="ds-marker" aria-label={marker.label} title={`${marker.label} · Row ${(marker.index + 1).toLocaleString()}`} style={{ top: `${rowToProgress(marker.index, total) * 100}%`, color: marker.color }} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); scroll.controller.goTo(marker.index); }} onFocus={() => setHover({ index: marker.index, y: rowToProgress(marker.index, total) * (track.current?.clientHeight ?? 400) })} onBlur={() => setHover(null)}>◆<span>{index + 1}</span></button>)}
+    {features.markers && [...session.markers, ...scroll.searchMarkers].map((marker, index) => <button key={marker.id} className="ds-marker" aria-label={marker.label} title={`${marker.label} · Row ${(marker.index + 1).toLocaleString()}`} style={{ top: `${rowToProgress(marker.index, total) * 100}%`, color: marker.color }} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); scroll.controller.goTo(marker.index, { reason: 'marker' }); }} onFocus={() => setHover({ index: marker.index, y: rowToProgress(marker.index, total) * (track.current?.clientHeight ?? 400) })} onBlur={() => setHover(null)}>◆<span>{index + 1}</span></button>)}
     <span className="ds-thumb" style={{ top: `clamp(0px, calc(${snapshot.progress * 100}% - 12px), calc(100% - 24px))` }}/><span className="ds-track-line" style={{ top: `${snapshot.progress * 100}%` }}/>
   </div><span className="ds-rail-end">{Intl.NumberFormat('en', { notation: 'compact' }).format(total)} rows</span>
     {hover && (dragging || features.preview || features.magnifier) && <div className="ds-preview" style={{ top: clamp(hover.y + 28, 30, Math.max(30, snapshot.height - 180)) }} role="status"><div className="ds-preview-kicker">{dragging ? 'SCRUBBING' : 'AT THIS POSITION'} <span>{chapterAt(hover.index)?.label ?? ''}</span></div><strong>{(hover.index + 1).toLocaleString()}</strong><div className="ds-preview-detail">{dragging ? precision : 'Row address'}{dragging && features.precision && <small>Move left for precision</small>}</div>
