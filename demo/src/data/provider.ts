@@ -1,5 +1,5 @@
 import type { DataProvider } from 'deepscroll';
-import { rowAt, ROW_COUNT, SPIKES, START_TIME, END_TIME, type Reading } from './signal';
+import { rowAt, valueAt, ROW_COUNT, SPIKES, START_TIME, END_TIME, type Reading } from './signal';
 import { aggregate } from './worker-client';
 let latency = 80;
 export const setLatency = (value: number) => { latency = value; };
@@ -14,6 +14,29 @@ export function delay(signal: AbortSignal) {
 export const provider: DataProvider<Reading> = {
   id: 'signal-observatory', revision: '1', rowCount: ROW_COUNT,
   metric: { label: 'Signal amplitude', unit: 'mV', kind: 'value', domain: [0, 180] },
+  async search(query, context) {
+    await delay(context.signal);
+    if (query.kind === 'date') {
+      const text = query.value.length === 4 ? `${query.value}-01-01` : query.value.length === 7 ? `${query.value}-01` : query.value;
+      const time = Date.parse(`${text}T00:00:00Z`);
+      if (!Number.isFinite(time) || time < START_TIME || time > END_TIME) return { matches: [], complete: true };
+      const index = Math.ceil((time - START_TIME) / (END_TIME - START_TIME) * (ROW_COUNT - 1));
+      return { matches: [{ id: `date-${text}`, index, label: query.value, kind: 'search' }], complete: true };
+    }
+    if (!['value', 'category'].includes(query.field)) throw new Error('Search supports value and category.');
+    if (query.field === 'value' && typeof query.value !== 'number') throw new Error('value requires a number.');
+    if (query.field === 'category' && (typeof query.value !== 'string' || !['=', '!='].includes(query.operator))) throw new Error('Use category = "North" or category != "North".');
+    const matches: import('deepscroll').Marker[] = [];
+    for (let i = 0; i < 20_000 && matches.length < context.limit; i++) {
+      if (i % 512 === 0) { await new Promise(resolve => setTimeout(resolve, 0)); context.signal.throwIfAborted(); }
+      const index = (Math.floor(context.fromIndex) + i * 5000 + i % 4) % ROW_COUNT;
+      const value = query.field === 'value' ? valueAt(index) : ['North', 'East', 'West', 'South'][index % 4];
+      const target = query.value;
+      const matchesQuery = query.operator === '>' ? value > target : query.operator === '>=' ? value >= target : query.operator === '<' ? value < target : query.operator === '<=' ? value <= target : query.operator === '=' ? value === target : value !== target;
+      if (matchesQuery) matches.push({ id: `result-${index}`, index, label: `${query.field}: ${value}`, kind: 'search' });
+    }
+    return { matches, complete: false, message: 'Verified rows from a bounded sample; not an exhaustive search.' };
+  },
   async fetchRows(start, count, signal) { await delay(signal); return Array.from({ length: count }, (_, i) => rowAt(start + i)); },
   async fetchOverview(buckets, signal) { await delay(signal); return aggregate({ start: 0, end: ROW_COUNT, buckets }, ROW_COUNT, signal); },
   async fetchAggregates(range, signal) { await delay(signal); return aggregate(range, ROW_COUNT, signal); },
