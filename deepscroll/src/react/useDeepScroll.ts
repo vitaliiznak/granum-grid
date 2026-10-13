@@ -15,6 +15,7 @@ import {
   createZoomMapping,
   createMeasuredLensMapping,
   clamp,
+  ROW_DETAIL_MAX_ROWS_PER_PIXEL,
   type NavigationEvent,
   type View,
   type NavigationLocation,
@@ -24,7 +25,9 @@ import type { DeepScrollApi } from '../core/api.js';
 import { useWindowScroll } from './useWindowScroll.js';
 import { useRowMeasurements } from './useRowMeasurements.js';
 import { bindInputs } from './input.js';
+import { isControl } from './dom.js';
 import { useFrameRate } from './useFrameRate.js';
+import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { DataSession } from '../data/session.js';
 import { defaultFeatures, type Features } from '../features.js';
 import type { CacheOptions, DataProvider, Marker, RowSlot, RowRange } from '../data/types.js';
@@ -62,6 +65,11 @@ export interface UseDeepScrollOptions<Row> {
   reducedMotion?: 'system' | boolean;
   onNavigate?(event: NavigationEvent): void;
   onStats?(stats: ScrollStats): void;
+  /**
+   * Sample frame delivery while moving for `stats.fps`; each sample re-renders the explorer.
+   * Default: true when `onStats` is provided, otherwise `stats.fps` is null.
+   */
+  measureFrameRate?: boolean;
 }
 // Keep React's DOM attributes as a named type. Inferred object spreads otherwise
 // bake the build-time React version's event handlers into the published .d.ts.
@@ -96,6 +104,7 @@ export function useDeepScroll<Row>({
   reducedMotion = 'system',
   onNavigate,
   onStats,
+  measureFrameRate = onStats !== undefined,
 }: UseDeepScrollOptions<Row>) {
   if (!Number.isSafeInteger(overscan) || overscan < 0 || overscan > 1000)
     throw new RangeError('overscan must be an integer from 0 to 1000');
@@ -170,7 +179,7 @@ export function useDeepScroll<Row>({
   useEffect(() => {
     if (dynamicRowHeight && snapshot.measuredRows === 0) measurements.measure();
   }, [dynamicRowHeight, measurements, snapshot.layoutVersion, snapshot.measuredRows]);
-  const fps = useFrameRate(snapshot.position);
+  const fps = useFrameRate(snapshot.position, measureFrameRate);
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
   const session = useMemo(
     () => new DataSession(provider, cache),
@@ -249,7 +258,7 @@ export function useDeepScroll<Row>({
   );
   const aggregateMode =
     temporarySpan > (snapshot.height / rowHeight) * 3 ||
-    (snapshot.view === 'zoom' && snapshot.rowsPerPixel > 1 / 22);
+    (snapshot.view === 'zoom' && snapshot.rowsPerPixel > ROW_DETAIL_MAX_ROWS_PER_PIXEL);
   const mapping = useMemo(() => {
     if (temporarySpan > (snapshot.height / rowHeight) * 3)
       return createZoomMapping(
@@ -326,7 +335,16 @@ export function useDeepScroll<Row>({
   const aggregateStart = Math.max(0, Math.floor(mapping.toRow(0)));
   const aggregateEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)));
   const visibleRange = { start: aggregateStart, end: aggregateEnd };
-  const aggregateBuckets = Math.max(1, Math.min(160, Math.floor(snapshot.height / aggregateRowHeight)));
+  // Actions read the latest range without making their components render on every frame.
+  const latestVisibleRange = useRef(visibleRange);
+  useClientLayoutEffect(() => {
+    latestVisibleRange.current = visibleRange;
+  });
+  const getVisibleRange = useCallback((): RowRange => latestVisibleRange.current, []);
+  const aggregateBuckets = Math.max(
+    1,
+    Math.min(160, Math.ceil(snapshot.height / aggregateRowHeight)),
+  );
   useEffect(() => {
     if (
       (!aggregateMode && snapshot.view !== 'lens') ||
@@ -337,14 +355,27 @@ export function useDeepScroll<Row>({
       return;
     }
     const timer = setTimeout(
-      () => session.requestAggregates({ start: aggregateStart, end: aggregateEnd, buckets: aggregateBuckets }),
+      () =>
+        session.requestAggregates({
+          start: aggregateStart,
+          end: aggregateEnd,
+          buckets: aggregateBuckets,
+        }),
       120,
     );
     return () => {
       clearTimeout(timer);
       session.requestAggregates();
     };
-  }, [session, aggregateStart, aggregateEnd, aggregateBuckets, aggregateMode, snapshot.view, snapshot.moving]);
+  }, [
+    session,
+    aggregateStart,
+    aggregateEnd,
+    aggregateBuckets,
+    aggregateMode,
+    snapshot.view,
+    snapshot.moving,
+  ]);
   useEffect(() => {
     if (!viewport) return;
     let width = viewport.clientWidth;
@@ -421,9 +452,10 @@ export function useDeepScroll<Row>({
       session.setRange('prefetch', 0, 0);
     };
   }, [session, start, count, features.prefetch, snapshot.moving]);
+  const sessionStats = session.getStats();
   const stats: ScrollStats = {
-    ...session.getStats(),
-    activeRequests: session.getStats().activeRequests + (searchBusy ? 1 : 0),
+    ...sessionStats,
+    activeRequests: sessionStats.activeRequests + (searchBusy ? 1 : 0),
     fps,
     measuredRows: snapshot.measuredRows,
   };
@@ -485,13 +517,7 @@ export function useDeepScroll<Row>({
     } as CSSProperties,
     onClick: (event: React.MouseEvent<HTMLDivElement>) => {
       props.onClick?.(event);
-      if (
-        event.defaultPrevented ||
-        (event.target as HTMLElement).closest(
-          'button,a,input,textarea,select,[contenteditable=true]',
-        )
-      )
-        return;
+      if (event.defaultPrevented || isControl(event.target)) return;
       if (snapshot.view === 'lens' || aggregateMode) {
         const clickedRow = (event.target as HTMLElement).closest('[role=row]');
         if (clickedRow && !aggregateMode) {
@@ -510,13 +536,7 @@ export function useDeepScroll<Row>({
     },
     onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
       props.onKeyDown?.(event);
-      if (
-        event.defaultPrevented ||
-        (event.target as HTMLElement).closest(
-          'input,textarea,select,button,a,[contenteditable=true]',
-        )
-      )
-        return;
+      if (event.defaultPrevented || isControl(event.target)) return;
       if (
         event.key === '/' ||
         ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k')
@@ -599,6 +619,7 @@ export function useDeepScroll<Row>({
     mapping,
     aggregateMode,
     visibleRange,
+    getVisibleRange,
     aggregateBuckets,
     edgeOffset,
     setSearchBusy,

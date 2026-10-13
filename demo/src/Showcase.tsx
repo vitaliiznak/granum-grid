@@ -1,17 +1,17 @@
-import type { DeepScrollEngine, ScrollStats, View } from 'deepscroll';
+import type { DeepScrollEngine, ScrollStats } from 'deepscroll';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { datasets, type DemoDataset, type TourContext } from './datasets';
 import { compact, formatCount } from './datasets/types';
 import { models } from './data/models';
 
 const sparklines = new Map<string, string>();
-function sparkline(id: string) {
-  if (sparklines.has(id)) return sparklines.get(id)!;
+function sparkline(id: string, profileValues?: (number | null)[]) {
+  if (!profileValues && sparklines.has(id)) return sparklines.get(id)!;
   const model = models[id];
-  if (!model) return 'M0 26 L18 26 L24 10 L30 26 L57 26 L65 3 L73 26 L120 26';
-  const points = Array.from({ length: 96 }, (_, i) =>
-    model.value(Math.floor((i / 95) * (model.rowCount - 1))),
-  );
+  if (!model && !profileValues) return '';
+  const points =
+    profileValues ??
+    Array.from({ length: 96 }, (_, i) => model.value(Math.floor((i / 95) * (model.rowCount - 1))));
   const values = points.filter((v): v is number => v !== null);
   const min = Math.min(...values),
     max = Math.max(...values);
@@ -19,14 +19,15 @@ function sparkline(id: string) {
   const path = points
     .map((v, i) => {
       if (v !== null) previous = (v - min) / (max - min || 1);
-      return `${i ? 'L' : 'M'}${((i / 95) * 120).toFixed(1)} ${(30 - previous * 26).toFixed(1)}`;
+      return `${i ? 'L' : 'M'}${((i / Math.max(1, points.length - 1)) * 120).toFixed(1)} ${(30 - previous * 26).toFixed(1)}`;
     })
     .join(' ');
-  sparklines.set(id, path);
+  if (!profileValues) sparklines.set(id, path);
   return path;
 }
-function Sparkline({ id }: { id: string }) {
-  const path = useMemo(() => sparkline(id), [id]);
+function Sparkline({ id, values }: { id: string; values?: (number | null)[] }) {
+  const path = useMemo(() => sparkline(id, values), [id, values]);
+  if (!path) return null;
   return (
     <svg
       className="dataset-spark"
@@ -40,7 +41,15 @@ function Sparkline({ id }: { id: string }) {
   );
 }
 
-export function DatasetGallery({ value, onChange }: { value: string; onChange(id: string): void }) {
+export function DatasetGallery({
+  value,
+  current,
+  onChange,
+}: {
+  value: string;
+  current?: DemoDataset;
+  onChange(id: string): void;
+}) {
   const strip = useRef<HTMLElement>(null);
   useEffect(() => {
     // On narrow screens the gallery scrolls sideways; keep the chosen card in view.
@@ -50,23 +59,26 @@ export function DatasetGallery({ value, onChange }: { value: string; onChange(id
   }, [value]);
   return (
     <nav ref={strip} className="dataset-gallery" aria-label="Datasets">
-      {datasets.map((dataset) => (
-        <button
-          key={dataset.id}
-          className={`dataset-card dataset-${dataset.id}`}
-          aria-pressed={dataset.id === value}
-          onClick={() => onChange(dataset.id)}
-        >
-          <span className="dataset-card-icon">{dataset.icon}</span>
-          <span className="dataset-card-text">
-            <strong>{dataset.name}</strong>
-            <span>
-              {compact(dataset.provider.rowCount)} {dataset.unit}
+      {datasets.map((item) => {
+        const dataset = item.id === value && current ? current : item;
+        return (
+          <button
+            key={dataset.id}
+            className={`dataset-card dataset-${dataset.id}`}
+            aria-pressed={dataset.id === value}
+            onClick={() => onChange(dataset.id)}
+          >
+            <span className="dataset-card-icon">{dataset.icon}</span>
+            <span className="dataset-card-text">
+              <strong>{dataset.name}</strong>
+              <span>
+                {compact(dataset.provider.rowCount)} {dataset.unit}
+              </span>
             </span>
-          </span>
-          <Sparkline id={dataset.id} />
-        </button>
-      ))}
+            <Sparkline id={dataset.id} values={dataset.profileValues} />
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -99,25 +111,23 @@ export function DatasetIntro({
           <small>{dataset.facts.slice(1).join(' · ')}</small>
         </div>
         <div>
-          <dt>If fully loaded</dt>
-          <dd>≈ {bytes(total * dataset.bytesPerRow)}</dd>
+          <dt>{dataset.sourceNote ? 'Source' : 'If fully loaded'}</dt>
+          <dd>
+            {dataset.sourceNote ? 'Browser trace' : `≈ ${bytes(total * dataset.bytesPerRow)}`}
+          </dd>
         </div>
         <div className="scale-live">
-          <dt>In memory now</dt>
+          <dt>{dataset.sourceNote ? 'Explorer cache' : 'In memory now'}</dt>
           <dd>{formatCount(cached)}</dd>
           <small>{cached ? `${((cached / total) * 100).toPrecision(2)}% of rows` : 'rows'}</small>
         </div>
       </dl>
+      {dataset.sourceNote && <p className="source-note">{dataset.sourceNote}</p>}
     </section>
   );
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const viewLabels: Record<View, string> = {
-  rows: 'List',
-  lens: 'Focus + context',
-  zoom: 'Overview',
-};
 /** Type into the explorer's own jump bar, so the tour shows the real search UI. */
 async function typeIntoJumpBar(root: HTMLElement, text: string, signal: { cancelled: boolean }) {
   root.querySelector<HTMLButtonElement>('.ds-jump-trigger')?.click();
@@ -163,6 +173,7 @@ export function FeatureTour({
     typing.current.cancelled = true;
     typing.current = { cancelled: false };
     const step = dataset.tour[i];
+    const origin = engine.getLocation();
     setActive(i);
     if (step.requiredView && engine.getSnapshot().view !== step.requiredView) {
       engine.setView(step.requiredView);
@@ -172,6 +183,7 @@ export function FeatureTour({
       controller: engine,
       search: (text) => typeIntoJumpBar(root, text, signal),
       fit: () => {
+        engine.restore(origin);
         const snapshot = engine.getSnapshot();
         if (snapshot.rowCount) engine.zoomToRange({ start: 0, end: snapshot.rowCount });
       },
@@ -204,11 +216,22 @@ export function FeatureTour({
             </>
           ) : (
             <>
-              <b>Tip</b>
-              {dataset.help}
+              <b>{dataset.task ? 'Start here' : 'Tip'}</b>
+              {dataset.task?.title ?? dataset.help}
             </>
           )}
         </p>
+        {dataset.task && (
+          <button
+            className="task-start"
+            onClick={() => {
+              if (controller.current) dataset.task?.run(controller.current);
+              explorer()?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+            }}
+          >
+            {dataset.task.action} →
+          </button>
+        )}
         {children && <div className="explorer-options">{children}</div>}
       </div>
     </div>

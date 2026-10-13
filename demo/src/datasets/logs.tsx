@@ -27,6 +27,7 @@ const days = Array.from({ length: 30 }, (_, i) => {
 });
 const provider = syntheticProvider<LogLine>({
   id: 'logs',
+  revision: '2',
   metric: { label: 'Error rate', unit: '%', kind: 'value', domain: [0, 30] },
   rowAt: logAt,
   markers: [
@@ -67,13 +68,26 @@ export const logs: DemoDataset<LogLine> = {
   unit: 'lines',
   title: 'Production logs',
   description:
-    'A month of request logs from six fictional services: 500 lines a second, with deploys, rollbacks, and five incidents hiding in 1.3 billion lines.',
+    'Four billion synthetic request logs from six fictional services across September 2026, with deploys, rollbacks, and five incidents. Rows are generated on demand.',
   facts: [`${formatCount(LOG_COUNT)} lines`, '6 services', 'September 2026'],
   icon: <LogsIcon />,
   provider,
   ariaLabel: 'Synthetic server logs',
   rowHeight: 34,
   bytesPerRow: 220,
+  formatRange: ({ start, end }) =>
+    `${logAt(start).time.slice(5, 19).replace('T', ' ')}–${logAt(end - 1)
+      .time.slice(5, 19)
+      .replace('T', ' ')} UTC`,
+  task: {
+    title: 'Inspect the cache stampede and the deployment just before it.',
+    action: 'Open the incident',
+    run: (controller) =>
+      controller.zoomToRange({
+        start: Math.max(0, at(stampede.x) - 300_000),
+        end: Math.min(LOG_COUNT, at(stampede.x) + 300_000),
+      }),
+  },
   help: 'Every row is one log line. Red marks on the map are incidents; follow them.',
   atlas: { axisLabel: 'Day', formatValue: (v) => `${v.toFixed(0)}%` },
   map: {
@@ -99,7 +113,7 @@ export const logs: DemoDataset<LogLine> = {
     {
       feature: 'Flight',
       label: 'Fly to INC-2057',
-      hint: 'The cache stampede, 900 million lines in. Notice the deploy marker just before it.',
+      hint: `The cache stampede, near row ${formatCount(at(stampede.x) + 1)}. Notice the deploy marker just before it.`,
       run: ({ controller }) => controller.goTo(at(stampede.x)),
     },
     {

@@ -106,6 +106,7 @@ async function search(
 /** Deterministic provider over a model in ./models; rows are generated on demand. */
 export function syntheticProvider<Row>(options: {
   id: string;
+  revision?: string;
   metric: DataProvider<Row>['metric'];
   rowAt(index: number): Row;
   markers: Marker[];
@@ -115,7 +116,7 @@ export function syntheticProvider<Row>(options: {
   const model = models[options.id];
   return {
     id: options.id,
-    revision: '1',
+    revision: options.revision ?? '1',
     rowCount: model.rowCount,
     metric: options.metric,
     async fetchRows(start, count, signal) {

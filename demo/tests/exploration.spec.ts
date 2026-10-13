@@ -6,23 +6,57 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Spike 3', exact: true })).toBeVisible();
 });
 
-test('range summaries, linked comparison, bookmarks and dialog focus', async ({ page }) => {
-  await page.getByRole('button', { name: /^Explore/ }).click();
-  await page.getByLabel('First row', { exact: true }).fill('1000000');
-  await page.getByLabel('Last row', { exact: true }).fill('1000100');
-  await page.getByRole('button', { name: 'Select range', exact: true }).click();
-  await expect(page.getByText('Estimated summary', { exact: true })).toBeVisible();
-  await page.getByLabel('Bookmark name').fill('Sample A');
-  await page.getByRole('button', { name: 'Save bookmark', exact: true }).click();
-  await page.getByRole('button', { name: 'Use as comparison A', exact: true }).click();
-  await page.getByLabel('First row', { exact: true }).fill('61700000');
-  await page.getByLabel('Last row', { exact: true }).fill('61700100');
-  await page.getByRole('button', { name: 'Select range', exact: true }).click();
-  const compare = page.getByRole('button', { name: 'Compare A with selection', exact: true });
+test('range summaries, linked comparison, saved views and dialog focus', async ({ page }) => {
+  await page.getByRole('button', { name: 'Select rows', exact: true }).click();
+  await expect(page.getByLabel('From row', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Enter row numbers', exact: false }).click();
+  await page.getByLabel('From row', { exact: true }).fill('1000000');
+  await page.getByLabel('To row', { exact: true }).fill('1000100');
+  await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
+  const selected = page.getByRole('region', { name: 'Your selection' });
+  await expect(selected).toContainText('101 rows selected');
+  await expect(page.getByLabel('From row', { exact: true })).toHaveCount(0);
+  await expect(selected.getByRole('button', { name: 'View selection' })).toBeFocused();
+  await expect(page.getByText('Estimated summary', { exact: true })).toHaveCount(0);
+  await selected.getByText('Show summary', { exact: true }).click();
+  await expect(selected.getByText('Estimated summary', { exact: true })).toBeVisible();
+  await selected.getByRole('button', { name: 'Save view', exact: true }).click();
+  await expect(page.getByLabel('View name')).toBeFocused();
+  await page.getByLabel('View name').fill('Sample A');
+  await page.getByRole('button', { name: 'Save view', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Saved “Sample A”');
+  await page.getByRole('button', { name: 'Compare ranges', exact: true }).click();
+  const setup = page.getByRole('region', { name: 'Range comparison' });
+  await expect(setup).toBeFocused();
+  await expect(setup.getByRole('group', { name: 'First range', exact: true })).toContainText(
+    '1,000,000',
+  );
+  await expect(setup.getByRole('button', { name: 'Show comparison' })).toBeDisabled();
+  await setup.getByRole('button', { name: 'Choose second range', exact: true }).click();
+  await setup.getByRole('button', { name: /^Draw on map/ }).click();
+  await expect(page.getByRole('button', { name: 'Cancel map selection' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(setup).toBeFocused();
+  await setup.getByRole('button', { name: 'Choose second range', exact: true }).click();
+  await setup.getByRole('button', { name: /^Enter row numbers/ }).click();
+  await expect(page.getByLabel('From row', { exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('already your first range');
+  await page.getByLabel('From row', { exact: true }).fill('61700000');
+  await page.getByLabel('To row', { exact: true }).fill('61700100');
+  await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
+  await expect(setup.getByRole('group', { name: 'First range', exact: true })).toContainText(
+    '1,000,000',
+  );
+  await expect(setup.getByRole('group', { name: 'Second range', exact: true })).toContainText(
+    '61,700,000',
+  );
+  const compare = page.getByRole('button', { name: 'Show comparison', exact: true });
+  await expect(compare).toBeFocused();
   await compare.click();
   const dialog = page.getByRole('dialog', { name: 'Compare selected ranges' });
-  const a = dialog.getByRole('grid', { name: 'Range A rows' });
-  const b = dialog.getByRole('grid', { name: 'Range B rows' });
+  const a = dialog.getByRole('grid', { name: 'First range rows' });
+  const b = dialog.getByRole('grid', { name: 'Second range rows' });
   await expect(a.locator('[data-status=ready]').first()).toContainText('1,000,000');
   await expect(b.locator('[data-status=ready]').first()).toContainText('61,700,000');
   await expect(dialog.getByText('Estimated summary', { exact: true })).toHaveCount(2);
@@ -34,11 +68,53 @@ test('range summaries, linked comparison, bookmarks and dialog focus', async ({ 
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
   await expect(compare).toBeFocused();
+  await setup.getByRole('button', { name: 'Cancel comparison' }).click();
+  await expect(setup).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Change selection' })).toBeFocused();
   await page.reload();
-  await page.getByRole('button', { name: /^Explore/ }).click();
-  await page.getByRole('button', { name: 'Sample A', exact: true }).click();
-  await expect(page.getByLabel('First row', { exact: true })).toHaveValue('1000000');
-  await expect(page.getByLabel('Last row', { exact: true })).toHaveValue('1000100');
+  await page.getByRole('button', { name: /^Saved views/ }).click();
+  await page.getByRole('button', { name: /^Sample A/ }).click();
+  await expect(selected).toContainText('Rows 1,000,000–1,000,100');
+  await page.getByRole('button', { name: 'Change selection' }).click();
+  await page.getByRole('button', { name: /^Enter row numbers/ }).click();
+  await expect(page.getByLabel('From row', { exact: true })).toHaveValue('1000000');
+  await expect(page.getByLabel('To row', { exact: true })).toHaveValue('1000100');
+});
+
+test('selection choices, validation and single-row summary stay contextual on a phone', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Select rows', exact: true }).click();
+  await page.getByRole('button', { name: /^Rows on screen/ }).click();
+  const selected = page.getByRole('region', { name: 'Your selection' });
+  await expect(selected).toContainText('selected');
+  const original = await selected.textContent();
+  await page.getByRole('button', { name: 'Change selection' }).click();
+  await page.getByRole('button', { name: /^Enter row numbers/ }).click();
+  await page.getByLabel('From row', { exact: true }).fill('0');
+  await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Enter whole row numbers');
+  await page.keyboard.press('Escape');
+  await expect(selected).toHaveText(original!);
+  await page.getByRole('button', { name: 'Change selection' }).click();
+  await page.getByRole('button', { name: /^Enter row numbers/ }).click();
+  await page.getByLabel('From row', { exact: true }).fill('1');
+  await page.getByLabel('To row', { exact: true }).fill('1');
+  await expect(page.getByText('1 row in this selection', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
+  await expect(selected.getByText('1 row selected', { exact: true })).toBeVisible();
+  await expect(selected.getByRole('button', { name: 'Open row' })).toBeFocused();
+  await selected.getByText('Show summary', { exact: true }).click();
+  await expect(selected.getByText('Value', { exact: true })).toBeVisible();
+  await expect(selected.getByText('Lowest', { exact: true })).toHaveCount(0);
+  await expect(selected.getByText('Highest', { exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await selected.getByRole('button', { name: 'Open row' }).click();
+  await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
+  await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
+  await expect(selected).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Select rows', exact: true })).toBeFocused();
 });
 
 test('separate tab keeps native scrolling and the map in sync and fits a phone', async ({
@@ -107,8 +183,8 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
 });
 
 test('map selection can be canceled and optional channel tracks stay bounded', async ({ page }) => {
-  await page.getByRole('button', { name: /^Explore/ }).click();
-  await page.getByRole('button', { name: 'Select on map', exact: true }).click();
+  await page.getByRole('button', { name: 'Select rows', exact: true }).click();
+  await page.getByRole('button', { name: /^Draw on map/ }).click();
   const rect = (await page.locator('.ds-track').boundingBox())!;
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height * 0.3);
   await page.mouse.down();
@@ -118,7 +194,7 @@ test('map selection can be canceled and optional channel tracks stay bounded', a
   await page.mouse.up();
   await expect(page.locator('.ds-map-selection')).toHaveCount(0);
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
-  await page.getByText('Map settings', { exact: false }).first().click();
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Show channel tracks' }).check();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.locator('.ds-overview-tracks canvas')).toHaveCount(4);
@@ -151,7 +227,8 @@ test('a shared full-page link restores its selected range', async ({ page }) => 
     selection: { start: 999_999, end: 1_000_100 },
   };
   await page.goto(`/?page=1&dataset=signal#view=${encodeURIComponent(JSON.stringify(view))}`);
-  await page.getByRole('button', { name: /^Explore · range selected/ }).click();
-  await expect(page.getByLabel('First row', { exact: true })).toHaveValue('1000000');
-  await expect(page.getByLabel('Last row', { exact: true })).toHaveValue('1000100');
+  await page.getByRole('button', { name: 'Change selection', exact: true }).click();
+  await page.getByRole('button', { name: /^Enter row numbers/ }).click();
+  await expect(page.getByLabel('From row', { exact: true })).toHaveValue('1000000');
+  await expect(page.getByLabel('To row', { exact: true })).toHaveValue('1000100');
 });

@@ -9,11 +9,11 @@ A React + TypeScript library for exploring large indexed datasets: inspect indiv
 Give deepscroll a known row count and a function that fetches a slice. It mounts a bounded set of rows and loads pages as you navigate. Add summaries, events, chapters, and search when your provider supports them.
 
 - **Go anywhere:** exact row addresses, percentages, named events, provider-backed search, and reversible jumps.
-- **Explore at different scales:** List, Focus + context, and continuous Overview zoom share the same dataset address.
+- **Explore at different scales:** Rows, Focused rows, and Range summaries share the same dataset address.
 - **Bring your own UI:** custom React rows, dynamic heights, light/dark themes, CSS tokens, replacement controls, or a headless hook.
 - **Work with a range:** select, summarize, compare, bookmark, and share a view.
 
-This is an initial local release, **not yet published to npm**. React and React DOM 18.2–19 are peer dependencies; the library has no additional runtime dependencies. The demos generate synthetic records on demand. Their billion-row counts describe navigable addresses, not billions of downloaded records or a remote-database benchmark.
+This is an initial local release, **not yet published to npm**. React and React DOM 18.2–19 are peer dependencies; the library has no additional runtime dependencies. Five demos generate synthetic records on demand; the Performance demo reads a bundled Chromium recording or a local Chrome trace JSON file. Their billion-row counts describe navigable addresses, not billions of downloaded records or a remote-database benchmark.
 
 ## Quick start
 
@@ -89,9 +89,15 @@ Enter `73,500,000`, `50%`, a loaded event name, or a query your provider underst
 
 ### See patterns, then inspect records
 
-Overview shows regional aggregates as you zoom out. Focus + context keeps nearby rows readable while compressing the surrounding context. Both retain the same row-address model.
+The **View** menu offers three ways to read the same dataset:
 
-| Overview | Focus + context |
+- **Rows:** read individual records, one per line.
+- **Focused rows** (previously Focus + context): keep a few nearby rows readable in the middle, with compressed summaries of the rest above and below. Click the surroundings to move your focus.
+- **Range summaries** (previously Overview): compare groups of rows to find patterns. Choosing this from the menu opens summaries around your current row; use **Fit dataset** to see the whole dataset, **Zoom in** to narrow a range, and **Inspect rows** to read its records.
+
+**Compare views** opens a small illustrated guide in the explorer. The map on the right always covers the whole dataset, whichever main view you choose. Sampled summaries remain labeled.
+
+| Range summaries | Focused rows |
 | --- | --- |
 | [![Overview of 100 million synthetic readings, rendered as sampled aggregate bands](media/images/overview.png)](media/images/overview.png) | [![Full-size focus rows surrounded by compressed context](media/images/lens.png)](media/images/lens.png) |
 
@@ -109,9 +115,30 @@ Your renderer owns the cells. Your provider supplies the ordering, chapters, lan
 | Log search | Star catalog |
 | --- | --- |
 | [![Provider-backed search for server responses with status greater than or equal to 500, explicitly marked as partial](media/images/logs.png)](media/images/logs.png) | [![Dark-themed synthetic star catalog at Sirius, showing coordinates, magnitude, and spectral class](media/images/stars.png)](media/images/stars.png) |
-| **1,296,000,000 log lines.** Generated services and incidents. Predicate search verifies a bounded sample and reports partial results. | **1,811,709,771 star addresses.** A generated catalog with named-star landmarks; this is not an imported Gaia dataset. |
+| **4,000,000,000 log lines.** Generated services and incidents. Predicate search verifies a bounded sample and reports partial results. | **1,811,709,771 star addresses.** A generated catalog with named-star landmarks; this is not an imported Gaia dataset. |
 
-The fifth demo is the **100,000,000-row signal archive** shown throughout this README. None of these examples requires allocating its full row count in memory.
+The fifth synthetic demo is the **100,000,000-row signal archive** shown throughout this README. None of these five generated examples requires allocating its full row count in memory. The separate Performance demo holds its bounded recording in memory and identifies that explicitly.
+
+### Explore a real performance recording
+
+[![Recorded browser events as interactive summary bands](media/images/performance.png)](media/images/performance.png)
+
+Choose **Performance** and **See whole recording**. Zoom from activity windows into
+small event groups, inspect exact events, and use Back to recover the previous scale.
+Every demo now starts with a concrete exploration task, and guided actions select their
+required view automatically. Selecting a summary or map range reveals a selection card
+with View selection, Compare ranges, and Save view actions. Statistics are available
+under Show summary.
+
+The bundled fixture is a real, redacted Chromium recording of this demo. You can also
+open a local Chrome trace JSON file, up to 25 MiB and 150,000 source events. This adapter
+reads complete (X) and instant (I/i) events and reports omitted records. Files stay in the
+current tab; reloading restores the bundled example. Event durations can overlap and
+are not added together as CPU time. [Fixture provenance](demo/src/data/fixtures/README.md).
+
+The reusable pieces are `renderAggregate`, `aggregateRowHeight`, `formatRange`, and
+`controller.zoomToRange(range)`. Parsing, file inputs, trace vocabulary, and the recording
+remain in the demo. [Meaningful zoom API](API.md#meaningful-zoom-and-range-inspection).
 
 ### Let rows grow naturally
 
@@ -123,7 +150,7 @@ Use `controllerRef` for `scrollToIndex(index, { align })`, save/restore, and mea
 
 ### Compare two parts of a dataset
 
-Select a range, read its provider-backed summary, pin it as comparison A, and choose another range. The comparison opens two virtualized panes. Linked scrolling matches relative progress through the ranges, rather than matching timestamps or record identities.
+Choose **Select rows**, then use the rows on screen, draw on the map, or enter row numbers. Your selection card offers **View selection**, **Compare ranges**, and **Save view**; **Show summary** reveals statistics when needed. Comparing keeps your first range visible while **Choose second range** opens the same selection choices. **Show comparison** opens two virtualized panes once you have two different ranges. Linked scrolling matches relative progress through the ranges, rather than matching timestamps or record identities.
 
 [![Two selected ranges with estimated summaries and linked virtualized comparison panes](media/images/compare.png)](media/images/compare.png)
 
@@ -214,6 +241,25 @@ Install Chromium once with `npx playwright install chromium`. MP4 export also ne
 Edit [scene copy and timings](media/src/scenes.ts), use the [storyboard and narration draft](media/STORYBOARD.md), or export a single scene with `-- --scene=genome`. Generated videos and capture manifests live in `media/output/` and stay out of Git; README PNGs live in `media/images/`.
 
 ## Development and verification
+
+### Working with AI coding tools
+
+Start with [AGENTS.md](AGENTS.md) and the [AI development workflow](docs/AI_WORKFLOW.md).
+They map the codebase, record library contracts, and explain which checks to run.
+The same guidance is linked from the Claude, Copilot, and Cursor instruction files.
+
+```sh
+npm run ai:doctor     # Diagnose Node, dependencies, and available browser binaries
+npm run check         # Type-check source and tests, then run unit tests
+npm run test:smoke    # Short Chromium acceptance suite
+npm run check:full   # Builds, unit/browser tests, and React 18/19 package consumers
+```
+
+This coding harness needs no AI credentials. The application-owned AI tool example
+under `demo/src/ai/` is a separate feature. See the workflow for first-time installs,
+focused validation, retained browser traces, and cleanup.
+
+### Individual checks
 
 ```sh
 npm run build

@@ -1,7 +1,10 @@
 import {
   memo,
+  useCallback,
   useImperativeHandle,
+  useMemo,
   type CSSProperties,
+  type SyntheticEvent,
   type ReactNode,
   type Ref,
   type Key,
@@ -11,6 +14,8 @@ import type { DeepScrollApi } from '../core/api.js';
 import { useDeepScroll, type UseDeepScrollOptions, type DeepScrollState } from './useDeepScroll.js';
 import { partProps, type DeepScrollAppearance } from './styling.js';
 import { ContextHints } from './ContextHints.js';
+import { ViewGuide, viewLabels } from './ViewGuide.js';
+import { ROW_DETAIL_MAX_ROWS_PER_PIXEL } from '../core/mappings.js';
 import { ViewLayer } from './ViewLayer.js';
 import { ViewCanvas } from './ViewCanvas.js';
 import { AggregateLayer, type AggregateRenderContext } from './AggregateLayer.js';
@@ -18,6 +23,8 @@ import { JumpBar } from './JumpBar.js';
 import { AtlasRail, type AtlasRailOptions } from './AtlasRail.js';
 import { ExplorerTools, savedView } from './ExplorerTools.js';
 import { CompareRanges } from './CompareRanges.js';
+import { overviewAccuracy } from '../visuals/atlas.js';
+import { isTextEntry, isWithin } from './dom.js';
 import type { SavedView } from '../core/exploration.js';
 import type { PendingRowSlot, RowRange } from '../data/types.js';
 export interface RowRenderContext<Row> {
@@ -55,6 +62,8 @@ export interface DeepScrollProps<Row> extends UseDeepScrollOptions<Row>, DeepScr
   showStats?: boolean;
   /** Append host controls to the built-in toolbar. */
   toolbarActions?: ReactNode;
+  /** Append host controls beside the dataset map title. */
+  railActions?: ReactNode;
   /** Replace the built-in controls with your own React components. Return null to hide. */
   renderToolbar?(scroll: DeepScrollState<Row>): ReactNode;
   renderFooter?(scroll: DeepScrollState<Row>): ReactNode;
@@ -88,12 +97,55 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
   const scroll = useDeepScroll({
     ...props,
     aggregateRowHeight: props.aggregateRowHeight ?? 120,
+    measureFrameRate: props.measureFrameRate ?? (props.showStats || undefined),
     scrollMode: props.layout === 'page' ? 'window' : props.scrollMode,
   });
   useImperativeHandle(props.controllerRef, () => scroll.controller, [scroll.controller]);
   useImperativeHandle(props.apiRef, () => scroll.api, [scroll.api]);
   const { snapshot } = scroll;
-  const summaryCards = scroll.aggregateMode && snapshot.view === 'zoom' && !snapshot.moving && !!props.provider.fetchAggregates;
+  // Tools and dialogs receive only what they use, so a scroll frame does not re-render them.
+  const { provider, controller, selection, setSelection, selectionMode, setSelectionMode } = scroll;
+  const { getVisibleRange } = scroll;
+  const explorerScroll = useMemo(
+    () => ({
+      provider,
+      controller,
+      selection,
+      setSelection,
+      selectionMode,
+      setSelectionMode,
+      getVisibleRange,
+    }),
+    [
+      provider,
+      controller,
+      selection,
+      setSelection,
+      selectionMode,
+      setSelectionMode,
+      getVisibleRange,
+    ],
+  );
+  const renderComparison = useCallback(
+    (a: RowRange, b: RowRange, close: () => void) => (
+      <CompareRanges a={a} b={b} host={props} onClose={close} />
+    ),
+    [props],
+  );
+  // Serializing the location on every frame is wasted work; refresh the link when it is used.
+  const fullPageHref = useMemo(
+    () => props.fullPageUrl?.(savedView(scroll)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- The handler below keeps it current.
+    [props.fullPageUrl, scroll.provider, scroll.controller],
+  );
+  const refreshFullPageHref = (event: SyntheticEvent<HTMLAnchorElement>) => {
+    if (props.fullPageUrl) event.currentTarget.href = props.fullPageUrl(savedView(scroll));
+  };
+  const summaryCards =
+    scroll.aggregateMode &&
+    snapshot.view === 'zoom' &&
+    !snapshot.moving &&
+    !!props.provider.fetchAggregates;
   const chapter = scroll.session.chapters.find(
     (c) => snapshot.position >= c.start && snapshot.position < c.end,
   );
@@ -111,7 +163,8 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
         if (
           (event.metaKey || event.ctrlKey) &&
           event.key.toLowerCase() === 'k' &&
-          !(event.target as HTMLElement).closest('dialog,input,textarea')
+          !isTextEntry(event.target) &&
+          !isWithin(event.target, 'dialog')
         ) {
           event.preventDefault();
           scroll.setJumpOpen(true);
@@ -162,14 +215,20 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
               <select
                 className="ds-input"
                 aria-label="View"
+                aria-describedby={`${scroll.id}-view-description`}
                 value={snapshot.view}
-                onChange={(event) =>
-                  scroll.controller.setView(event.target.value as 'rows' | 'lens' | 'zoom')
-                }
+                onChange={(event) => {
+                  const view = event.target.value as 'rows' | 'lens' | 'zoom';
+                  scroll.controller.setView(view);
+                  // Enter summaries at a useful scale, keeping the current row at the center.
+                  // The public setView method still preserves the caller's saved zoom level.
+                  if (view === 'zoom' && snapshot.rowsPerPixel <= ROW_DETAIL_MAX_ROWS_PER_PIXEL)
+                    scroll.controller.setZoom(1);
+                }}
               >
-                <option value="rows">List</option>
-                <option value="lens">Focus + context</option>
-                <option value="zoom">Overview</option>
+                <option value="rows">{viewLabels.rows}</option>
+                <option value="lens">{viewLabels.lens}</option>
+                <option value="zoom">{viewLabels.zoom}</option>
               </select>
             </label>
             <button className="ds-button ds-jump-trigger" onClick={() => scroll.setJumpOpen(true)}>
@@ -178,7 +237,11 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
             {props.fullPageUrl && (
               <a
                 className="ds-button ds-open-page"
-                href={props.fullPageUrl(savedView(scroll))}
+                href={fullPageHref}
+                onPointerEnter={refreshFullPageHref}
+                onPointerDown={refreshFullPageHref}
+                onFocus={refreshFullPageHref}
+                onContextMenu={refreshFullPageHref}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -189,30 +252,32 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
           </div>
         </div>
       )}
+      {!props.renderToolbar && (
+        <ViewGuide
+          view={snapshot.view}
+          detailed={!scroll.aggregateMode}
+          descriptionId={`${scroll.id}-view-description`}
+        />
+      )}
       {props.exploration !== false && (
         <ExplorerTools
-          scroll={scroll}
+          scroll={explorerScroll}
           storageKey={props.bookmarkStorageKey}
-          renderComparison={(a, b, close) => (
-            <CompareRanges a={a} b={b} host={props} onClose={close} />
-          )}
+          formatRange={props.formatRange}
+          renderComparison={renderComparison}
         />
       )}
       <div {...partProps('header', props, 'ds-legend')}>
-        <span>{props.header ?? 'RECORDS'}</span>
+        <span>
+          {summaryCards ? 'Range summaries · zoom in or inspect rows' : (props.header ?? 'RECORDS')}
+        </span>
         <span>
           <i />
           {props.provider.metric?.label ?? 'Dataset'} ·{' '}
-          {!props.provider.fetchOverview ||
-          scroll.session.metadataErrors.overview ||
-          (scroll.session.overview.length > 0 &&
-            scroll.session.overview.every((bucket) => bucket.accuracy === 'unavailable'))
-            ? 'unavailable'
-            : !scroll.session.overview.length
-              ? 'loading'
-              : scroll.session.overview.some((b) => b.accuracy === 'estimated')
-                ? 'sampled'
-                : 'exact'}{' '}
+          {overviewAccuracy(scroll.session.overview, props.provider.metric?.kind ?? 'value', {
+            supported: !!props.provider.fetchOverview,
+            failed: !!scroll.session.metadataErrors.overview,
+          })}{' '}
           overview
         </span>
       </div>
@@ -236,41 +301,49 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
       {(snapshot.view !== 'rows' || scroll.aggregateMode) && (
         <div {...partProps('scale', props)}>
           <span>
+            {summaryCards && 'Grouped rows · '}
             {snapshot.moving
               ? 'Traveling through the overview'
               : snapshot.view === 'lens'
-                ? 'Full-size focus · logarithmic context · click to explore'
+                ? `Current focus: row ${((snapshot.activeIndex ?? 0) + 1).toLocaleString()} · scroll to read nearby rows`
                 : props.formatRange && scroll.visibleRange.end > scroll.visibleRange.start
                   ? `Showing ${props.formatRange(scroll.visibleRange)}`
                   : `${Math.max(0, scroll.visibleRange.end - scroll.visibleRange.start).toLocaleString()} rows in view · Ctrl+wheel or pinch to zoom`}
           </span>
-          {snapshot.view === 'zoom' && (
+          {snapshot.view !== 'rows' && (
             <div>
+              {snapshot.view === 'zoom' && (
+                <>
+                  <button
+                    className="ds-button"
+                    aria-label="Zoom in"
+                    onClick={() => scroll.controller.setZoom(snapshot.rowsPerPixel / 8)}
+                  >
+                    + Zoom in
+                  </button>
+                  <button
+                    className="ds-button"
+                    aria-label="Zoom out"
+                    onClick={() => scroll.controller.setZoom(snapshot.rowsPerPixel * 8)}
+                  >
+                    − Zoom out
+                  </button>
+                  <button
+                    className="ds-button"
+                    onClick={() => {
+                      if (snapshot.rowCount)
+                        scroll.controller.zoomToRange({ start: 0, end: snapshot.rowCount });
+                    }}
+                  >
+                    Fit dataset
+                  </button>
+                </>
+              )}
               <button
                 className="ds-button"
-                aria-label="Zoom in"
-                onClick={() => scroll.controller.setZoom(snapshot.rowsPerPixel / 8)}
-              >
-                +
-              </button>
-              <button
-                className="ds-button"
-                aria-label="Zoom out"
-                onClick={() => scroll.controller.setZoom(snapshot.rowsPerPixel * 8)}
-              >
-                −
-              </button>
-              <button
-                className="ds-button"
-                onClick={() => {
-                  if (snapshot.rowCount) scroll.controller.zoomToRange({ start: 0, end: snapshot.rowCount });
-                }}
-              >
-                Fit dataset
-              </button>
-              <button
-                className="ds-button"
-                onClick={() => scroll.controller.scrollToIndex(snapshot.activeIndex ?? 0, { align: 'center' })}
+                onClick={() =>
+                  scroll.controller.scrollToIndex(snapshot.activeIndex ?? 0, { align: 'center' })
+                }
               >
                 Inspect rows
               </button>
@@ -300,7 +373,15 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
               height={snapshot.height}
               motion={!scroll.reduceMotion && scroll.features.transitions}
             >
-              {summaryCards ? <AggregateLayer scroll={scroll} renderAggregate={props.renderAggregate} formatRange={props.formatRange} /> : <ViewCanvas scroll={scroll} />}
+              {summaryCards ? (
+                <AggregateLayer
+                  scroll={scroll}
+                  renderAggregate={props.renderAggregate}
+                  formatRange={props.formatRange}
+                />
+              ) : (
+                <ViewCanvas scroll={scroll} />
+              )}
               {scroll.aggregateMode && !summaryCards && (
                 <div className="ds-aggregate-label">
                   {snapshot.moving ? 'Overview during travel' : 'Aggregate view'} ·{' '}
@@ -366,6 +447,7 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
           <AtlasRail
             scroll={scroll}
             options={props.atlas}
+            headerActions={props.railActions}
             className={props.classNames?.rail}
             style={props.styles?.rail}
           />
@@ -379,7 +461,13 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
           </button>
         </div>
       )}
-      <ContextHints scroll={scroll} className={props.classNames?.hint} style={props.styles?.hint} />
+      <ContextHints
+        hints={scroll.features.hints}
+        canGoBack={snapshot.canGoBack}
+        view={snapshot.view}
+        className={props.classNames?.hint}
+        style={props.styles?.hint}
+      />
       <JumpBar scroll={scroll} className={props.classNames?.jump} style={props.styles?.jump} />
       <div {...scroll.getAnnouncementProps()} />
       {props.renderFooter ? (

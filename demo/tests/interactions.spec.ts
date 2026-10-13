@@ -108,6 +108,36 @@ test('no runtime or console errors on a fresh load and view changes', async ({ p
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
   expect(errors).toEqual([]);
 });
+test('view guidance works with keyboard and stays usable on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const menu = page.getByRole('combobox', { name: 'View', exact: true });
+  const guide = page.locator('.ds-view-guide');
+  const toggle = guide.locator('summary');
+  await expect(menu).toHaveAccessibleDescription(/Read individual records/);
+  await toggle.focus();
+  await toggle.press('Enter');
+  await expect(guide).toHaveAttribute('open', '');
+  await expect(
+    guide.getByText(/The dataset map on the right always shows the whole dataset/),
+  ).toBeVisible();
+  await expect(guide.locator('.ds-view-guide-option')).toHaveCount(3);
+  await toggle.press('Enter');
+  await expect(guide).not.toHaveAttribute('open');
+  const position = await page.getByTestId('position').innerText();
+  await menu.selectOption({ label: 'Focused rows' });
+  await expect(menu).toHaveAccessibleDescription(/Nearby rows stay readable/);
+  await expect(page.getByTestId('position')).toHaveText(position);
+  await expect(page.getByRole('button', { name: 'Inspect rows', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Inspect rows', exact: true }).click();
+  await expect(menu).toHaveValue('rows');
+  await expect(page.getByTestId('position')).toHaveText(position);
+  await menu.selectOption({ label: 'Range summaries' });
+  await expect(page.locator('[data-ds-part="aggregate"]').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Zoom out', exact: true })).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});
 test('automatic speed zoom is optional and returns to rows after settling', async ({ page }) => {
   await page.getByText('Developer tools', { exact: false }).first().click();
   await expect(page.getByRole('checkbox', { name: 'Zoom out at speed' })).not.toBeChecked();
@@ -180,7 +210,7 @@ test('touch pinch and pan navigate the same coordinate system', async ({ page, b
 });
 test('marker keys leave modified browser shortcuts such as Ctrl/Cmd+P alone', async ({ page }) => {
   const grid = page.getByRole('grid');
-  const prevented = (init: KeyboardEventInit) =>
+  const prevented = (init: Pick<KeyboardEventInit, 'key' | 'ctrlKey' | 'metaKey' | 'altKey'>) =>
     grid.evaluate((element, init) => {
       const event = new KeyboardEvent('keydown', { ...init, bubbles: true, cancelable: true });
       element.dispatchEvent(event);
@@ -190,4 +220,21 @@ test('marker keys leave modified browser shortcuts such as Ctrl/Cmd+P alone', as
   expect(await prevented({ key: 'p', metaKey: true })).toBe(false);
   expect(await prevented({ key: 'n', altKey: true })).toBe(false);
   expect(await prevented({ key: 'p' })).toBe(true);
+});
+test('editable host content keeps navigation keys in every contenteditable state', async ({
+  page,
+}) => {
+  const results = await page.getByRole('grid').evaluate((grid) =>
+    ['', 'true', 'plaintext-only', 'false'].map((state) => {
+      const editor = document.createElement('span');
+      editor.setAttribute('contenteditable', state);
+      grid.append(editor);
+      const event = new KeyboardEvent('keydown', { key: 'n', bubbles: true, cancelable: true });
+      editor.dispatchEvent(event);
+      editor.remove();
+      return event.defaultPrevented;
+    }),
+  );
+  // Only contenteditable="false" leaves the explorer's marker key active.
+  expect(results).toEqual([false, false, false, true]);
 });

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { atlasDomain, atlasTicks, profileValue } from '../src/visuals/atlas';
+import { atlasDomain, atlasTicks, overviewAccuracy, profileValue } from '../src/visuals/atlas';
 import type { Bucket } from '../src/data/types';
 
 const bucket: Bucket = {
@@ -56,4 +56,17 @@ it('shows supplied chapter addresses and falls back to bounded, one-based row la
   ]);
   expect(atlasTicks(1, [], 'rows')).toEqual([{ index: 0, label: '1' }]);
   expect(atlasTicks(0, [], 'rows')).toEqual([]);
+});
+
+it('labels overview accuracy the same way for the header and the map', () => {
+  const ok = { supported: true, failed: false };
+  const exact: Bucket = { ...bucket, accuracy: 'exact' };
+  expect(overviewAccuracy([], 'value', { supported: false, failed: false })).toBe('unavailable');
+  expect(overviewAccuracy([exact], 'value', { supported: true, failed: true })).toBe('unavailable');
+  expect(overviewAccuracy([], 'value', ok)).toBe('loading');
+  expect(overviewAccuracy([exact], 'value', ok)).toBe('exact');
+  expect(overviewAccuracy([exact, bucket], 'value', ok)).toBe('sampled');
+  // An exact bucket without a drawable value cannot be profiled.
+  expect(overviewAccuracy([{ ...exact, avg: null }], 'value', ok)).toBe('unavailable');
+  expect(overviewAccuracy([{ ...exact, avg: null }], 'density', ok)).toBe('exact');
 });

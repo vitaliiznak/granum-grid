@@ -53,6 +53,8 @@ export interface DemoDataset<Row = any> {
   task?: { title: string; action: string; run(controller: DeepScrollEngine): void };
   /** Materialized demo adapters must not imply only cached rows occupy memory. */
   sourceNote?: string;
+  /** Small provider-derived profile for the dataset gallery. */
+  profileValues?: (number | null)[];
   atlas: AtlasRailOptions;
   help: string;
   map: { chapters: string; profile: string; tracks: string; explain: string; sampling: string };

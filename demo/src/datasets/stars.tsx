@@ -114,6 +114,13 @@ export const stars: DemoDataset<Star> = {
   rowHeight: 42,
   initialIndex: NAMED_STARS[0].index - 4,
   bytesPerRow: 120,
+  formatRange: ({ start, end }) =>
+    `${formatRa(starAt(start).ra)}–${formatRa(starAt(end - 1).ra)} RA`,
+  task: {
+    title: 'Find a dense part of the catalog, then inspect its stars.',
+    action: 'See whole catalog',
+    run: (controller) => controller.zoomToRange({ start: 0, end: STAR_COUNT }),
+  },
   help: 'Every row is one star. The map shows where the Milky Way makes the sky crowded.',
   atlas: { axisLabel: 'RA', formatValue: (v) => `${v.toFixed(1)}M` },
   map: {

@@ -75,7 +75,7 @@ export function CompareRanges<Row>({
         <strong>Compare ranges</strong>
         <label>
           <input type="checkbox" checked={linked} onChange={(e) => setLinked(e.target.checked)} />{' '}
-          Link relative position
+          Scroll together
         </label>
         <button className="ds-button" onClick={onClose}>
           Close comparison
@@ -87,11 +87,11 @@ export function CompareRanges<Row>({
       <div className="ds-compare-panes">
         {[a, b].map((range, i) => (
           <section key={i}>
-            <h3>Range {i === 0 ? 'A' : 'B'}</h3>
+            <h3>{i === 0 ? 'First range' : 'Second range'}</h3>
             <RangeSummary provider={host.provider} range={range} />
             <DeepScroll
               provider={providers[i]}
-              ariaLabel={`Range ${i === 0 ? 'A' : 'B'} rows`}
+              ariaLabel={`${i === 0 ? 'First' : 'Second'} range rows`}
               controllerRef={i === 0 ? left : right}
               rowHeight={host.rowHeight}
               dynamicRowHeight={host.dynamicRowHeight}

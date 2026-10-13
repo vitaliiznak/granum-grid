@@ -8,6 +8,7 @@ import {
   type DeepScrollAppearance,
   type AtlasRailOptions,
   type DeepScrollApi,
+  type AggregateRenderContext,
 } from 'deepscroll';
 import { createEngine } from 'deepscroll/core';
 import { PageCache, rangeProvider } from 'deepscroll/data';
@@ -65,6 +66,9 @@ export const example = (
     apiRef={api}
     dynamicRowHeight
     overscan={3}
+    aggregateRowHeight={140}
+    formatRange={({ start, end }) => `${start + 1}–${end}`}
+    renderAggregate={({ bucket }: AggregateRenderContext) => <p>{bucket.max ?? 'Unavailable'}</p>}
     getRowKey={(row) => row.value}
     renderRow={({ row }) => <span role="gridcell">{row.value}</span>}
   />
@@ -94,6 +98,7 @@ export const engine = createEngine({ rowCount: provider.rowCount });
 export const getMountedTable = (): DeepScrollApi<{ value: number }> | null => api.current;
 export const cache = new PageCache<{ value: number }>();
 controller.current?.scrollToIndex(73_500_000, { align: 'center' });
+controller.current?.zoomToRange({ start: 100, end: 200 });
 const location = controller.current?.getLocation();
 if (location) controller.current?.restore(location);
 

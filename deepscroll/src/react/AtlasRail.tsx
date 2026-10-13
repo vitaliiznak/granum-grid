@@ -8,7 +8,15 @@ import {
   type ReactNode,
 } from 'react';
 import { clamp, progressToRow, rowToProgress } from '../core/mappings.js';
-import { atlasDomain, atlasTicks, drawAtlas, profileValue } from '../visuals/atlas.js';
+import {
+  atlasDomain,
+  atlasTicks,
+  drawAtlas,
+  observeCanvas,
+  overviewAccuracy,
+  profileValue,
+} from '../visuals/atlas.js';
+import { formatCompact, formatDecimal } from '../visuals/format.js';
 import { OverviewTracks } from './OverviewTracks.js';
 import { MarkerLayer } from './MarkerLayer.js';
 import type { RowRange } from '../data/types.js';
@@ -32,7 +40,7 @@ export interface AtlasRailOptions {
   markerLabels?: 'label' | 'number' | 'none';
   /** Hover details. Summary mode does not request preview rows. Default rows. */
   preview?: 'rows' | 'summary' | 'none';
-  /** Exact rows requested on hover, limited to 1–10. Default 3. */
+  /** Exact rows requested on hover, limited to 1–5. Default 3. */
   previewRows?: number;
   showMagnifier?: boolean;
   /** Snap slow drags to visible provider events. Default true. */
@@ -45,6 +53,8 @@ export interface AtlasRailProps<Row> {
   ariaLabel?: string;
   className?: string;
   style?: CSSProperties;
+  /** Host controls displayed beside the map title and help button. */
+  headerActions?: ReactNode;
   renderPreviewRow?(row: Row, index: number): ReactNode;
 }
 export function AtlasRail<Row>({
@@ -53,6 +63,7 @@ export function AtlasRail<Row>({
   renderPreviewRow,
   className,
   style,
+  headerActions,
   options = {},
 }: AtlasRailProps<Row>) {
   const helpId = useId();
@@ -62,6 +73,8 @@ export function AtlasRail<Row>({
   const track = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const magnifier = useRef<HTMLCanvasElement>(null);
+  const previewElement = useRef<HTMLDivElement>(null);
+  const [previewHeight, setPreviewHeight] = useState(180);
   const [hover, setHover] = useState<{ index: number; y: number } | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [precision, setPrecision] = useState('Full speed');
@@ -105,10 +118,12 @@ export function AtlasRail<Row>({
   const visibleEnd = Math.min(total, scroll.mapping.toRow(snapshot.height));
   const chapterAt = (index: number) =>
     session.chapters.find((chapter) => index >= chapter.start && index < chapter.end);
-  const domain = atlasDomain(
-    session.overview,
-    scroll.provider.metric?.domain,
-    scroll.provider.metric?.kind,
+  // The rail re-renders on every position change; derive metadata only when it changes.
+  const metricDomain = scroll.provider.metric?.domain;
+  const metricKind = scroll.provider.metric?.kind;
+  const domain = useMemo(
+    () => atlasDomain(session.overview, metricDomain, metricKind),
+    [session.overview, metricDomain, metricKind],
   );
   const kind = scroll.provider.metric?.kind ?? 'value';
   const showProfile = options.variant !== 'markers' && features.overview;
@@ -117,19 +132,21 @@ export function AtlasRail<Row>({
   const showPreviewRows = preview === 'rows' && features.preview;
   const showMagnifier =
     preview !== 'none' && options.showMagnifier !== false && features.magnifier && showProfile;
+  const previewVisible =
+    !!hover && !helpOpen && (dragging || preview === 'summary' || showPreviewRows || showMagnifier);
   const previewRows = Number.isFinite(options.previewRows)
-    ? clamp(Math.floor(options.previewRows!), 1, 10)
+    ? clamp(Math.floor(options.previewRows!), 1, 5)
     : 3;
   const maxAxisTicks = Number.isFinite(options.maxAxisTicks)
     ? clamp(Math.floor(options.maxAxisTicks!), 2, 12)
     : 5;
   const showRange = !!options.showRange && kind === 'value';
   const axis = options.axis ?? 'chapters';
-  const ticks = atlasTicks(
-    total,
-    features.chapters ? session.chapters : [],
-    axis,
-    Math.min(maxAxisTicks, Math.max(2, Math.floor(trackHeight / 36))),
+  const tickLimit = Math.min(maxAxisTicks, Math.max(2, Math.floor(trackHeight / 70)));
+  const tickChapters = features.chapters ? session.chapters : null;
+  const ticks = useMemo(
+    () => atlasTicks(total, tickChapters ?? [], axis, tickLimit),
+    [total, tickChapters, axis, tickLimit],
   );
   const hasChapterAxis = axis === 'chapters' && features.chapters && session.chapters.length > 0;
   const axisLabel =
@@ -138,18 +155,18 @@ export function AtlasRail<Row>({
       : (options.axisLabel ?? (hasChapterAxis ? 'Position' : 'Row'));
   const formatValue =
     options.formatValue ??
-    ((value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 1 }));
+    ((value: number) => formatDecimal(value, 1));
   const profileLabel = kind === 'density' ? 'Density' : 'Average';
-  const accuracy =
-    !scroll.provider.fetchOverview ||
-    session.metadataErrors.overview ||
-    (session.overview.length && session.overview.every((b) => profileValue(b, kind) === null))
-      ? 'Unavailable'
-      : !session.overview.length
-        ? 'Loading'
-        : session.overview.some((b) => b.accuracy === 'estimated')
-          ? 'Sampled'
-          : 'Exact';
+  const overviewSupported = !!scroll.provider.fetchOverview;
+  const overviewFailed = !!session.metadataErrors.overview;
+  const accuracy = useMemo(
+    () =>
+      overviewAccuracy(session.overview, kind, {
+        supported: overviewSupported,
+        failed: overviewFailed,
+      }),
+    [session.overview, kind, overviewSupported, overviewFailed],
+  );
   const hoverBucket = hover
     ? session.overview.find((b) => hover.index >= b.start && hover.index < b.end)
     : undefined;
@@ -172,17 +189,7 @@ export function AtlasRail<Row>({
         showRange,
       );
     draw();
-    const resize = new ResizeObserver(draw);
-    resize.observe(canvas.current);
-    const theme = new MutationObserver(draw);
-    theme.observe(canvas.current.closest('.ds-root') ?? canvas.current, { attributes: true });
-    const media = matchMedia('(prefers-color-scheme: dark)');
-    media.addEventListener('change', draw);
-    return () => {
-      resize.disconnect();
-      theme.disconnect();
-      media.removeEventListener('change', draw);
-    };
+    return observeCanvas(canvas.current, draw);
   }, [
     session.overview,
     total,
@@ -209,6 +216,13 @@ export function AtlasRail<Row>({
     return () => session.setRange('preview', 0, 0);
   }, [session, previewIndex, previewRows, total, showPreviewRows, dragging]);
   useEffect(() => {
+    const element = previewElement.current;
+    if (!element) return;
+    const resize = new ResizeObserver(() => setPreviewHeight(element.offsetHeight));
+    resize.observe(element);
+    return () => resize.disconnect();
+  }, [previewVisible]);
+  useEffect(() => {
     if (!magnifier.current || !hover) return;
     const range = Math.max(1, total * 0.045),
       start = Math.max(0, hover.index - range / 2),
@@ -221,7 +235,7 @@ export function AtlasRail<Row>({
         end: Math.min(end, b.end) - start,
       }));
     drawAtlas(magnifier.current, buckets, end - start, domain, kind, showRange);
-  }, [hover, session.overview, showMagnifier, showRange, domain[0], domain[1], kind]);
+  }, [hover, session.overview, showMagnifier, helpOpen, showRange, domain[0], domain[1], kind]);
   const atPointer = (clientY: number) => {
     const rect = track.current!.getBoundingClientRect();
     return {
@@ -268,16 +282,19 @@ export function AtlasRail<Row>({
           <span className="ds-map-title">{options.title ?? 'Dataset map'}</span>
           <span className="ds-map-title-compact">Map</span>
         </strong>
-        <button
-          type="button"
-          className="ds-button ds-map-help-button"
-          aria-label="About dataset map"
-          aria-expanded={helpOpen}
-          aria-controls={helpId}
-          onClick={() => setHelpOpen(!helpOpen)}
-        >
-          ?
-        </button>
+        <div className="ds-rail-actions">
+          <button
+            type="button"
+            className="ds-button ds-map-help-button"
+            aria-label="About dataset map"
+            aria-expanded={helpOpen}
+            aria-controls={helpId}
+            onClick={() => setHelpOpen(!helpOpen)}
+          >
+            ?
+          </button>
+          {headerActions}
+        </div>
       </div>
       <div id={helpId} className="ds-map-help" hidden={!helpOpen} role="note" tabIndex={0}>
         <strong>How to read this map</strong>
@@ -299,11 +316,11 @@ export function AtlasRail<Row>({
         </p>
         {showProfile && (
           <p>
-            {accuracy} overview
+            {accuracy[0].toUpperCase() + accuracy.slice(1)} overview
             {session.overview.length > 0
               ? ` · ${session.overview.length} groups · about ${Math.round(total / session.overview.length).toLocaleString()} rows per group`
               : ''}
-            . {accuracy === 'Sampled' ? 'Summaries use samples, not every row.' : ''}
+            . {accuracy === 'sampled' ? 'Summaries use samples, not every row.' : ''}
           </p>
         )}
       </div>
@@ -463,7 +480,7 @@ export function AtlasRail<Row>({
             aria-hidden="true"
             data-testid="overview"
           />
-          {showProfile && accuracy === 'Unavailable' && (
+          {showProfile && accuracy === 'unavailable' && (
             <span className="ds-map-unavailable">No profile</span>
           )}
         </div>
@@ -530,18 +547,23 @@ export function AtlasRail<Row>({
           aria-valuetext={`Row ${total ? (snapshot.activeIndex ?? 0) + 1 : 0} of ${total}${chapterAt(snapshot.position) ? `, ${chapterAt(snapshot.position)!.label}` : ''}`}
           className="ds-thumb"
           style={{ top: `clamp(0px, calc(${snapshot.progress * 100}% - 12px), calc(100% - 24px))` }}
-        />
+        >
+          <span className="ds-thumb-direction" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M7 12V2M3 6l4-4 4 4"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </span>
         <span className="ds-track-line" style={{ top: `${snapshot.progress * 100}%` }} />
       </div>
-      <div className="ds-map-position">
-        <span>
-          <i aria-hidden="true" />
-          You are here
-        </span>
-        <strong>{(snapshot.progress * 100).toFixed(2)}%</strong>
-      </div>
       <span className="ds-rail-end">
-        {Intl.NumberFormat('en', { notation: 'compact' }).format(total)} rows
+        {formatCompact(total)} rows
       </span>
       {options.showLegend !== false && (showProfile || showMarkers) && (
         <div className="ds-map-legend">
@@ -549,90 +571,88 @@ export function AtlasRail<Row>({
             <span>
               <i className="ds-map-mean-key" />
               {profileLabel}
-              {showRange ? ' + min–max' : ''} · {accuracy.toLowerCase()}
+              {showRange ? ' + min–max' : ''} · {accuracy}
             </span>
           )}
           {showMarkers && <span>◆ Events · click to jump</span>}
         </div>
       )}
-      {hover &&
-        !helpOpen &&
-        (dragging || preview === 'summary' || showPreviewRows || showMagnifier) && (
-          <div
-            className="ds-preview"
-            style={{ top: clamp(hover.y + 28, 30, Math.max(30, snapshot.height - 180)) }}
-            role="note"
-          >
-            <div className="ds-preview-kicker">
-              {dragging ? 'Moving to row' : 'At this row'}{' '}
-              <span>{chapterAt(hover.index)?.label ?? ''}</span>
-            </div>
-            <strong>{(hover.index + 1).toLocaleString()}</strong>
-            <div className="ds-preview-detail">
-              {dragging ? precision : 'Row address'}
-              {dragging && features.precision && <small>Move left for precision</small>}
-            </div>
-            {showProfile && hoverBucket && (
-              <div className="ds-map-bucket-summary">
-                <span>
-                  {hoverBucket.accuracy === 'estimated'
-                    ? 'Sampled group'
-                    : hoverBucket.accuracy === 'exact'
-                      ? 'Exact group'
-                      : 'Unavailable group'}{' '}
-                  · rows {(hoverBucket.start + 1).toLocaleString()}–
-                  {hoverBucket.end.toLocaleString()}
-                </span>
-                <strong>
-                  {profileLabel}:{' '}
-                  {hoverValue === null
-                    ? 'Unavailable'
-                    : `${formatValue(hoverValue)} ${scroll.provider.metric?.unit ?? ''}`}
-                </strong>
-                {showRange && hoverBucket.accuracy !== 'unavailable' && (
-                  <span>
-                    Min–max: {hoverBucket.min === null ? '—' : formatValue(hoverBucket.min)}–
-                    {hoverBucket.max === null ? '—' : formatValue(hoverBucket.max)}
-                  </span>
-                )}
-              </div>
-            )}
-            {showMagnifier && (
-              <div className="ds-magnifier">
-                <canvas ref={magnifier} aria-label="Magnified overview region" />
-                <span>Local overview · coarse</span>
-              </div>
-            )}
-            {showPreviewRows &&
-              !dragging &&
-              previewIndex !== null &&
-              Array.from({ length: Math.min(previewRows, total - previewIndex) }, (_, offset) => {
-                const index = previewIndex + offset,
-                  row = session.read(index);
-                return (
-                  <div key={index} className="ds-preview-row">
-                    <span>#{(index + 1).toLocaleString()}</span>
-                    {row !== undefined ? (
-                      (renderPreviewRow?.(row, index) ?? (
-                        <span>
-                          {typeof row === 'object' && row !== null
-                            ? Object.values(row)
-                                .filter(
-                                  (value) => typeof value === 'string' || typeof value === 'number',
-                                )
-                                .slice(0, 3)
-                                .join(' · ')
-                            : String(row)}
-                        </span>
-                      ))
-                    ) : (
-                      <span>{session.error(index) ? 'Preview unavailable' : 'Fetching rows…'}</span>
-                    )}
-                  </div>
-                );
-              })}
+      {hover && previewVisible && (
+        <div
+          ref={previewElement}
+          className="ds-preview"
+          style={{ top: clamp(hover.y + 28, 8, Math.max(8, snapshot.height - previewHeight - 8)) }}
+          role="note"
+        >
+          <div className="ds-preview-kicker">
+            {dragging ? 'Moving to row' : 'At this row'}{' '}
+            <span>{chapterAt(hover.index)?.label ?? ''}</span>
           </div>
-        )}
+          <strong>{(hover.index + 1).toLocaleString()}</strong>
+          <div className="ds-preview-detail">
+            {dragging ? precision : 'Row address'}
+            {dragging && features.precision && <small>Move left for precision</small>}
+          </div>
+          {showProfile && hoverBucket && (
+            <div className="ds-map-bucket-summary">
+              <span>
+                {hoverBucket.accuracy === 'estimated'
+                  ? 'Sampled group'
+                  : hoverBucket.accuracy === 'exact'
+                    ? 'Exact group'
+                    : 'Unavailable group'}{' '}
+                · rows {(hoverBucket.start + 1).toLocaleString()}–{hoverBucket.end.toLocaleString()}
+              </span>
+              <strong>
+                {profileLabel}:{' '}
+                {hoverValue === null
+                  ? 'Unavailable'
+                  : `${formatValue(hoverValue)} ${scroll.provider.metric?.unit ?? ''}`}
+              </strong>
+              {showRange && hoverBucket.accuracy !== 'unavailable' && (
+                <span>
+                  Min–max: {hoverBucket.min === null ? '—' : formatValue(hoverBucket.min)}–
+                  {hoverBucket.max === null ? '—' : formatValue(hoverBucket.max)}
+                </span>
+              )}
+            </div>
+          )}
+          {showMagnifier && (
+            <div className="ds-magnifier">
+              <canvas ref={magnifier} aria-label="Magnified overview region" />
+              <span>Local overview · coarse</span>
+            </div>
+          )}
+          {showPreviewRows &&
+            !dragging &&
+            previewIndex !== null &&
+            Array.from({ length: Math.min(previewRows, total - previewIndex) }, (_, offset) => {
+              const index = previewIndex + offset,
+                row = session.read(index);
+              return (
+                <div key={index} className="ds-preview-row">
+                  <span>#{(index + 1).toLocaleString()}</span>
+                  {row !== undefined ? (
+                    (renderPreviewRow?.(row, index) ?? (
+                      <span>
+                        {typeof row === 'object' && row !== null
+                          ? Object.values(row)
+                              .filter(
+                                (value) => typeof value === 'string' || typeof value === 'number',
+                              )
+                              .slice(0, 3)
+                              .join(' · ')
+                          : String(row)}
+                      </span>
+                    ))
+                  ) : (
+                    <span>{session.error(index) ? 'Preview unavailable' : 'Fetching rows…'}</span>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+      )}
     </aside>
   );
 }

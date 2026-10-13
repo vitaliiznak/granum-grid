@@ -1,5 +1,6 @@
 import { clamp, wheelPixels } from '../core/mappings.js';
 import type { DeepScrollEngine } from '../core/engine.js';
+import { isControl, isTextEntry } from './dom.js';
 export interface InputOptions {
   reducedMotion: boolean;
   windowScroll?: boolean;
@@ -26,6 +27,19 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
     edge = 0,
     moved = false,
     suppressClick = false;
+  // Whether a wheel target scrolls natively. Reused within a gesture to skip layout reads.
+  let native = { target: null as EventTarget | null, until: 0, scrolls: false };
+  const scrollsNatively = (target: EventTarget | null) => {
+    for (let node = target as HTMLElement | null; node !== wheelSurface; node = node.parentElement) {
+      if (!node || node.matches('dialog,[data-ds-native-scroll]')) return true;
+      if (
+        node.scrollHeight > node.clientHeight &&
+        /^(auto|scroll)$/.test(getComputedStyle(node).overflowY)
+      )
+        return true;
+    }
+    return false;
+  };
   const cancelInertia = () => {
     cancelAnimationFrame(inertiaFrame);
     inertiaFrame = 0;
@@ -75,26 +89,15 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
     settleTimer = setTimeout(settle, 140);
   };
   const wheel = (event: WheelEvent) => {
-    if (
-      event.defaultPrevented ||
-      (event.target as HTMLElement).closest('input,textarea,select,[contenteditable=true]')
-    )
-      return;
+    if (event.defaultPrevented || isTextEntry(event.target)) return;
     if (options.windowScroll) {
       // Panels and dialogs retain their own native scrolling, including any
       // nested explorer. The fixed page's remaining surface uses row pixels.
-      for (
-        let node = event.target as HTMLElement;
-        node !== wheelSurface;
-        node = node.parentElement!
-      ) {
-        if (!node || node.matches('dialog,[data-ds-native-scroll]')) return;
-        if (
-          node.scrollHeight > node.clientHeight &&
-          /^(auto|scroll)$/.test(getComputedStyle(node).overflowY)
-        )
-          return;
-      }
+      const now = performance.now();
+      if (event.target !== native.target || now > native.until)
+        native = { target: event.target, until: 0, scrolls: scrollsNatively(event.target) };
+      native.until = now + 200;
+      if (native.scrolls) return;
     }
     cancelInertia();
     if (event.ctrlKey) {
@@ -130,7 +133,7 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
     cancelInertia();
     velocity = 0;
     lastTime = performance.now();
-    if (event.pointerType !== 'touch' || (event.target as HTMLElement).closest('button,input,a'))
+    if (event.pointerType !== 'touch' || isControl(event.target))
       return;
     viewport.setPointerCapture(event.pointerId);
     touches.set(event.pointerId, { x: event.clientX, y: event.clientY });

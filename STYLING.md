@@ -127,7 +127,7 @@ Chapter labels come from `fetchChapters`. They represent time only when your pro
 | `layout` | `auto` (compact below 650 px), `expanded`, or `compact` |
 | `maxAxisTicks` | Maximum axis labels; default 5, clamped to 2–12 and available height |
 | `preview` | `rows` (default, summary plus exact rows), `summary` (no row requests), or `none`. Drag position feedback remains available. |
-| `previewRows` | Exact rows per hover preview; default 3, clamped to 1–10 and remaining rows |
+| `previewRows` | Exact rows per hover preview; default 3, clamped to 1–5 and remaining rows |
 | `showMagnifier` | Local profile in hover details; defaults to true. Requires a profile and hover details. |
 | `snapToMarkers` | Snap slow map drags to visible provider events; defaults to true. Shift temporarily bypasses snapping. |
 | `formatValue` | Number formatter for the scale and group details |
@@ -136,7 +136,7 @@ Compact layout shows marker numbers instead of names, hides extra tracks, and ke
 
 Global feature switches still take precedence: for example, `features={{ markers: false }}` hides events regardless of `showMarkers`, and `features={{ preview: false }}` prevents exact-row previews. Hiding a layer does not disable provider metadata loading. The current-row handle and explicit range selection stay visible independently of these layer options.
 
-For composition, pass the same configuration as `<AtlasRail scroll={scroll} options={atlas} />`. Configuration changes preserve the current row and history. The demo's **Map settings** menu keeps independent settings for each dataset until reload; **Reset map** restores only the current dataset's defaults. The library does not require that menu or any particular UI framework. Use `renderRail` or the headless hook to replace the map entirely.
+For composition, pass the same configuration as `<AtlasRail scroll={scroll} options={atlas} />`. Configuration changes preserve the current row and history. Add controls beside the map title with `DeepScroll`'s `railActions` prop (or `AtlasRail`'s `headerActions` prop). The demo's **Map settings** icon opens a menu beside the dataset map and keeps independent settings for each dataset until reload; **Reset map** restores only the current dataset's defaults. The library does not require that menu or any particular UI framework. Use `renderRail` or the headless hook to replace the map entirely.
 
 ## Use your React controls
 
@@ -210,3 +210,11 @@ function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }
 No stylesheet is required for positioning, clipping, touch navigation, or visually hidden announcements. Prop getters merge your classes, styles, and handlers while retaining the internal viewport ref, row measurement ref, ARIA addresses, and row geometry. The viewport click/key handlers call yours first and respect `preventDefault()`.
 
 Headless mode gives you the navigation state; render empty/error/retry UI, focus styles, and any optional view controls you need. `AtlasRail`, `JumpBar`, and `ViewCanvas` are exported for composition. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. A headless layout that enables Lens/aggregate Zoom must render `ViewCanvas` as well as rows. Render `scroll.edgeOffset` on your own pan wrapper if you want elastic edge feedback.
+
+## Summary bands
+
+Overview bands expose `[data-ds-part="aggregate"]`. Their bounded placement belongs to
+the library. Style `.ds-summary-content`, `.ds-summary-heading`, `.ds-summary-accuracy`,
+and `.ds-summary-actions` to adapt their appearance, or supply `renderAggregate` for the
+inner content. The base stylesheet provides geometry; the optional skin supplies palette,
+borders, and control styling. `unstyled` also applies to summary bands.

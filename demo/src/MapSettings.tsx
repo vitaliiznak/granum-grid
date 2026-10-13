@@ -1,5 +1,5 @@
 import type { AtlasRailOptions } from 'deepscroll';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 export function MapSettings({
   value,
@@ -16,34 +16,76 @@ export function MapSettings({
   /** Name of the dataset's chapters, such as Years or Chromosomes. */
   chapters: string;
 }) {
-  const details = useRef<HTMLDetailsElement>(null);
+  const panelId = useId();
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const positionPanel = () => {
+    if (!trigger.current || !panel.current) return;
+    const rect = trigger.current.getBoundingClientRect();
+    // Open above the button when there is more room there; never cover the trigger.
+    const below = window.innerHeight - rect.bottom - 24;
+    const above = rect.top - 24;
+    const opensBelow = below >= 320 || below >= above;
+    const top = opensBelow ? rect.bottom + 8 : Math.max(16, rect.top - 688);
+    const height = opensBelow ? below : rect.top - top - 8;
+    const right = Math.max(16, window.innerWidth - rect.right);
+    panel.current.style.setProperty('--map-settings-top', `${top}px`);
+    panel.current.style.setProperty('--map-settings-right', `${right}px`);
+    panel.current.style.setProperty('--map-settings-height', `${Math.max(0, height)}px`);
+  };
   const close = () => {
-    if (!details.current) return;
-    details.current.open = false;
-    details.current.querySelector('summary')?.focus();
+    panel.current?.hidePopover();
+    trigger.current?.focus();
   };
   useEffect(() => {
-    const outside = (event: PointerEvent) => {
-      if (details.current?.open && !details.current.contains(event.target as Node))
-        details.current.open = false;
+    const reposition = () => {
+      if (panel.current?.matches(':popover-open')) positionPanel();
     };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && details.current?.open) close();
-    };
-    document.addEventListener('pointerdown', outside);
-    document.addEventListener('keydown', escape);
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
     return () => {
-      document.removeEventListener('pointerdown', outside);
-      document.removeEventListener('keydown', escape);
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
     };
   }, []);
   return (
-    <details ref={details} className="map-settings">
-      <summary>
-        Map settings <span aria-hidden="true">⌄</span>
-      </summary>
-      <div className="map-settings-panel">
-        <strong>Dataset map</strong>
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        className="map-settings-trigger"
+        aria-label="Map settings"
+        aria-expanded={open}
+        title="Map settings"
+        popoverTarget={panelId}
+        onClick={positionPanel}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <path d="M4 7h3m4 0h9M4 17h9m4 0h3" />
+          <circle cx="9" cy="7" r="2" />
+          <circle cx="15" cy="17" r="2" />
+        </svg>
+      </button>
+      <div
+        ref={panel}
+        id={panelId}
+        popover="auto"
+        onToggle={(event) => setOpen(event.newState === 'open')}
+        role="dialog"
+        aria-labelledby={`${panelId}-title`}
+        className="map-settings-panel"
+      >
+        <strong id={`${panelId}-title`}>Map settings</strong>
         <p>Changes apply now and stay with this dataset while you explore.</p>
         <fieldset className="map-settings-group">
           <legend>Layout</legend>
@@ -189,6 +231,6 @@ export function MapSettings({
           </button>
         </div>
       </div>
-    </details>
+    </>
   );
 }

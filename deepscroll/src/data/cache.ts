@@ -4,6 +4,7 @@ export class PageCache<Row> {
   readonly maxBytes: number;
   private pages = new Map<number, { rows: Row[]; bytes: number }>();
   private estimate: (row: Row) => number;
+  private rows = 0;
   bytes = 0;
   constructor(options: CacheOptions<Row> = {}) {
     this.pageSize = options.pageSize ?? 256;
@@ -38,36 +39,36 @@ export class PageCache<Row> {
     return entry.rows[index % this.pageSize];
   }
   put(page: number, rows: Row[]) {
-    this.bytes -= this.pages.get(page)?.bytes ?? 0;
+    this.delete(page);
     const bytes = rows.reduce((sum, row) => {
       const size = this.estimate(row);
       return sum + (Number.isFinite(size) && size > 0 ? size : 256);
     }, 64);
-    this.pages.delete(page);
     this.pages.set(page, { rows, bytes });
     this.bytes += bytes;
+    this.rows += rows.length;
   }
   evict(pinned: Set<number>, metadataBytes = 0) {
     for (const [page, entry] of this.pages) {
       if (this.bytes + metadataBytes <= this.maxBytes) break;
-      if (!pinned.has(page)) {
-        this.pages.delete(page);
-        this.bytes -= entry.bytes;
-      }
+      if (!pinned.has(page)) this.drop(page, entry);
     }
   }
   get rowCount() {
-    return [...this.pages.values()].reduce((sum, page) => sum + page.rows.length, 0);
+    return this.rows;
   }
   clear() {
     this.pages.clear();
     this.bytes = 0;
+    this.rows = 0;
   }
   delete(page: number) {
     const entry = this.pages.get(page);
-    if (entry) {
-      this.bytes -= entry.bytes;
-      this.pages.delete(page);
-    }
+    if (entry) this.drop(page, entry);
+  }
+  private drop(page: number, entry: { rows: Row[]; bytes: number }) {
+    this.bytes -= entry.bytes;
+    this.rows -= entry.rows.length;
+    this.pages.delete(page);
   }
 }

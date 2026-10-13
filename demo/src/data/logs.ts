@@ -1,6 +1,6 @@
 import { bump, clamp, gaussian, noise, pick } from './noise';
 
-export const LOG_COUNT = 1_296_000_000;
+export const LOG_COUNT = 4_000_000_000;
 export const LOG_START = Date.UTC(2026, 8, 1);
 export const LOG_END = Date.UTC(2026, 9, 1);
 const DAY = 86_400_000;

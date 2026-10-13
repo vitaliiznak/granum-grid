@@ -79,7 +79,7 @@ it('does not invent records in an empty dataset', async () => {
 
 it('preserves partial search coverage, exact addresses, and provider context', async () => {
   const provider = makeProvider();
-  provider.search = vi.fn(async () => ({
+  provider.search = vi.fn<NonNullable<typeof provider.search>>(async () => ({
     matches: [{ id: 'match', index: 73_499_999, label: 'Verified match', kind: 'search' }],
     complete: false,
     message: 'Bounded sample, not exhaustive.',
@@ -111,17 +111,19 @@ it('preserves partial search coverage, exact addresses, and provider context', a
 
 it('summarizes the full dataset with bounded provider buckets and keeps uncertainty', async () => {
   const provider = makeProvider();
-  provider.fetchAggregates = vi.fn(async ({ start, end }) => [
-    {
-      start,
-      end,
-      count: null,
-      avg: 5,
-      min: 2,
-      max: 9,
-      accuracy: 'estimated',
-    },
-  ]);
+  provider.fetchAggregates = vi.fn<NonNullable<typeof provider.fetchAggregates>>(
+    async ({ start, end }) => [
+      {
+        start,
+        end,
+        count: null,
+        avg: 5,
+        min: 2,
+        max: 9,
+        accuracy: 'estimated',
+      },
+    ],
+  );
   const tools = createTableTools({ provider });
   expect(
     await tools.execute('summarize_range', { start: 0, end: 100_000_000, buckets: 32 }),
@@ -269,7 +271,7 @@ it('times out callers but retains request slots until an uncooperative provider 
   vi.useFakeTimers();
   const provider = makeProvider();
   const resolvers: ((rows: { value: number }[]) => void)[] = [];
-  provider.fetchRows = vi.fn(
+  provider.fetchRows = vi.fn<typeof provider.fetchRows>(
     () =>
       new Promise((resolve) => {
         resolvers.push(resolve);

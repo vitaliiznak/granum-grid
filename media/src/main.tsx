@@ -4,6 +4,7 @@ import { encodeView } from 'deepscroll';
 import Demo from '../../demo/src/App';
 import { findDataset } from '../../demo/src/datasets';
 import { scenes } from './scenes';
+import { filmWindow, Marketing, titleCards } from './Marketing';
 import 'deepscroll/styles.css';
 import '../../demo/src/styles.css';
 import './studio.css';
@@ -11,6 +12,7 @@ import './studio.css';
 const params = new URLSearchParams(location.search);
 const selected = scenes.find((scene) => scene.id === params.get('scene')) ?? scenes[0];
 const capture = params.get('capture') === '1' || params.get('page') === '1';
+const artwork = params.get('artwork');
 
 // The capture page mounts the actual demo. Only its existing saved-view URL is prepared.
 if (capture && !location.hash) {
@@ -35,10 +37,14 @@ if (capture && !location.hash) {
 
 declare global {
   interface Window {
-    __deepscrollMedia?: { scenes: typeof scenes };
+    __deepscrollMedia?: {
+      scenes: typeof scenes;
+      titleCards: typeof titleCards;
+      filmWindow: typeof filmWindow;
+    };
   }
 }
-window.__deepscrollMedia = { scenes };
+window.__deepscrollMedia = { scenes, titleCards, filmWindow };
 
 /** Chromium screencasts omit the OS cursor. This follows real pointer events for the film. */
 function RecordingPointer() {
@@ -96,6 +102,33 @@ function Studio() {
           ))}
         </nav>
         <p className="media-direction">{scene.description}</p>
+        <p className="media-direction">
+          <strong>{scene.headline}</strong>
+          <br />
+          {scene.promise}
+        </p>
+        <a
+          className="media-preview-link"
+          href={`?artwork=scene&scene=${scene.id}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Preview scene artwork ↗
+        </a>
+        <a className="media-preview-link" href="?artwork=intro" target="_blank" rel="noreferrer">
+          Opening card ↗
+        </a>
+        <a className="media-preview-link" href="?artwork=outro" target="_blank" rel="noreferrer">
+          Closing card ↗
+        </a>
+        <a
+          className="media-preview-link"
+          href="output/deepscroll-launch.mp4"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Play latest exported film ↗
+        </a>
         <button className="media-reset" onClick={() => setTake((n) => n + 1)}>
           Reset demo
         </button>
@@ -115,7 +148,13 @@ function Studio() {
 }
 
 createRoot(document.getElementById('root')!).render(
-  capture ? (
+  artwork ? (
+    <Marketing
+      scene={selected}
+      card={artwork === 'intro' || artwork === 'outro' ? artwork : undefined}
+      plate={params.get('plate') === '1'}
+    />
+  ) : capture ? (
     <>
       <Demo />
       {params.get('film') === '1' && <RecordingPointer />}

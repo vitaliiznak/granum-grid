@@ -10,13 +10,67 @@
   :where(.ds-view-menu) {
     white-space: nowrap;
   }
+  :where(.ds-view-guide) {
+    flex-shrink: 0;
+  }
+  :where(.ds-view-guide > summary) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 18px;
+    padding: 9px 18px;
+    cursor: pointer;
+    list-style: none;
+  }
+  :where(.ds-view-guide > summary::-webkit-details-marker) {
+    display: none;
+  }
+  :where(.ds-view-guide-toggle) {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  :where(.ds-view-guide-toggle)::after {
+    content: ' +';
+  }
+  :where(.ds-view-guide[open] .ds-view-guide-toggle)::after {
+    content: ' −';
+  }
+  :where(.ds-view-guide-content) {
+    max-height: 32dvh;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 0 18px 12px;
+  }
+  :where(.ds-view-guide-options) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  :where(.ds-view-guide-option) {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px;
+  }
+  :where(.ds-view-diagram) {
+    flex-shrink: 0;
+    width: 64px;
+    height: auto;
+  }
+  :where(.ds-view-guide p) {
+    margin: 4px 0 0;
+  }
+  :where(.ds-view-guide .ds-view-guide-map) {
+    margin-top: 10px;
+  }
   :where(.ds-explore-toggle) {
     flex-shrink: 0;
     padding: 6px 18px;
   }
   :where(.ds-explorer-panel) {
-    flex-shrink: 0;
-    max-height: min(300px, 40dvh);
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: min(340px, 48dvh);
     overflow: auto;
     overscroll-behavior: contain;
     padding: 12px 18px;
@@ -55,8 +109,147 @@
     flex-wrap: wrap;
     gap: 24px;
   }
+  :where(.ds-flow-heading, .ds-selection-overview, .ds-map-prompt) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  :where(.ds-flow-heading > div, .ds-selection-description) {
+    min-width: 0;
+  }
+  :where(.ds-flow-heading > .ds-button) {
+    flex-shrink: 0;
+  }
+  :where(.ds-flow-heading p, .ds-map-prompt p) {
+    margin: 3px 0 0;
+  }
+  :where(.ds-selection-methods) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  :where(.ds-selection-method, .ds-saved-view, .ds-selection-description) {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 4px;
+    text-align: left;
+  }
+  :where(.ds-selection-description) {
+    overflow-wrap: anywhere;
+  }
+  :where(.ds-range-picker .ds-range-form) {
+    display: block;
+    margin: 16px 0 0;
+  }
+  :where(.ds-range-inputs, .ds-range-confirm) {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+  }
+  :where(.ds-range-inputs) {
+    max-width: 440px;
+  }
+  :where(.ds-range-inputs label) {
+    flex: 1;
+  }
+  :where(.ds-range-inputs .ds-input) {
+    width: 100%;
+  }
+  :where(.ds-range-inputs > span) {
+    padding-bottom: 8px;
+  }
+  :where(.ds-range-confirm) {
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 14px;
+  }
+  :where(.ds-saved-views-trigger) {
+    margin-left: auto;
+  }
+  :where(.ds-selection-card) {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 48dvh;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 14px 18px 10px;
+  }
+  :where(.ds-selection-details) {
+    margin-top: 10px;
+  }
+  :where(.ds-selection-details > summary) {
+    width: fit-content;
+    cursor: pointer;
+  }
+  :where(.ds-selection-details .ds-range-summary) {
+    padding: 12px 0 2px;
+  }
+  :where(.ds-range-summary dl) {
+    margin: 12px 0 6px;
+  }
+  :where(.ds-comparison-range .ds-button) {
+    align-self: start;
+    margin-top: 5px;
+  }
+  :where(.ds-flow-message) {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 8px 18px;
+  }
+  :where(.ds-map-prompt) {
+    flex-shrink: 0;
+    padding: 12px 18px;
+    flex-wrap: wrap;
+  }
   :where(.ds-range-summary dd) {
     margin: 0;
+  }
+  :where(.ds-comparison-setup) {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 42dvh;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 12px 18px;
+  }
+  :where(.ds-comparison-heading, .ds-comparison-actions) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  :where(.ds-comparison-heading > .ds-button, .ds-comparison-primary) {
+    margin-left: auto;
+  }
+  :where(.ds-comparison-ranges) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 10px 0;
+  }
+  :where(.ds-comparison-range) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 10px 12px;
+    overflow-wrap: anywhere;
+  }
+  :where(.ds-comparison-help) {
+    margin: 8px 0 0;
+  }
+  :where(.ds-comparison-setup + .ds-explorer-panel) {
+    max-height: 22dvh;
+  }
+  :where(
+    .ds-comparison-setup ~ .ds-body,
+    .ds-explorer-panel ~ .ds-body,
+    .ds-selection-card ~ .ds-body
+  ) {
+    min-height: 100px;
   }
   :where(.ds-compare) {
     width: min(1200px, calc(100vw - 24px));
@@ -87,6 +280,33 @@
     display: none;
   }
   @media (max-width: 650px) {
+    :where(.ds-selection-methods) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+    }
+    :where(.ds-selection-overview) {
+      align-items: start;
+      flex-direction: column;
+    }
+    :where(.ds-selection-card, .ds-explorer-panel) {
+      padding: 12px;
+    }
+    :where(.ds-range-confirm > span) {
+      flex-basis: 100%;
+    }
+    :where(.ds-explore-toggle > span) {
+      display: none;
+    }
+    :where(.ds-comparison-setup) {
+      padding: 10px;
+    }
+    :where(.ds-comparison-heading > span) {
+      order: 1;
+      flex-basis: 100%;
+    }
+    :where(.ds-comparison-range) {
+      padding: 8px;
+    }
     :where(.ds-compare-panes) {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -341,6 +561,19 @@
     border: 0;
   }
   @media (max-width: 650px) {
+    :where(.ds-view-guide > summary) {
+      flex-wrap: wrap;
+      padding: 8px 10px;
+    }
+    :where(.ds-view-guide-content) {
+      padding: 0 10px 10px;
+    }
+    :where(.ds-view-guide-options) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    :where(.ds-scale > div) {
+      flex-wrap: wrap;
+    }
     :where(.ds-toolbar, .ds-scale) {
       flex-wrap: wrap;
     }
@@ -386,8 +619,15 @@
   }
   :where(.ds-rail-title) {
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 8px;
+  }
+  :where(.ds-rail-actions) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
   }
   :where(.ds-map-title) {
     display: var(--ds-map-title-display);
@@ -473,6 +713,23 @@
     width: 10px;
     z-index: 3;
   }
+  :where(.ds-thumb-direction) {
+    display: none;
+    position: absolute;
+    left: calc(100% + 7px);
+    top: 50%;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  :where(.ds-rail[data-scrolling] .ds-thumb-direction) {
+    display: grid;
+  }
+  :where(.ds-rail[data-scrolling='down'] .ds-thumb-direction svg) {
+    transform: rotate(180deg);
+  }
   :where(.ds-track-line) {
     left: var(--ds-map-axis-width);
     right: var(--ds-map-events-width);
@@ -497,18 +754,6 @@
     .ds-rail[data-marker-labels='none'] .ds-marker-number
   ) {
     display: none;
-  }
-  :where(.ds-map-position) {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 12px;
-    gap: 4px;
-  }
-  :where(.ds-map-position > span) {
-    display: var(--ds-map-detail-display);
-    align-items: center;
-    gap: 6px;
   }
   :where(.ds-map-legend) {
     display: var(--ds-map-detail-display);
@@ -611,16 +856,54 @@
 }
 
 @layer deepscroll {
-  :where(.ds-summary-band) { position: absolute; left: 0; right: 0; padding: 5px 10px; box-sizing: border-box; }
-  :where(.ds-summary-content) { height: 100%; box-sizing: border-box; padding: 8px 12px; overflow: hidden; }
-  :where(.ds-summary-heading) { display: flex; align-items: baseline; gap: 10px; }
-  :where(.ds-summary-heading strong) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  :where(.ds-summary-content p) { margin: 3px 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  :where(.ds-summary-actions, .ds-selection-actions) { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-  :where(.ds-summary-status) { padding: 18px; }
+  :where(.ds-summary-band) {
+    position: absolute;
+    left: 0;
+    right: 0;
+    padding: 5px 10px;
+    box-sizing: border-box;
+  }
+  :where(.ds-summary-content) {
+    height: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    overflow: hidden;
+  }
+  :where(.ds-summary-heading) {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  :where(.ds-summary-heading strong) {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :where(.ds-summary-content p) {
+    margin: 3px 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :where(.ds-summary-actions, .ds-selection-actions) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  :where(.ds-summary-status) {
+    padding: 18px;
+  }
   @media (max-width: 650px) {
-    :where(.ds-summary-band) { padding: 3px 5px; }
-    :where(.ds-summary-content) { padding: 6px; }
-    :where(.ds-summary-actions) { gap: 4px; }
+    :where(.ds-summary-band) {
+      padding: 3px 5px;
+    }
+    :where(.ds-summary-content) {
+      padding: 6px;
+    }
+    :where(.ds-summary-actions) {
+      gap: 4px;
+    }
   }
 }

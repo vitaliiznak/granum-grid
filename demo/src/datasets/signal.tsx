@@ -1,5 +1,5 @@
 import { provider } from '../data/provider';
-import { ROW_COUNT, SPIKES, type Reading } from '../data/signal';
+import { ROW_COUNT, SPIKES, rowAt, type Reading } from '../data/signal';
 import { SignalIcon } from './icons';
 import type { DemoDataset } from './types';
 
@@ -16,6 +16,13 @@ export const signal: DemoDataset<Reading> = {
   ariaLabel: 'Synthetic signal readings',
   rowHeight: 40,
   bytesPerRow: 48,
+  formatRange: ({ start, end }) =>
+    `${rowAt(start).timestamp.slice(0, 16)}–${rowAt(end - 1).timestamp.slice(0, 16)} UTC`,
+  task: {
+    title: 'Find a spike, then inspect the readings around it.',
+    action: 'See whole archive',
+    run: (controller) => controller.zoomToRange({ start: 0, end: ROW_COUNT }),
+  },
   help: 'Scroll to inspect. Use the dataset map to jump to a year or event.',
   atlas: { axisLabel: 'Year', showRange: false },
   map: {
@@ -54,16 +61,16 @@ export const signal: DemoDataset<Reading> = {
       run: ({ search }) => search('2017-03'),
     },
     {
-      feature: 'Lens',
+      feature: 'Focus',
       requiredView: 'lens',
-      label: 'Focus + context',
-      hint: 'Rows near the focus stay full size; distant rows compress logarithmically. Click a row to explore.',
+      label: 'Focused rows',
+      hint: 'Read nearby rows in the middle. Compressed summaries above and below show the rest; click them to move there.',
     },
     {
       feature: 'Zoom',
       requiredView: 'zoom',
       label: 'See all 100M rows',
-      hint: 'Overview zoom draws regional summaries. Ctrl + wheel or pinch to zoom; “Inspect rows” returns.',
+      hint: 'Range summaries group readings into bands. Ctrl + wheel or pinch to zoom; “Inspect rows” returns.',
       run: ({ fit }) => fit(),
     },
     {

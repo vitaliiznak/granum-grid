@@ -1,4 +1,4 @@
-/* Only the director sidebar and recording cursor. The captured app uses demo CSS. */
+/* Director sidebar and recording cursor. Film artwork lives in marketing.css. */
 .media-studio {
   display: flex;
   height: 100dvh;
@@ -56,6 +56,12 @@
   border: 1px solid #ddd;
   background: white;
   border-radius: 3px;
+}
+.media-preview-link {
+  display: block;
+  margin: 12px 0;
+  color: #354b21;
+  font-size: 12px;
 }
 .media-note {
   margin-top: 32px;
