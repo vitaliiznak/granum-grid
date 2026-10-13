@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
+import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import type { View } from '../core/engine.js';
 export function ViewLayer({
   view,
@@ -13,7 +14,7 @@ export function ViewLayer({
 }) {
   const layer = useRef<HTMLDivElement>(null);
   const previous = useRef({ view, height });
-  useLayoutEffect(() => {
+  useClientLayoutEffect(() => {
     const old = previous.current;
     previous.current = { view, height };
     if (!motion || old.view === view || !layer.current) return;

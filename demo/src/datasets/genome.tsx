@@ -156,12 +156,13 @@ export const genome: DemoDataset<Locus> = {
     },
     {
       feature: 'Lens',
+      requiredView: 'lens',
       label: 'Focus + context',
       hint: 'Bases near the focus stay readable while the surrounding megabases compress.',
-      run: ({ controller }) => controller.setView('lens'),
     },
     {
       feature: 'Zoom',
+      requiredView: 'zoom',
       label: 'Whole genome at once',
       hint: 'Overview zoom shows 3 billion bases in one view. Ctrl + wheel or pinch to dive back in.',
       run: ({ fit }) => fit(),

@@ -38,79 +38,110 @@ function run(command, args) {
   });
 }
 const pause = (page, milliseconds) => page.waitForTimeout(milliseconds);
+const explorer = (page) => page.locator('.demo-explorer').first();
 async function settled(page) {
+  await explorer(page).waitFor();
   await page.waitForFunction(() => {
-    const state = window.__deepscrollMedia?.controller?.getSnapshot();
-    return state && !state.moving && document.querySelector('.stage')?.dataset.ready === 'true';
+    const root = document.querySelector('.demo-explorer');
+    return (
+      root &&
+      !root.querySelector('[data-status="loading"], [data-status="error"]') &&
+      !root.querySelector('.ds-meta-error') &&
+      !root.querySelector('.ds-legend')?.textContent.includes('loading') &&
+      !root.textContent.includes('Traveling through the overview')
+    );
   });
-  await page.locator('.ds-meta-error').waitFor({ state: 'hidden' });
   await page.evaluate(() => document.fonts.ready);
 }
-
+async function click(page, target) {
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  if (box) await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+  await target.click();
+}
+async function prepare(page, url, scene, filming) {
+  await page.goto(`${url}?capture=1&scene=${scene.id}${filming ? '&film=1' : ''}`);
+  await settled(page);
+  await explorer(page).locator('[role="row"][data-status="ready"]').first().waitFor();
+  if (scene.theme === 'dark')
+    await page.getByRole('button', { name: 'Toggle color theme' }).click();
+  if (scene.action === 'expand') {
+    await page.getByRole('checkbox', { name: 'Dynamic row heights', exact: true }).check();
+    await settled(page);
+  }
+  // Move the camera to the table, without changing the product's CSS or markup.
+  await explorer(page).evaluate((node) =>
+    node.scrollIntoView({ block: 'start', behavior: 'instant' }),
+  );
+  await pause(page, 400);
+  await page.mouse.move(20, 20);
+  return explorer(page).boundingBox();
+}
 async function perform(page, scene, filming) {
   const hold = (ms) => (filming ? pause(page, ms) : Promise.resolve());
+  const table = explorer(page);
   await hold(650);
   if (scene.action === 'jump') {
-    if (scene.id === 'jump') {
-      await page.getByRole('button', { name: /Go to…/ }).click();
-      const input = page.getByRole('textbox', { name: 'Go to row, date, or event' });
-      await input.pressSequentially('73,500,000', { delay: filming ? 75 : 0 });
-      await hold(550);
-      await input.press('Enter');
-    } else {
-      await page.evaluate(
-        (target) => window.__deepscrollMedia.controller.goTo(target),
-        scene.target,
-      );
-    }
-    await page.waitForFunction((target) => {
-      const s = window.__deepscrollMedia.controller.getSnapshot();
-      return !s.moving && s.activeIndex === target;
-    }, scene.target);
+    await click(page, table.getByRole('button', { name: /Go to…/ }));
+    const input = page.getByRole('textbox', { name: 'Go to row, date, or event' });
+    const query =
+      scene.id === 'jump'
+        ? '73,500,000'
+        : scene.id === 'genome'
+          ? 'BRCA1'
+          : scene.id === 'market'
+            ? 'Flash crash'
+            : 'Sirius';
+    await input.pressSequentially(query, { delay: filming ? 75 : 0 });
     await page
+      .locator('.ds-jump-results button')
+      .filter({ hasText: `Row ${(scene.target + 1).toLocaleString('en-US')}` })
+      .waitFor();
+    await hold(550);
+    await input.press('Enter');
+    await table
       .locator(`[role="row"][aria-rowindex="${scene.target + 1}"][data-status="ready"]`)
       .waitFor();
   } else if (scene.action === 'overview') {
-    await page.evaluate(() => window.__deepscrollMedia.fit());
-    await page.waitForFunction(() => {
-      const s = window.__deepscrollMedia.controller.getSnapshot();
-      return s.view === 'zoom' && s.rowsPerPixel > 1;
-    });
+    await table.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
+    await click(page, table.getByRole('button', { name: 'Fit dataset', exact: true }));
   } else if (scene.action === 'lens') {
-    await page.getByRole('combobox', { name: 'View', exact: true }).selectOption('lens');
+    await table.getByRole('combobox', { name: 'View', exact: true }).selectOption('lens');
   } else if (scene.action === 'search') {
-    await page.getByRole('button', { name: /Go to…/ }).click();
+    await click(page, table.getByRole('button', { name: /Go to…/ }));
     const input = page.getByRole('textbox', { name: 'Go to row, date, or event' });
     await input.pressSequentially('status >= 500', { delay: filming ? 55 : 0 });
     await page
       .getByRole('button', { name: /^status 50\d/ })
       .first()
       .waitFor();
-    await hold(1000);
-    // Leave results visible for the README; the film also visits a matching row.
+    await hold(1200);
     if (filming) {
       await input.press('Enter');
-      await page
+      await table
         .locator('.ds-row[data-focused] .lg-status')
         .filter({ hasText: /^50\d$/ })
         .waitFor();
     }
   } else if (scene.action === 'expand') {
-    await page.getByRole('button', { name: `Expand row ${scene.index + 1}`, exact: true }).click();
-    await page.locator('.expanded-note').waitFor();
+    await click(
+      page,
+      table.getByRole('button', { name: `Expand row ${scene.index + 1}`, exact: true }),
+    );
+    await table.locator('.expanded-note').waitFor();
   } else if (scene.action === 'compare') {
-    await page.getByRole('button', { name: /^Explore/ }).click();
+    await click(page, table.getByRole('button', { name: /^Explore/ }));
     const select = async (first, last) => {
       await page.getByLabel('First row', { exact: true }).fill(String(first));
       await page.getByLabel('Last row', { exact: true }).fill(String(last));
-      await page.getByRole('button', { name: 'Select range', exact: true }).click();
+      await click(page, page.getByRole('button', { name: 'Select range', exact: true }));
       await page.getByText('Estimated summary', { exact: true }).waitFor();
     };
     await select(1_000_000, 1_000_100);
-    await page.getByRole('button', { name: 'Use as comparison A', exact: true }).click();
+    await click(page, page.getByRole('button', { name: 'Use as comparison A', exact: true }));
     await select(61_700_000, 61_700_100);
     await hold(300);
-    await page.getByRole('button', { name: 'Compare A with selection', exact: true }).click();
+    await click(page, page.getByRole('button', { name: 'Compare A with selection', exact: true }));
     const dialog = page.getByRole('dialog', { name: 'Compare selected ranges' });
     await dialog
       .getByRole('grid', { name: 'Range A rows' })
@@ -128,17 +159,51 @@ async function perform(page, scene, filming) {
           (node) => node.textContent === 'Estimated summary',
         ).length === 2,
     );
+    if (filming) {
+      await hold(600);
+      await dialog.getByRole('grid', { name: 'Range A rows' }).hover();
+      await page.mouse.wheel(0, 160);
+    }
   } else if (filming) {
-    await page.getByRole('grid').hover();
-    for (let i = 0; i < 18; i++) {
+    await table.getByRole('grid').hover();
+    for (let i = 0; i < 24; i++) {
       await page.mouse.wheel(0, 10);
       await pause(page, 45);
     }
   }
   await settled(page);
-  // Let worker summaries and canvas paints finish; data readiness is checked above.
   await pause(page, 500);
-  await page.mouse.move(1880, 1040);
+}
+async function still(page, scene, file) {
+  await page.mouse.move(20, 20);
+  if (scene.action === 'compare') {
+    await page.getByRole('dialog', { name: 'Compare selected ranges' }).screenshot({ path: file });
+  } else if (scene.action === 'search') {
+    const table = await explorer(page).boundingBox();
+    const dialog = await page.getByRole('dialog', { name: 'Jump to a location' }).boundingBox();
+    const left = Math.min(table.x, dialog.x),
+      top = Math.min(table.y, dialog.y);
+    await page.screenshot({
+      path: file,
+      clip: {
+        x: left,
+        y: top,
+        width: Math.max(table.x + table.width, dialog.x + dialog.width) - left,
+        height: Math.max(table.y + table.height, dialog.y + dialog.height) - top,
+      },
+    });
+  } else if (scene.id === 'hero') {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const header = await page.locator('.site-header').boundingBox();
+    const table = await explorer(page).boundingBox();
+    await page.screenshot({
+      path: file,
+      fullPage: true,
+      clip: { x: header.x, y: 0, width: header.width, height: table.y + table.height + 1 },
+    });
+  } else {
+    await explorer(page).screenshot({ path: file, animations: 'disabled' });
+  }
 }
 
 let server;
@@ -196,7 +261,6 @@ try {
     });
     let page;
     let encoder;
-    let encoderDone;
     let stream;
     let recording = false;
     let began;
@@ -209,10 +273,7 @@ try {
       page.on('console', (message) => {
         if (message.type() === 'error') errors.push(message.text());
       });
-      await page.goto(`${url}?capture=1&scene=${scene.id}`);
-      await settled(page);
-      await page.locator('[role="row"][data-status="ready"]').first().waitFor();
-      await pause(page, 450);
+      const camera = await prepare(page, url, scene, video);
       if (video) {
         // Chromium emits frames only when content changes. Timestamp each still and let
         // FFmpeg preserve the holds; do not speed up a mostly static table to 30 fps.
@@ -269,7 +330,7 @@ try {
             '-i',
             path.join(frameDir, 'frames.txt'),
             '-vf',
-            `fps=30,fade=t=in:st=0:d=0.2,fade=t=out:st=${Math.max(0, length - 0.2)}:d=0.2`,
+            `${scene.action === 'compare' ? '' : `crop=${Math.round(camera.width)}:${Math.round(camera.height)}:${Math.round(camera.x)}:${Math.round(camera.y)},`}scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=${scene.theme === 'dark' ? '0x15181c' : 'white'},fps=30`,
             '-t',
             length.toFixed(3),
             '-c:v',
@@ -287,32 +348,18 @@ try {
         };
       }
       await perform(page, scene, video);
-      if (screenshots) {
-        // In all-mode preserve the same search-results still as screenshots-only mode.
-        if (scene.action === 'search' && video) {
-          await pause(page, Math.max(1000, scene.seconds * 1000 - (Date.now() - began)));
-          encoderDone = encoder();
-          await page.getByRole('button', { name: /Go to…/ }).click();
-          await page
-            .getByRole('textbox', { name: 'Go to row, date, or event' })
-            .fill('status >= 500');
-          await page
-            .getByRole('button', { name: /^status 50\d/ })
-            .first()
-            .waitFor();
-        }
-        await page.screenshot({
-          path: path.join(scratch, `${scene.id}.png`),
-          animations: 'disabled',
-        });
-      }
       let clip;
       if (video) {
-        if (!encoderDone) {
-          await pause(page, Math.max(1000, scene.seconds * 1000 - (Date.now() - began)));
-          encoderDone = encoder();
+        await pause(page, Math.max(1000, scene.seconds * 1000 - (Date.now() - began)));
+        clip = await encoder();
+      }
+      if (screenshots) {
+        // Always capture the same deterministic still, independently of the film's end state.
+        if (video) {
+          await prepare(page, url, scene, false);
+          await perform(page, scene, false);
         }
-        clip = await encoderDone;
+        await still(page, scene, path.join(scratch, `${scene.id}.png`));
       }
       if (errors.length) throw new Error(`${scene.id} browser errors:\n${errors.join('\n')}`);
       manifest.scenes.push({

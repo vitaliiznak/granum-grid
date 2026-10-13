@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import type { ScrollStats } from 'deepscroll';
 import { LatencyControl } from './Playground';
+import { DEFAULT_LATENCY } from './data/provider';
 
 function BugIcon() {
   return (
@@ -38,22 +39,22 @@ export function DebugTools({
       <button
         className="ds-button debug-trigger"
         aria-haspopup="dialog"
-        title="Debug settings · simulate server latency"
+        title="Adjust the artificial delay added to each new data request"
         onClick={() => dialog.current?.showModal()}
       >
         <BugIcon />
-        Debug
+        Simulated server latency: {latency / 1000} s
       </button>
-      <dialog ref={dialog} className="debug-dialog" aria-label="Debug settings">
+      <dialog ref={dialog} className="debug-dialog" aria-label="Debug and simulation settings">
         <div className="debug-heading">
           <h2>
-            <BugIcon /> Debug settings
+            <BugIcon /> Debug and simulation settings
           </h2>
           <button className="ds-button" onClick={() => dialog.current?.close()}>
             Close
           </button>
         </div>
-        <p>Simulate a slower server while exploring the table.</p>
+        <p>This demo adds an artificial delay to simulate a slower server.</p>
         <LatencyControl latency={latency} onLatency={onLatency} />
         <p className="debug-help">
           Applies immediately to new requests. Cached rows stay instant. Close this panel to try
@@ -63,8 +64,8 @@ export function DebugTools({
           <span>{stats?.activeRequests ?? 0} requests in flight</span>
           <span>{stats?.cachedRows.toLocaleString() ?? '0'} cached rows</span>
         </div>
-        <button className="ds-button" onClick={() => onLatency(80)}>
-          Reset to 80 ms
+        <button className="ds-button" onClick={() => onLatency(DEFAULT_LATENCY)}>
+          Reset to {DEFAULT_LATENCY / 1000} s
         </button>
       </dialog>
     </>

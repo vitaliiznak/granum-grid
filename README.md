@@ -1,8 +1,6 @@
 # deepscroll
 
-**Big tables. A sense of place.**
-
-A React + TypeScript library for exploring enormous indexed datasets: inspect individual rows, navigate a map of the whole dataset, and move between detail and overview without losing your place.
+A React + TypeScript library for exploring large indexed datasets: inspect individual rows, navigate a map of the whole dataset, and move between detail and overview without losing your place.
 
 ![deepscroll showing a live table near row 73,500,000 and a map of 100 million synthetic readings](media/images/hero.png)
 
@@ -81,7 +79,7 @@ That is enough for indexed navigation and virtualized rows. The richer maps and 
 
 ## Visual tour
 
-All images below are browser captures of the actual library with the demo providers. The surrounding titles and framing come from the separate [media studio](media/README.md). Click an image to inspect it at full size.
+These are direct screenshots of the demo: the table, its controls, and its data. The [media scripts](media/README.md) crop the browser output without adding presentation frames or restyling the UI. Click an image to inspect it at full size.
 
 ### Jump to the row you need
 
@@ -230,16 +228,6 @@ Unit tests cover mappings, navigation, cache behavior, measurement, and applicat
 
 The existing GitHub Actions workflow and Pages setup are documented in [Frontend CI/CD](docs/GUIDE.md#frontend-cicd). Remote deployment activation and the first hosted run remain separate from local verification.
 
-## npm release
-
-Run `npm run release:check` to test and build the workspace, pack the library, and install the tarball into isolated React 18.2 and React 19 consumers. The checks exercise runtime exports, server rendering, CSS, source maps, and TypeScript declarations with both NodeNext and Bundler resolution. Successful verification writes `output/deepscroll-0.1.0.tgz`. Registry access is needed to install the consumer dependencies when they are not cached.
-
-The package rebuilds automatically before packing or publishing. Only the library output, source files for source maps, package README, manifest, and Apache 2.0 license are included. The demo and media assets stay outside the package.
-
-See [Publishing to npm](docs/PUBLISHING.md) for the first release and version updates. No npm release has been published yet.
-
-Licensed under the [Apache License, Version 2.0](LICENSE).
-
 The [integration guide](docs/GUIDE.md#local-verification-snapshot--13-october-2026) preserves the earlier local verification snapshot and benchmark context. Those machine-specific measurements are not a cross-device performance guarantee. Human usability acceptance, native Safari, and real remote-provider performance need their own verification.
 
 | Directory / document | Purpose |
@@ -251,3 +239,13 @@ The [integration guide](docs/GUIDE.md#local-verification-snapshot--13-october-20
 | [`API.md`](API.md) | Public API reference |
 | [`STYLING.md`](STYLING.md) | Themes, CSS hooks, custom controls, and headless examples |
 | [`DESIGN.md`](DESIGN.md) | Navigation model and design rationale |
+
+## npm release
+
+Run `npm run release:check` to test and build the workspace, pack the library, and install the tarball into isolated React 18.2 and React 19 consumers. The checks exercise runtime exports, server rendering, CSS, source maps, and TypeScript declarations with both NodeNext and Bundler resolution. Successful verification writes `output/deepscroll-0.1.0.tgz`. Registry access is needed to install the consumer dependencies when they are not cached.
+
+The package rebuilds automatically before packing or publishing. Only the library output, source files for source maps, package README, manifest, and Apache 2.0 license are included. The demo and media assets stay outside the package.
+
+See [Publishing to npm](docs/PUBLISHING.md) for the first release and version updates. No npm release has been published yet.
+
+Licensed under the [Apache License, Version 2.0](LICENSE).

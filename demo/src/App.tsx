@@ -21,10 +21,10 @@ import { DebugTools } from './DebugTools';
 import { DatasetGallery, DatasetIntro, FeatureTour, ShortcutStrip } from './Showcase';
 import { findDataset } from './datasets';
 import { stopWorker } from './data/worker-client';
-import { setLatency } from './data/provider';
+import { DEFAULT_LATENCY, setLatency } from './data/provider';
 
 const pageUrl = (dataset: string, hash: string) =>
-  `${location.pathname}?page=1${dataset === 'signal' ? '' : `&dataset=${dataset}`}#view=${hash}`;
+  `${location.pathname}?page=1${dataset === 'logs' ? '' : `&dataset=${dataset}`}#view=${hash}`;
 export default function App() {
   const [pageMode, setPageMode] = useState(
     () => new URLSearchParams(window.location.search).get('page') === '1',
@@ -41,8 +41,10 @@ export default function App() {
       window.location.hash.startsWith('#view=') &&
       !decodeView(window.location.hash.slice(6), provider),
   );
-  const [atlasSettings, setAtlasSettings] = useState<AtlasRailOptions>({});
-  const [latency, updateLatency] = useState(80);
+  const [datasetMapSettings, setDatasetMapSettings] = useState<Record<string, AtlasRailOptions>>(
+    {},
+  );
+  const [latency, updateLatency] = useState(DEFAULT_LATENCY);
   const [features, setFeatures] = useState({ ...defaultFeatures, hints: false });
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [reduced, setReduced] = useState(false);
@@ -62,6 +64,12 @@ export default function App() {
     mounted.current = dataset.id;
   }, [dataset.id]);
   const isSignal = dataset.id === 'signal';
+  const atlasSettings = datasetMapSettings[dataset.id] ?? {};
+  const changeMapSettings = (patch: AtlasRailOptions) =>
+    setDatasetMapSettings((current) => ({
+      ...current,
+      [dataset.id]: { ...current[dataset.id], ...patch },
+    }));
   const atlas: AtlasRailOptions = {
     ...dataset.atlas,
     ...atlasSettings,
@@ -77,7 +85,7 @@ export default function App() {
     setDynamic(false);
     selectionRef.current = null;
     const params = new URLSearchParams(location.search);
-    if (id === 'signal') params.delete('dataset');
+    if (id === 'logs') params.delete('dataset');
     else params.set('dataset', id);
     const query = params.toString();
     history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}`);
@@ -211,7 +219,8 @@ export default function App() {
           >
             <MapSettings
               value={atlas}
-              onChange={setAtlasSettings}
+              onChange={changeMapSettings}
+              onReset={() => setDatasetMapSettings((current) => ({ ...current, [dataset.id]: {} }))}
               labels={dataset.map}
               chapters={dataset.map.chapters}
             />

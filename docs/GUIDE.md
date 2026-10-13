@@ -118,7 +118,7 @@ Bookmarks save the current location, view, zoom, and selection. They remain in m
 
 ## Open in a separate tab and scroll the window
 
-The demo's **Open full page** link opens the same location and selected range in a separate tab. Its URL updates while navigating and restores after reload. **Back to normal view** returns to the embedded demo in that tab, keeping the dataset, position, view, selection, and current debug settings. **Debug** is available in both layouts and opens a dialog to configure simulated server latency from 0–2,000 ms; changes apply to new requests while cached rows remain instant. For a host application, add a route that renders one `DeepScroll` with `layout="page"`, then pass a URL builder to the embedded instance:
+The demo's **Open full page** link opens the same location and selected range in a separate tab. Its URL updates while navigating and restores after reload. **Back to normal view** returns to the embedded demo in that tab, keeping the dataset, position, view, selection, and current debug and simulation settings. The red **Simulated server latency** button shows the current delay in both layouts and opens **Debug and simulation settings** to configure it from 0–10 seconds (default: 1 second); changes apply to new requests while cached rows remain instant. For a host application, add a route that renders one `DeepScroll` with `layout="page"`, then pass a URL builder to the embedded instance:
 
 ```tsx
 import { encodeView, decodeView } from 'deepscroll';
@@ -143,7 +143,7 @@ Pass `followOutput={true}` and replace the provider with a larger known `rowCoun
 
 ## Provider capabilities
 
-The **Dataset map** separates row order (vertical), mean signal (horizontal), named events, and the current-row indicator. Open **Map settings** to switch between the signal profile and events only, choose years or row numbers, change event labels, use a compact width, or show the sampled min–max band. The question-mark button explains the encoding, and hovering shows the summarized row range and value.
+The **Dataset map** separates row order (vertical), mean signal (horizontal), named events, and the current-row indicator. Open **Map settings** to choose the display, axis labels, and automatic, expanded, or compact width. Toggle events, extra tracks, the min–max band, visible range, visited trail, and legend independently. Hover can show a summary with 1, 3, or 5 exact rows, just the summary, or nothing; magnification and event snapping have separate switches. Settings stay with each dataset while you explore, and **Reset map** restores that dataset's defaults. The question-mark button explains the encoding.
 
 In this demo, the map has 320 groups of 312,500 rows. The worker uses 64 evenly spaced samples per group to estimate its mean, minimum, and maximum. These are sampled summaries, not a scan of all 100 million readings. The position handle has a fixed size and does not represent the visible fraction of the dataset.
 

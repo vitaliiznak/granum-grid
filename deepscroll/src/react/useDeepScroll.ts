@@ -52,6 +52,8 @@ export interface UseDeepScrollOptions<Row> {
   maxMeasuredRows?: number;
   /** Extra rows on each side in Rows/detail Zoom views. Default: 2. */
   overscan?: number;
+  /** Target summary band height in pixels; controls bounded aggregate resolution. */
+  aggregateRowHeight?: number;
   initialLocation?: NavigationLocation;
   initialIndex?: number;
   initialView?: View;
@@ -60,6 +62,19 @@ export interface UseDeepScrollOptions<Row> {
   reducedMotion?: 'system' | boolean;
   onNavigate?(event: NavigationEvent): void;
   onStats?(stats: ScrollStats): void;
+}
+// Keep React's DOM attributes as a named type. Inferred object spreads otherwise
+// bake the build-time React version's event handlers into the published .d.ts.
+interface ViewportElementProps extends HTMLAttributes<HTMLDivElement> {
+  ref: (element: HTMLDivElement | null) => void;
+  'data-ds-part': 'viewport';
+}
+interface RowElementProps extends HTMLAttributes<HTMLDivElement> {
+  ref: ((element: HTMLDivElement | null) => void) | undefined;
+  'data-ds-part': 'row';
+  'data-status': RowSlot<unknown>['status'];
+  'data-selected': boolean | undefined;
+  'data-focused': boolean | undefined;
 }
 export function useDeepScroll<Row>({
   provider,
@@ -72,6 +87,7 @@ export function useDeepScroll<Row>({
   dynamicRowHeight = false,
   maxMeasuredRows = 4096,
   overscan = 2,
+  aggregateRowHeight = 4,
   initialLocation,
   initialIndex = 0,
   initialView = 'rows',
@@ -83,6 +99,8 @@ export function useDeepScroll<Row>({
 }: UseDeepScrollOptions<Row>) {
   if (!Number.isSafeInteger(overscan) || overscan < 0 || overscan > 1000)
     throw new RangeError('overscan must be an integer from 0 to 1000');
+  if (!Number.isFinite(aggregateRowHeight) || aggregateRowHeight < 1)
+    throw new RangeError('aggregateRowHeight must be positive');
   const features = { ...defaultFeatures, ...overrides };
   const id = useId();
   const [speedSpan, setSpeedSpan] = useState(0);
@@ -306,7 +324,9 @@ export function useDeepScroll<Row>({
         ),
       );
   const aggregateStart = Math.max(0, Math.floor(mapping.toRow(0)));
-  const aggregateEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)) + 1);
+  const aggregateEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)));
+  const visibleRange = { start: aggregateStart, end: aggregateEnd };
+  const aggregateBuckets = Math.max(1, Math.min(160, Math.floor(snapshot.height / aggregateRowHeight)));
   useEffect(() => {
     if (
       (!aggregateMode && snapshot.view !== 'lens') ||
@@ -317,14 +337,14 @@ export function useDeepScroll<Row>({
       return;
     }
     const timer = setTimeout(
-      () => session.requestAggregates({ start: aggregateStart, end: aggregateEnd, buckets: 160 }),
+      () => session.requestAggregates({ start: aggregateStart, end: aggregateEnd, buckets: aggregateBuckets }),
       120,
     );
     return () => {
       clearTimeout(timer);
       session.requestAggregates();
     };
-  }, [session, aggregateStart, aggregateEnd, aggregateMode, snapshot.view, snapshot.moving]);
+  }, [session, aggregateStart, aggregateEnd, aggregateBuckets, aggregateMode, snapshot.view, snapshot.moving]);
   useEffect(() => {
     if (!viewport) return;
     let width = viewport.clientWidth;
@@ -443,9 +463,10 @@ export function useDeepScroll<Row>({
       ? { ...common, status: 'ready', row: row as Row }
       : { ...common, status: error ? 'error' : 'loading', error, estimate };
   });
-  const getViewportProps = (props: HTMLAttributes<HTMLDivElement> = {}) => ({
+  const getViewportProps = (props: HTMLAttributes<HTMLDivElement> = {}): ViewportElementProps => ({
     ...props,
     ref: setViewport,
+    id: `${id}-viewport`,
     role: 'grid',
     tabIndex: 0,
     'aria-rowcount': provider.rowCount,
@@ -577,10 +598,15 @@ export function useDeepScroll<Row>({
     setJumpOpen,
     mapping,
     aggregateMode,
+    visibleRange,
+    aggregateBuckets,
     edgeOffset,
     setSearchBusy,
     getViewportProps,
-    getRowProps: (slot: RowSlot<Row>, props: HTMLAttributes<HTMLDivElement> = {}) => ({
+    getRowProps: (
+      slot: RowSlot<Row>,
+      props: HTMLAttributes<HTMLDivElement> = {},
+    ): RowElementProps => ({
       ...props,
       ref: dynamicRowHeight && slot.status === 'ready' ? measurements.ref(slot.index) : undefined,
       role: 'row',

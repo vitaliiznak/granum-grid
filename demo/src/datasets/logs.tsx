@@ -122,6 +122,7 @@ export const logs: DemoDataset<LogLine> = {
     },
     {
       feature: 'Zoom',
+      requiredView: 'zoom',
       label: 'Whole month at once',
       hint: 'Incidents stand out as spikes in the overview. Ctrl + wheel or pinch to zoom in.',
       run: ({ fit }) => fit(),
@@ -129,8 +130,8 @@ export const logs: DemoDataset<LogLine> = {
     {
       feature: 'History',
       label: 'Undo last jump',
-      hint: 'Navigation history works like a browser. Alt + ← and Alt + → too.',
-      run: ({ controller }) => controller.back(),
+      hint: 'Return to the previous location while keeping your selected view and zoom.',
+      run: ({ controller }) => controller.back({ preserveView: true }),
     },
   ],
   renderRow: ({ row }) => (

@@ -167,6 +167,7 @@ export const stars: DemoDataset<Star> = {
     },
     {
       feature: 'Zoom',
+      requiredView: 'zoom',
       label: 'The whole sky',
       hint: '1.8 billion stars at once. The overview reveals both crossings of the Milky Way.',
       run: ({ fit }) => fit(),

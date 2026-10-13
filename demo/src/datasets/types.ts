@@ -3,6 +3,9 @@ import type {
   DataProvider,
   DeepScrollEngine,
   RowRenderContext,
+  View,
+  AggregateRenderContext,
+  RowRange,
 } from 'deepscroll';
 import type { ReactNode } from 'react';
 
@@ -16,14 +19,16 @@ export interface TourContext {
   controller: DeepScrollEngine;
   /** Open the jump bar and type a query into it. */
   search(text: string): Promise<void>;
-  /** Overview view, zoomed to show every row. */
+  /** Switch to Overview and fit every row. */
   fit(): void;
 }
 export interface TourStep {
   feature: string;
   label: string;
   hint: string;
-  run(tour: TourContext): void | Promise<void>;
+  /** Switch to this view before running the action. */
+  requiredView?: View;
+  run?(tour: TourContext): void | Promise<void>;
 }
 export interface DemoDataset<Row = any> {
   id: string;
@@ -43,6 +48,11 @@ export interface DemoDataset<Row = any> {
   bytesPerRow: number;
   header: ReactNode;
   renderRow(context: RowRenderContext<Row>, extras: RowExtras): ReactNode;
+  renderAggregate?(context: AggregateRenderContext): ReactNode;
+  formatRange?(range: RowRange): string;
+  task?: { title: string; action: string; run(controller: DeepScrollEngine): void };
+  /** Materialized demo adapters must not imply only cached rows occupy memory. */
+  sourceNote?: string;
   atlas: AtlasRailOptions;
   help: string;
   map: { chapters: string; profile: string; tracks: string; explain: string; sampling: string };

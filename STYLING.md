@@ -94,8 +94,17 @@ Chapter labels come from `fetchChapters`. They represent time only when your pro
     axis: 'chapters',
     axisLabel: 'Year', // For this provider's date chapters.
     showRange: false,
+    showMarkers: true,
+    showVisibleRange: true,
+    showTrail: false,
+    showLegend: true,
     markerLabels: 'label',
     layout: 'auto',
+    maxAxisTicks: 5,
+    preview: 'summary', // No exact-row fetches on hover.
+    previewRows: 3, // Used when preview is 'rows'.
+    showMagnifier: true,
+    snapToMarkers: false,
     formatValue: (value) => value.toFixed(1),
   }}
   renderRow={({ row }) => <span role="gridcell">{row.value}</span>}
@@ -109,13 +118,25 @@ Chapter labels come from `fetchChapters`. They represent time only when your pro
 | `axisLabel` | Optional axis caption; otherwise Position or Row |
 | `title` | Expanded heading; defaults to Dataset map |
 | `showRange` | Min–max shading for value metrics; defaults to false |
+| `showTracks` | Additional provider overview tracks; defaults to false |
+| `showMarkers` | Event and search markers; defaults to true. Hidden events do not attract map drags. |
+| `showVisibleRange` | Shading for the rows currently in view; defaults to true |
+| `showTrail` | Previously visited positions; defaults to true |
+| `showLegend` | Profile accuracy and event legend; defaults to true |
 | `markerLabels` | `label` (default), `number`, or `none` (symbols only) |
 | `layout` | `auto` (compact below 650 px), `expanded`, or `compact` |
+| `maxAxisTicks` | Maximum axis labels; default 5, clamped to 2–12 and available height |
+| `preview` | `rows` (default, summary plus exact rows), `summary` (no row requests), or `none`. Drag position feedback remains available. |
+| `previewRows` | Exact rows per hover preview; default 3, clamped to 1–10 and remaining rows |
+| `showMagnifier` | Local profile in hover details; defaults to true. Requires a profile and hover details. |
+| `snapToMarkers` | Snap slow map drags to visible provider events; defaults to true. Shift temporarily bypasses snapping. |
 | `formatValue` | Number formatter for the scale and group details |
 
-Compact layout shows marker numbers instead of names and keeps the explanation available through the question-mark button. Navigation targets retain their accessible names in every layout. Configure width with the three `--ds-rail-width*` tokens above. The axis and event gutters can be adjusted with `--ds-map-axis-width` and `--ds-map-events-width` on the rail.
+Compact layout shows marker numbers instead of names, hides extra tracks, and keeps the explanation available through the question-mark button. Navigation targets retain their accessible names in every layout. Configure width with the three `--ds-rail-width*` tokens above. The axis and event gutters can be adjusted with `--ds-map-axis-width` and `--ds-map-events-width` on the rail.
 
-For composition, pass the same configuration as `<AtlasRail scroll={scroll} options={atlas} />`. Presentation changes preserve the current row and history. The demo's **Map settings** menu controls these options with ordinary React state; the library does not require that menu or any particular UI framework. Use `renderRail` or the headless hook to replace the map entirely.
+Global feature switches still take precedence: for example, `features={{ markers: false }}` hides events regardless of `showMarkers`, and `features={{ preview: false }}` prevents exact-row previews. Hiding a layer does not disable provider metadata loading. The current-row handle and explicit range selection stay visible independently of these layer options.
+
+For composition, pass the same configuration as `<AtlasRail scroll={scroll} options={atlas} />`. Configuration changes preserve the current row and history. The demo's **Map settings** menu keeps independent settings for each dataset until reload; **Reset map** restores only the current dataset's defaults. The library does not require that menu or any particular UI framework. Use `renderRail` or the headless hook to replace the map entirely.
 
 ## Use your React controls
 

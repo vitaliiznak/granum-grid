@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import type { RowRange } from '../data/types.js';
 import type { DeepScrollEngine } from '../core/engine.js';
 import { rangeProvider } from '../data/range.js';
@@ -24,7 +25,7 @@ export function CompareRanges<Row>({
     () => [rangeProvider(host.provider, a), rangeProvider(host.provider, b)],
     [host.provider, a.start, a.end, b.start, b.end],
   );
-  useLayoutEffect(() => {
+  useClientLayoutEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const element = dialog.current;
     element?.showModal();
