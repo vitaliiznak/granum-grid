@@ -6,7 +6,7 @@ A React + TypeScript explorer for very large indexed datasets. A floating row ad
 
 React and React DOM 18.2–19 are peer dependencies; there are no other runtime dependencies. The package ships ESM JavaScript and TypeScript declarations; use an ESM-capable bundler and TypeScript 5+ for typed consumers. CommonJS `require()` is not supported.
 
-This version is not yet published to npm. Build and install a local archive with [step 1 of the quick start](https://github.com/vitaliiznak/deepscroll/blob/main/docs/QUICK_START.md#1-install-the-library), which also covers a new-app setup, an HTTP adapter, and troubleshooting.
+This version is not yet published to npm. Build and install a local archive with [step 1 of the quick start](https://github.com/vitaliiznak/granum-grid/blob/main/docs/QUICK_START.md#1-install-the-library), which also covers a new-app setup, an HTTP adapter, and troubleshooting.
 
 ## Use
 
@@ -59,11 +59,11 @@ Chrome and Edge 100+, Firefox 104+, and Safari/iOS Safari 15.4+. This is the flo
 
 ## Documentation
 
-- [Quick start](https://github.com/vitaliiznak/deepscroll/blob/main/docs/QUICK_START.md): install, first explorer, array and HTTP providers, custom controls.
-- [Integration guide](https://github.com/vitaliiznak/deepscroll/blob/main/docs/GUIDE.md): provider rules, search, dynamic heights, range summaries, saved views, page layout, live feeds, limits and defaults, and the host integration API.
-- [Styling](https://github.com/vitaliiznak/deepscroll/blob/main/STYLING.md): themes, CSS hooks, the dataset map, custom controls, and headless layouts.
-- [Scope and current limits](https://github.com/vitaliiznak/deepscroll/blob/main/README.md#scope-and-current-limits) and the [documentation home](https://github.com/vitaliiznak/deepscroll/blob/main/docs/README.md).
-- [Live demo](https://vitaliiznak.github.io/deepscroll/) and [tutorial wiki](https://github.com/vitaliiznak/deepscroll/wiki).
+- [Quick start](https://github.com/vitaliiznak/granum-grid/blob/main/docs/QUICK_START.md): install, first explorer, array and HTTP providers, custom controls.
+- [Integration guide](https://github.com/vitaliiznak/granum-grid/blob/main/docs/GUIDE.md): provider rules, search, dynamic heights, range summaries, saved views, page layout, live feeds, limits and defaults, and the host integration API.
+- [Styling](https://github.com/vitaliiznak/granum-grid/blob/main/STYLING.md): themes, CSS hooks, the dataset map, custom controls, and headless layouts.
+- [Scope and current limits](https://github.com/vitaliiznak/granum-grid/blob/main/README.md#scope-and-current-limits) and the [documentation home](https://github.com/vitaliiznak/granum-grid/blob/main/docs/README.md).
+- [Live demo](https://vitaliiznak.github.io/granum-grid/) and [tutorial wiki](https://github.com/vitaliiznak/granum-grid/wiki).
 
 ## License
 

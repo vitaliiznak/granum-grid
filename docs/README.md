@@ -50,5 +50,5 @@ The [wiki](wiki/Home.md) is tutorial material for library users: setup, complete
 examples, expected results, and exercises. Edit lessons in `docs/wiki/` and review
 them with the code; `npm run test:tutorials` checks their snippets against the
 compiled companions in `demo/src/tutorials`. Verified deployments from `main` export
-the lessons to [GitHub Wiki](https://github.com/vitaliiznak/deepscroll/wiki); see
+the lessons to [GitHub Wiki](https://github.com/vitaliiznak/granum-grid/wiki); see
 [Frontend CI/CD](PUBLISHING.md#frontend-cicd).

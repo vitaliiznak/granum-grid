@@ -10,7 +10,7 @@
 
 ## Reference
 
-- [Live lessons](https://vitaliiznak.github.io/deepscroll/tutorials.html)
+- [Live lessons](https://vitaliiznak.github.io/granum-grid/tutorials.html)
 
 - [Integration guide](../GUIDE.md)
 - [Styling](../../STYLING.md)

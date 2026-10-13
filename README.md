@@ -1,6 +1,6 @@
 # Granum Grid
 
-[Live demo on GitHub Pages](https://vitaliiznak.github.io/deepscroll/)
+[Live demo on GitHub Pages](https://vitaliiznak.github.io/granum-grid/)
 
 A React + TypeScript library for exploring large indexed datasets: inspect individual rows, navigate a map of the whole dataset, and move between detail and overview without losing your place.
 
@@ -229,8 +229,8 @@ its browsers and servers; failure traces are retained. Native Safari, physical
 touch devices, and screen-reader user acceptance remain separate checks.
 
 [Frontend CI/CD](docs/PUBLISHING.md#frontend-cicd) verifies pull requests and deploys
-verified `main` builds to [GitHub Pages](https://vitaliiznak.github.io/deepscroll/) and
-the [GitHub Wiki](https://github.com/vitaliiznak/deepscroll/wiki). The library source is
+verified `main` builds to [GitHub Pages](https://vitaliiznak.github.io/granum-grid/) and
+the [GitHub Wiki](https://github.com/vitaliiznak/granum-grid/wiki). The library source is
 in [`granum-grid/`](granum-grid/), the demo and browser tests in [`demo/`](demo/), and
 every guide is listed in the [documentation home](docs/README.md).
 

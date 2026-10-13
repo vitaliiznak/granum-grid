@@ -95,11 +95,11 @@ results describe the test machine; 60 fps is a target, not a claim.
 - **Granum Grid naming.** The display name is Granum Grid; the package and library
   directory are `granum-grid`. The React component, hook, and associated types use
   `GranumGrid` / `useGranumGrid`, and both stylesheets use the `granum-grid` layer.
-  Imports and consumers migrate together. Existing `ds-*` style hooks, browser
-  storage keys, and the wiki sync manifest name stay stable to preserve styling,
-  bookmarks, dismissed hints, and managed-page history. Recorded trace data keeps
-  its original provenance. Repository and Pages links retain the existing
-  `vitaliiznak/deepscroll` location until the remote repository is renamed.
+  Imports and consumers migrate together. The GitHub repository is
+  `vitaliiznak/granum-grid`. Existing `ds-*` style hooks, browser storage keys,
+  and the wiki sync manifest name stay stable to preserve styling, bookmarks,
+  dismissed hints, and managed-page history. Recorded trace data keeps its
+  original provenance.
 
 - **Two reading modes: Rows and Range summaries.** The dataset map already supplies
   context while reading rows. Focused rows added a third interaction model and its

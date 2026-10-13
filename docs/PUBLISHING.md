@@ -116,7 +116,7 @@ are retained as workflow artifacts for 14 days. Wiki artifacts are uploaded on
 5. Merge/push the workflow and source to `main`, or run the workflow on `main`.
    Check that **Verify frontend**, **Deploy frontend**, and **Deploy wiki** succeed.
 
-Pending for `vitaliiznak/deepscroll` (checked 2026-10-13; Pages already uses GitHub
+Pending for `vitaliiznak/granum-grid` (checked 2026-10-13; Pages already uses GitHub
 Actions and Wikis are enabled). Remove this list after the first `main` deployment:
 
 - [ ] Rename the default branch from `master` to `main` (step 1).
@@ -130,9 +130,9 @@ and [wiki initialization instructions](https://docs.github.com/en/communities/do
 
 Expected destinations:
 
-- [Demo app](https://vitaliiznak.github.io/deepscroll/)
-- [Tutorial companions](https://vitaliiznak.github.io/deepscroll/tutorials.html)
-- [Tutorial wiki](https://github.com/vitaliiznak/deepscroll/wiki)
+- [Demo app](https://vitaliiznak.github.io/granum-grid/)
+- [Tutorial companions](https://vitaliiznak.github.io/granum-grid/tutorials.html)
+- [Tutorial wiki](https://github.com/vitaliiznak/granum-grid/wiki)
 
 ### Verify and recover
 
@@ -151,7 +151,7 @@ of obsolete managed pages. Review `output/wiki/` before the first deployment.
 After deployment, verify the public app:
 
 ```sh
-PAGES_URL=https://vitaliiznak.github.io/deepscroll/ npm run test:pages
+PAGES_URL=https://vitaliiznak.github.io/granum-grid/ npm run test:pages
 ```
 
 The Pages check saves a screenshot under `output/playwright/pages-smoke/` and a
