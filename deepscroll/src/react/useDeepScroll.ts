@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, useSyncExternalStore, type CSSProperties, type HTMLAttributes } from 'react';
-import { createEngine, wheelPixels, type NavigationEvent, type View } from '../core/index.js';
+import { createEngine, createLensMapping, createZoomMapping, clamp, wheelPixels, type NavigationEvent, type View } from '../core/index.js';
 import { DataSession } from '../data/session.js';
 import { defaultFeatures, type Features } from '../features.js';
 import type { CacheOptions, DataProvider, Marker, RowSlot } from '../data/types.js';
@@ -27,20 +27,57 @@ export function useDeepScroll<Row>({ provider, rowHeight = 32, initialIndex = 0,
     let frame = requestAnimationFrame(function animate(time) { if (engine.step(time)) frame = requestAnimationFrame(animate); });
     return () => cancelAnimationFrame(frame);
   }, [engine, snapshot.moving]);
-  const start = Math.floor(snapshot.position);
-  const count = Math.min(provider.rowCount - start, Math.ceil(snapshot.height / rowHeight) + 2);
+  const aggregateMode = snapshot.flightSpan > snapshot.height / rowHeight * 3 || (snapshot.view === 'zoom' && snapshot.rowsPerPixel > 1 / 22);
+  const mapping = useMemo(() => {
+    if (snapshot.flightSpan > snapshot.height / rowHeight * 3) return createZoomMapping(snapshot.position, snapshot.height, Math.max(1 / rowHeight, snapshot.flightSpan / snapshot.height));
+    if (snapshot.view === 'lens') return createLensMapping(snapshot.position, snapshot.rowCount, snapshot.height, rowHeight);
+    if (snapshot.view === 'zoom') return createZoomMapping(snapshot.position, snapshot.height, snapshot.rowsPerPixel);
+    return { toPixel: (row: number) => (row - snapshot.position) * rowHeight, toRow: (pixel: number) => snapshot.position + pixel / rowHeight };
+  }, [snapshot.position, snapshot.view, snapshot.height, snapshot.rowsPerPixel, snapshot.flightSpan, snapshot.rowCount, rowHeight]);
+  const start = aggregateMode ? Math.floor(snapshot.position) : snapshot.view === 'lens' ? Math.max(0, Math.floor(snapshot.position) - 3) : Math.max(0, Math.floor(mapping.toRow(0)));
+  const count = aggregateMode ? 0 : Math.max(0, Math.min(provider.rowCount - start, snapshot.view === 'lens' ? 7 : Math.min(256, Math.ceil(mapping.toRow(snapshot.height)) - start + 2)));
+  const aggregateStart = Math.max(0, Math.floor(mapping.toRow(0)));
+  const aggregateEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)) + 1);
+  useEffect(() => {
+    if ((!aggregateMode && snapshot.view !== 'lens') || snapshot.moving || aggregateEnd <= aggregateStart) { session.requestAggregates(); return; }
+    const timer = setTimeout(() => session.requestAggregates({ start: aggregateStart, end: aggregateEnd, buckets: 160 }), 120);
+    return () => { clearTimeout(timer); session.requestAggregates(); };
+  }, [session, aggregateStart, aggregateEnd, aggregateMode, snapshot.view, snapshot.moving]);
   useEffect(() => {
     if (!viewport) return;
     const observer = new ResizeObserver(() => engine.setViewport(viewport.clientHeight));
     observer.observe(viewport);
-    const wheel = (event: WheelEvent) => { event.preventDefault(); engine.pan(wheelPixels(event.deltaY, event.deltaMode, viewport.clientHeight, rowHeight)); };
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      if (event.ctrlKey) { viewport.focus({ preventScroll: true }); const state = engine.getSnapshot(); engine.setZoom(state.rowsPerPixel * Math.exp(event.deltaY * .008), event.clientY - viewport.getBoundingClientRect().top); }
+      else engine.pan(wheelPixels(event.deltaY, event.deltaMode, viewport.clientHeight, rowHeight));
+    };
+    const touches = new Map<number, { x: number; y: number }>();
+    let distance = 0;
+    const down = (event: PointerEvent) => {
+      if (event.pointerType !== 'touch' || (event.target as HTMLElement).closest('button,input,a')) return;
+      viewport.setPointerCapture(event.pointerId); touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (touches.size === 2) { const [a, b] = [...touches.values()]; distance = Math.hypot(a.x - b.x, a.y - b.y); }
+    };
+    const move = (event: PointerEvent) => {
+      const previous = touches.get(event.pointerId); if (!previous) return;
+      event.preventDefault(); touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (touches.size === 2) {
+        const [a, b] = [...touches.values()], nextDistance = Math.hypot(a.x - b.x, a.y - b.y);
+        if (distance > 0 && nextDistance > 0) engine.setZoom(engine.getSnapshot().rowsPerPixel * distance / nextDistance, (a.y + b.y) / 2 - viewport.getBoundingClientRect().top);
+        distance = nextDistance;
+      } else engine.pan(previous.y - event.clientY);
+    };
+    const up = (event: PointerEvent) => { touches.delete(event.pointerId); distance = 0; };
     viewport.addEventListener('wheel', wheel, { passive: false });
-    return () => { observer.disconnect(); viewport.removeEventListener('wheel', wheel); };
+    viewport.addEventListener('pointerdown', down); viewport.addEventListener('pointermove', move, { passive: false }); viewport.addEventListener('pointerup', up); viewport.addEventListener('pointercancel', up);
+    return () => { observer.disconnect(); viewport.removeEventListener('wheel', wheel); viewport.removeEventListener('pointerdown', down); viewport.removeEventListener('pointermove', move); viewport.removeEventListener('pointerup', up); viewport.removeEventListener('pointercancel', up); };
+
   }, [viewport, engine, rowHeight]);
   useEffect(() => { session.setRange('visible', start, count); }, [session, start, count]);
   const rows: RowSlot<Row>[] = Array.from({ length: count }, (_, offset) => {
     const index = start + offset;
-    const common = { index, y: (index - snapshot.position) * rowHeight, height: rowHeight };
+    const common = { index, y: mapping.toPixel(index), height: snapshot.view === 'zoom' ? 1 / snapshot.rowsPerPixel : rowHeight };
     const row = session.read(index);
     const error = session.error(index);
     const estimate = features.progressiveEstimates ? session.overview.find(bucket => index >= bucket.start && index < bucket.end) : undefined;
@@ -49,6 +86,7 @@ export function useDeepScroll<Row>({ provider, rowHeight = 32, initialIndex = 0,
   const getViewportProps = (props: HTMLAttributes<HTMLDivElement> = {}) => ({
     ...props, ref: setViewport, role: 'grid', tabIndex: 0, 'aria-rowcount': provider.rowCount,
     className: `ds-viewport ${props.className ?? ''}`,
+    onClick: (event: React.MouseEvent<HTMLDivElement>) => { props.onClick?.(event); if (event.defaultPrevented || (event.target as HTMLElement).closest('button,a,input')) return; if (snapshot.view === 'lens' || aggregateMode) { const index = Math.round(clamp(mapping.toRow(event.clientY - event.currentTarget.getBoundingClientRect().top), 0, Math.max(0, provider.rowCount - 1))); engine.goTo(index, { reason: 'lens' }); } },
     onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
       props.onKeyDown?.(event);
       if (event.defaultPrevented || (event.target as HTMLElement).closest('input,textarea,select,button,a,[contenteditable=true]')) return;
@@ -63,7 +101,7 @@ export function useDeepScroll<Row>({ provider, rowHeight = 32, initialIndex = 0,
     },
   });
   return {
-    id, controller: engine, snapshot, rows, provider, session, stats: session.getStats(), features, reduceMotion, announcement, searchMarkers, setSearchMarkers, jumpOpen, setJumpOpen,
+    id, controller: engine, snapshot, rows, provider, session, stats: session.getStats(), features, reduceMotion, announcement, searchMarkers, setSearchMarkers, jumpOpen, setJumpOpen, mapping, aggregateMode,
     getViewportProps,
     getRowProps: (slot: RowSlot<Row>) => ({ role: 'row', 'aria-rowindex': slot.index + 1, id: `${id}-row-${slot.index}`, className: 'ds-row', style: { height: slot.height, transform: `translateY(${slot.y}px)` } as CSSProperties }),
     getAnnouncementProps: () => ({ className: 'ds-sr', 'aria-live': 'polite' as const, children: announcement }),
