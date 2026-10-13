@@ -23,7 +23,7 @@ moves storage behind a server boundary.
 
 ## Run the companions
 
-[Try the first three lessons online](https://vitaliiznak.github.io/deepscroll/tutorials.html).
+[Try the first three lessons online](https://vitaliiznak.github.io/granum-grid/tutorials.html).
 To run all four locally, follow [Setup](Setup.md#1-run-the-working-examples); the HTTP
 lesson needs the local dev or preview server because GitHub Pages only serves static
 files. Choose a lesson and follow its **Check your result** steps.

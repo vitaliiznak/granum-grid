@@ -38,7 +38,7 @@ async function writePages(destination, pages) {
 
 export async function buildWiki(destination, options = {}) {
   const repository =
-    options.repository ?? process.env.GITHUB_REPOSITORY ?? 'vitaliiznak/deepscroll';
+    options.repository ?? process.env.GITHUB_REPOSITORY ?? 'vitaliiznak/granum-grid';
   const ref = options.ref ?? process.env.GITHUB_SHA ?? 'main';
   const server = (process.env.GITHUB_SERVER_URL ?? 'https://github.com').replace(/\/$/, '');
   const repoURL = `${server}/${repository}`;

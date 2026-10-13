@@ -5,11 +5,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vitaliiznak/deepscroll.git",
+    "url": "git+https://github.com/vitaliiznak/granum-grid.git",
     "directory": "granum-grid"
   },
-  "homepage": "https://vitaliiznak.github.io/deepscroll/",
-  "bugs": "https://github.com/vitaliiznak/deepscroll/issues",
+  "homepage": "https://vitaliiznak.github.io/granum-grid/",
+  "bugs": "https://github.com/vitaliiznak/granum-grid/issues",
   "keywords": [
     "react",
     "typescript",
