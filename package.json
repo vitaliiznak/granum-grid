@@ -8,13 +8,19 @@
   ],
   "scripts": {
     "dev": "npm run dev -w demo",
+    "media:dev": "vite --config media/vite.config.ts",
+    "media:build": "tsc -p media/tsconfig.json && vite build --config media/vite.config.ts",
+    "media:screenshots": "node media/scripts/capture.mjs screenshots",
+    "media:video": "node media/scripts/capture.mjs video",
+    "media:all": "node media/scripts/capture.mjs all",
     "build": "npm run build -w deepscroll && npm run build -w demo",
-    "test": "vitest run deepscroll/tests",
+    "test": "vitest run deepscroll/tests demo/unit",
     "test:e2e": "playwright test",
     "test:perf": "playwright test --grep performance",
-    "test:package": "node scripts/package-smoke.mjs && tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --jsx react-jsx scripts/package-consumer.tsx",
-    "format": "prettier --write deepscroll/src deepscroll/tests demo/src demo/tests scripts playwright.config.ts",
-    "format:check": "prettier --check deepscroll/src deepscroll/tests demo/src demo/tests scripts playwright.config.ts"
+    "test:package": "node scripts/package-test.mjs",
+    "release:check": "npm test && npm run build && npm run test:package",
+    "format": "prettier --write deepscroll/src deepscroll/tests demo/src demo/tests demo/unit media/src media/scripts media/vite.config.ts scripts playwright.config.ts",
+    "format:check": "prettier --check deepscroll/src deepscroll/tests demo/src demo/tests demo/unit media/src media/scripts media/vite.config.ts scripts playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",

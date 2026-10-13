@@ -2,6 +2,18 @@
 
 A React + TypeScript explorer for very large indexed datasets. A floating row address drives a bounded viewport, avoiding browser element-height limits. The Atlas rail shows dataset shape, chapters, events, and your position.
 
+## Install
+
+React and React DOM 18.2–19 are required. The package ships ESM JavaScript and TypeScript declarations; use an ESM-capable bundler and TypeScript 5+ for typed consumers.
+
+After the first npm release:
+
+```sh
+npm install deepscroll
+```
+
+Before publication, install the verified `deepscroll-0.1.0.tgz` archive produced by `npm run release:check` in the repository.
+
 ## Use
 
 ```tsx
@@ -88,7 +100,6 @@ Default tokens: `--ds-bg`, `--ds-panel`, `--ds-text`, `--ds-muted`, `--ds-line`,
 | `deepscroll` | `DeepScroll`, `useDeepScroll`, `AtlasRail`, `JumpBar`, `ViewCanvas`, defaults and types |
 | `deepscroll/core` | Framework-independent engine and pure coordinate mappings |
 | `deepscroll/data` | Provider types, `PageCache`, `DataSession` |
-| `deepscroll/tools` | `createTableTools`, JSON Schema definitions, bounded tool execution |
 | `deepscroll/base.css` | Structural layout only |
 | `deepscroll/styles.css` | Optional skin and `--ds-*` theme variables; includes base layout |
 
@@ -106,20 +117,14 @@ Not yet implemented: unknown-length streams, prepend anchoring, horizontal/colum
 - `followOutput={true}` accepts append-only count growth with the same ID/revision and follows when the List view is already at its end. `false` preserves the current address; omitted keeps immutable snapshot behavior. Existing rows must not change. Unknown counts and prepends are unsupported.
 - `cache.requestTimeoutMs` defaults to 15,000 ms. Four useful row requests run concurrently; at most eight unsettled row transports are retained. Providers must honor cancellation. `showStats` enables footer diagnostics.
 
-The workspace [README](../README.md) includes route integration and provider contracts.
+For frameworks with React Server Components, render the explorer inside a component marked `'use client'`. Pass row renderers, refs, and provider functions within that client boundary.
 
-## AI-callable tools
+## Host integration interface
 
-```ts
-import { createTableTools } from 'deepscroll/tools';
+`DeepScrollApi<Row>` is a public type exported from `deepscroll`. Pass a React ref as `apiRef` to `DeepScroll`, or read `api` from `useDeepScroll`, to access the mounted table's `provider: DataProvider<Row>` and `controller: DeepScrollEngine`. The ref updates with the provider/controller and is cleared on unmount. Read the current ref when executing an action. Existing `controllerRef` integrations continue to work.
 
-const tools = createTableTools({
-  provider,
-  columns: [{ name: 'value', type: 'number' }],
-});
-const result = await tools.execute('read_rows', { start: 73_499_999, count: 5 });
-```
+Applications can use this interface for custom controls, automation, or AI-callable tools. The application owns tool definitions, argument validation, request budgets, result serialization, and its model connection. These are not shipped as library features. Provider reads/searches/aggregates and controller navigation retain their existing contracts; optional capabilities remain optional.
 
-Register `tools.definitions` (`name`, `description`, JSON Schema `inputSchema`, and `effect`) with your agent framework, and pass parsed tool calls to `execute(name, args, { signal })`. Results use `{ ok: true, dataset, data }` or `{ ok: false, error: { code, message } }`. The package provides execution; your application supplies the model connection and its call budget.
+## License
 
-Tools include `describe_table`, `read_rows`, optional provider-backed `search_rows` and `summarize_range`, and `navigate_to_row` when you supply `getController: () => controller.current`. All indices are zero-based and ranges are half-open. Limits are 100 rows/matches, 64 summary buckets, 64 KiB per successful result, four outstanding provider requests, and a default 15-second timeout. Partial search flags, summary accuracy, and nulls remain visible. Column metadata does not redact row data. Recreate tools for each dataset snapshot; the controller must display that same dataset/revision. Provider requests must honor cancellation, and expensive backend queries still need host-level budgets.
+Licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE).

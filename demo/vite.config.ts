@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 export default defineConfig({
+  // The same static build works at a domain root or a GitHub Pages project path.
+  base: './',
   plugins: [react()],
   resolve: {
     alias: [

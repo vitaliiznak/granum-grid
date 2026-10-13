@@ -83,6 +83,7 @@ interface DeepScrollProps<Row> {
   overscan?: number; // 2 per side in Rows/detail Zoom
   initialLocation?: NavigationLocation;
   controllerRef?: React.Ref<DeepScrollEngine>;
+  apiRef?: React.Ref<DeepScrollApi<Row>>; // mounted provider and controller for host integrations
   getRowKey?(row: Row, index: number): React.Key;
   emptyContent?: React.ReactNode;
   initialIndex?: number;
@@ -446,9 +447,9 @@ Root scripts:
 | `npm run test:e2e` | Run the browser acceptance and interaction checks. |
 | `npm run test:perf` | Run explicit performance scenarios and report measurements. |
 
-Public package entries are `deepscroll`, `deepscroll/core`, `deepscroll/data`, `deepscroll/tools`, `deepscroll/base.css`, and `deepscroll/styles.css`. ESM and `.d.ts` files are built with TypeScript; generated module specifiers must resolve without the demo's alias. CSS is copied to the distributable and declared as a side effect. Internal source paths are not package exports.
+Public package entries are `deepscroll`, `deepscroll/core`, `deepscroll/data`, `deepscroll/base.css`, and `deepscroll/styles.css`. ESM and `.d.ts` files are built with TypeScript; generated module specifiers must resolve without the demo's alias. CSS is copied to the distributable and declared as a side effect. Internal source paths are not package exports.
 
-`deepscroll/tools` exports `createTableTools({ provider, columns?, getController?, timeoutMs? })`, `tableToolLimits`, and their types. The returned `definitions` describe model-independent JSON Schema tools; `execute(name, args, { signal }?)` validates and dispatches one call. Read operations delegate to provider capabilities with bounded results. Navigation uses the optional mounted controller. The host supplies model integration and total agent/query budgets. See [AI-callable table tools](./README.md#ai-callable-table-tools) for supported tools, limits, snapshot scope, and result envelopes.
+`DeepScrollApi<Row>` is exported from `deepscroll` and contains the current `provider: DataProvider<Row>` and `controller: DeepScrollEngine`. Access it through the component's `apiRef` or the hook's `api` value. Refs follow provider/controller changes and clear on unmount. AI tool schemas, dispatch, budgets, and model integration live in application code; the working example is under `demo/src/ai`. See [Integration interface and AI demo](./README.md#integration-interface-and-ai-demo).
 
 React and React DOM are peer dependencies. The implementation plan requires no additional runtime dependencies. Proposed development tools are TypeScript, Vite with its React plugin, Vitest, and Playwright. No grid library, animation framework, charting package, or DuckDB-WASM is needed for this scope. Package-name availability and publication remain separate from creating this local workspace.
 

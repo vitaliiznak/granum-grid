@@ -7,6 +7,7 @@ import {
   type Key,
 } from 'react';
 import type { DeepScrollEngine } from '../core/engine.js';
+import type { DeepScrollApi } from '../core/api.js';
 import { useDeepScroll, type UseDeepScrollOptions, type DeepScrollState } from './useDeepScroll.js';
 import { partProps, type DeepScrollAppearance } from './styling.js';
 import { ContextHints } from './ContextHints.js';
@@ -35,6 +36,8 @@ export interface DeepScrollProps<Row> extends UseDeepScrollOptions<Row>, DeepScr
   /** Opt out of the optional skin, even when styles.css is loaded elsewhere. */
   unstyled?: boolean;
   controllerRef?: Ref<DeepScrollEngine>;
+  /** Access the mounted provider and controller from a host integration. */
+  apiRef?: Ref<DeepScrollApi<Row>>;
   getRowKey?(row: Row, index: number): Key;
   emptyContent?: ReactNode;
   atlas?: AtlasRailOptions;
@@ -45,6 +48,8 @@ export interface DeepScrollProps<Row> extends UseDeepScrollOptions<Row>, DeepScr
   fullPageUrl?(view: SavedView): string;
   stickyChapters?: boolean;
   showStats?: boolean;
+  /** Append host controls to the built-in toolbar. */
+  toolbarActions?: ReactNode;
   /** Replace the built-in controls with your own React components. Return null to hide. */
   renderToolbar?(scroll: DeepScrollState<Row>): ReactNode;
   renderFooter?(scroll: DeepScrollState<Row>): ReactNode;
@@ -80,6 +85,7 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
     scrollMode: props.layout === 'page' ? 'window' : props.scrollMode,
   });
   useImperativeHandle(props.controllerRef, () => scroll.controller, [scroll.controller]);
+  useImperativeHandle(props.apiRef, () => scroll.api, [scroll.api]);
   const { snapshot } = scroll;
   const chapter = scroll.session.chapters.find(
     (c) => snapshot.position >= c.start && snapshot.position < c.end,
@@ -172,6 +178,7 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
                 Open full page ↗
               </a>
             )}
+            {props.toolbarActions}
           </div>
         </div>
       )}

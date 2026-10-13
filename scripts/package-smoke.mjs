@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import { createEngine, createLensMapping } from 'deepscroll/core';
 import { PageCache } from 'deepscroll/data';
-import { createTableTools } from 'deepscroll/tools';
 import { DeepScroll, useDeepScroll, AtlasRail } from 'deepscroll';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 assert.match(import.meta.resolve('deepscroll'), /\/dist\/index\.js$/);
 const engine = createEngine({ rowCount: 100_000_000 });
 engine.goTo(73_499_999);
@@ -17,24 +16,10 @@ assert.ok(
   ),
 );
 engine.destroy();
-const tools = createTableTools({
-  provider: {
-    id: 'tool-smoke',
-    revision: '1',
-    rowCount: 100_000_000,
-    fetchRows: async (start, count) =>
-      Array.from({ length: count }, (_, i) => ({ value: start + i })),
-  },
+assert.throws(() => import.meta.resolve('deepscroll/tools'), {
+  code: 'ERR_PACKAGE_PATH_NOT_EXPORTED',
 });
-assert.equal((await tools.execute('describe_table', {})).dataset.rowCount, 100_000_000);
-assert.equal(
-  (await tools.execute('read_rows', { start: 99_999_999, count: 1 })).data.rows[0].value,
-  99_999_999,
-);
-assert.equal(
-  (await tools.execute('read_rows', { start: 0, count: 100_000_000 })).error.code,
-  'INVALID_ARGUMENTS',
-);
+assert.equal(existsSync(new URL('./tools.js', import.meta.resolve('deepscroll'))), false);
 const markup = renderToString(
   createElement(DeepScroll, {
     provider: { id: 'ssr', revision: '1', rowCount: 100_000_000, fetchRows: async () => [] },

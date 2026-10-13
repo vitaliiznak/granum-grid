@@ -20,6 +20,7 @@ import {
   type NavigationLocation,
 } from '../core/index.js';
 import { validRange } from '../core/exploration.js';
+import type { DeepScrollApi } from '../core/api.js';
 import { useWindowScroll } from './useWindowScroll.js';
 import { useRowMeasurements } from './useRowMeasurements.js';
 import { bindInputs } from './input.js';
@@ -120,6 +121,10 @@ export function useDeepScroll<Row>({
       dynamicRowHeight,
       maxMeasuredRows,
     ],
+  );
+  const api = useMemo<DeepScrollApi<Row>>(
+    () => ({ provider, controller: engine }),
+    [provider, engine],
   );
   useWindowScroll(engine, scrollMode === 'window');
   const [selectionState, setSelectionState] = useState({ engine, value: initialSelection });
@@ -512,7 +517,13 @@ export function useDeepScroll<Row>({
         event.key === 'ArrowUp' ? engine.previousChapter() : engine.nextChapter();
         return;
       }
-      if (event.key.toLowerCase() === 'n' || event.key.toLowerCase() === 'p') {
+      // Plain N/P only: modified keys such as Ctrl/Cmd+P belong to the browser.
+      if (
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        (event.key.toLowerCase() === 'n' || event.key.toLowerCase() === 'p')
+      ) {
         event.preventDefault();
         event.key.toLowerCase() === 'n' ? engine.nextMarker() : engine.previousMarker();
         return;
@@ -544,6 +555,7 @@ export function useDeepScroll<Row>({
   });
   return {
     id,
+    api,
     unseenRows,
     selection,
     setSelection,
