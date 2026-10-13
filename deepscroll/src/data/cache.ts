@@ -8,28 +8,50 @@ export class PageCache<Row> {
   constructor(options: CacheOptions<Row> = {}) {
     this.pageSize = options.pageSize ?? 256;
     this.maxBytes = options.maxBytes ?? 32 * 1024 * 1024;
-    if (!Number.isSafeInteger(this.pageSize) || this.pageSize < 1 || !Number.isFinite(this.maxBytes) || this.maxBytes < 1) throw new RangeError('Invalid cache budget or page size');
+    if (
+      !Number.isSafeInteger(this.pageSize) ||
+      this.pageSize < 1 ||
+      !Number.isFinite(this.maxBytes) ||
+      this.maxBytes < 1
+    )
+      throw new RangeError('Invalid cache budget or page size');
     this.estimate = options.estimateRowBytes ?? (() => 256);
   }
-  has(page: number) { return this.pages.has(page); }
+  has(page: number) {
+    return this.pages.has(page);
+  }
   read(index: number) {
     const page = Math.floor(index / this.pageSize);
     const entry = this.pages.get(page);
     if (!entry) return undefined;
-    this.pages.delete(page); this.pages.set(page, entry);
+    this.pages.delete(page);
+    this.pages.set(page, entry);
     return entry.rows[index % this.pageSize];
   }
   put(page: number, rows: Row[]) {
     this.bytes -= this.pages.get(page)?.bytes ?? 0;
-    const bytes = rows.reduce((sum, row) => { const size = this.estimate(row); return sum + (Number.isFinite(size) && size > 0 ? size : 256); }, 64);
-    this.pages.delete(page); this.pages.set(page, { rows, bytes }); this.bytes += bytes;
+    const bytes = rows.reduce((sum, row) => {
+      const size = this.estimate(row);
+      return sum + (Number.isFinite(size) && size > 0 ? size : 256);
+    }, 64);
+    this.pages.delete(page);
+    this.pages.set(page, { rows, bytes });
+    this.bytes += bytes;
   }
   evict(pinned: Set<number>, metadataBytes = 0) {
     for (const [page, entry] of this.pages) {
       if (this.bytes + metadataBytes <= this.maxBytes) break;
-      if (!pinned.has(page)) { this.pages.delete(page); this.bytes -= entry.bytes; }
+      if (!pinned.has(page)) {
+        this.pages.delete(page);
+        this.bytes -= entry.bytes;
+      }
     }
   }
-  get rowCount() { return [...this.pages.values()].reduce((sum, page) => sum + page.rows.length, 0); }
-  clear() { this.pages.clear(); this.bytes = 0; }
+  get rowCount() {
+    return [...this.pages.values()].reduce((sum, page) => sum + page.rows.length, 0);
+  }
+  clear() {
+    this.pages.clear();
+    this.bytes = 0;
+  }
 }

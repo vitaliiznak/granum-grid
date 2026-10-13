@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "An overview-first React explorer for enormous indexed datasets",
   "type": "module",
-  "files": ["dist", "README.md"],
+  "files": ["dist", "src", "README.md"],
   "sideEffects": ["**/*.css"],
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
