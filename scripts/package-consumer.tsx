@@ -7,13 +7,14 @@ import {
   type DataProvider,
   type DeepScrollAppearance,
   type AtlasRailOptions,
+  type DeepScrollApi,
 } from 'deepscroll';
 import { createEngine } from 'deepscroll/core';
 import { PageCache, rangeProvider } from 'deepscroll/data';
-import { createTableTools, type TableToolDefinition } from 'deepscroll/tools';
 import { createRef } from 'react';
 import type { DeepScrollEngine } from 'deepscroll';
 const controller = createRef<DeepScrollEngine>();
+const api = createRef<DeepScrollApi<{ value: number }>>();
 const appearance: DeepScrollAppearance = {
   classNames: { row: 'px-4 border-b', toolbar: 'flex gap-2' },
   styles: { footer: { padding: 12 } },
@@ -61,6 +62,7 @@ export const example = (
     renderFooter={({ snapshot }) => <output>{snapshot.rowCount}</output>}
     renderRail={() => null}
     controllerRef={controller}
+    apiRef={api}
     dynamicRowHeight
     overscan={3}
     getRowKey={(row) => row.value}
@@ -69,6 +71,7 @@ export const example = (
 );
 export function HeadlessConsumer() {
   const scroll = useDeepScroll({ provider, dynamicRowHeight: true });
+  const integration: DeepScrollApi<{ value: number }> = scroll.api;
   return (
     <div {...scroll.getViewportProps({ style: { height: 320 }, 'aria-label': 'Headless rows' })}>
       {scroll.rows.map((slot) => (
@@ -88,12 +91,7 @@ export function HeadlessConsumer() {
   );
 }
 export const engine = createEngine({ rowCount: provider.rowCount });
-export const tools = createTableTools({
-  provider,
-  columns: [{ name: 'value', type: 'number' }],
-  getController: () => controller.current,
-});
-export const toolDefinitions: TableToolDefinition[] = tools.definitions;
+export const getMountedTable = (): DeepScrollApi<{ value: number }> | null => api.current;
 export const cache = new PageCache<{ value: number }>();
 controller.current?.scrollToIndex(73_500_000, { align: 'center' });
 const location = controller.current?.getLocation();

@@ -40,8 +40,15 @@ function Sparkline({ id }: { id: string }) {
 }
 
 export function DatasetGallery({ value, onChange }: { value: string; onChange(id: string): void }) {
+  const strip = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // On narrow screens the gallery scrolls sideways; keep the chosen card in view.
+    const card = strip.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (strip.current && card && strip.current.scrollWidth > strip.current.clientWidth)
+      strip.current.scrollTo({ left: card.offsetLeft - strip.current.offsetLeft - 16 });
+  }, [value]);
   return (
-    <nav className="dataset-gallery" aria-label="Datasets">
+    <nav ref={strip} className="dataset-gallery" aria-label="Datasets">
       {datasets.map((dataset) => (
         <button
           key={dataset.id}

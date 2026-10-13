@@ -26,9 +26,10 @@ it('starts a new destination despite canceled transports, without unbounded conc
     expect(s.error(800)).toContain('AbortSignal');
     pending.slice(0, 4).forEach((p) => p.resolve([1, 2, 3, 4]));
     await tick();
-    s.retry();
     await tick();
+    // Settled transports free slots; the held page loads without a manual retry.
     expect(pending.at(-1)?.start).toBe(800);
+    expect(s.error(800)).toBeUndefined();
   } finally {
     s.stop();
     pending.forEach((p) => p.resolve([1, 2, 3, 4]));

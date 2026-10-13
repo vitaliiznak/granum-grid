@@ -1,4 +1,29 @@
 import { defaultFeatures, type Features, type ScrollStats } from 'deepscroll';
+
+export function LatencyControl({
+  latency,
+  onLatency,
+}: {
+  latency: number;
+  onLatency(value: number): void;
+}) {
+  return (
+    <label className="latency-label">
+      Server latency{' '}
+      <input
+        aria-label="Server latency"
+        type="range"
+        min="0"
+        max="2000"
+        step="40"
+        value={latency}
+        onChange={(event) => onLatency(+event.target.value)}
+      />
+      <output>{latency} ms</output>
+    </label>
+  );
+}
+
 const labels: Record<keyof Features, string> = {
   overview: 'Overview graph',
   chapters: 'Year chapters',
@@ -46,19 +71,7 @@ export function Playground({
       </summary>
       <div className="playground-inner">
         <div className="playground-controls">
-          <label className="latency-label">
-            Server latency{' '}
-            <input
-              aria-label="Server latency"
-              type="range"
-              min="0"
-              max="2000"
-              step="40"
-              value={latency}
-              onChange={(event) => onLatency(+event.target.value)}
-            />
-            <output>{latency} ms</output>
-          </label>
+          <LatencyControl latency={latency} onLatency={onLatency} />
           <label className="feature-switch">
             <input
               type="checkbox"

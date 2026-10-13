@@ -1,5 +1,10 @@
-import type { DeepScrollEngine } from './core/engine.js';
-import type { AggregateRequest, Bucket, DataProvider, ProviderQuery } from './data/types.js';
+import type {
+  AggregateRequest,
+  Bucket,
+  DataProvider,
+  DeepScrollApi,
+  ProviderQuery,
+} from 'deepscroll';
 
 /** JSON Schema subset used by the tool definitions and their runtime validator. */
 export interface TableToolSchema {
@@ -29,8 +34,8 @@ export interface TableToolColumn {
 export interface TableToolsOptions<Row> {
   provider: DataProvider<Row>;
   columns?: readonly TableToolColumn[];
-  /** Must return the controller displaying this provider's dataset and revision. */
-  getController?: () => DeepScrollEngine | null;
+  /** Read the current mounted table through the library's public integration interface. */
+  getTable?: () => DeepScrollApi<Row> | null;
   timeoutMs?: number;
 }
 export type TableToolResult =
@@ -121,11 +126,11 @@ function validateBuckets(buckets: Bucket[], range: AggregateRequest) {
   if (cursor !== range.end) fail('INVALID_RESULT', 'Provider did not cover the requested range.');
 }
 
-/** Model-independent tools over one ordered provider snapshot. No client-side dataset scan. */
+/** Demo-owned AI tools. Schemas, model policies and execution do not belong to the library. */
 export function createTableTools<Row>({
   provider,
   columns = [],
-  getController,
+  getTable,
   timeoutMs = 15_000,
 }: TableToolsOptions<Row>) {
   if (!Number.isSafeInteger(provider.rowCount) || provider.rowCount < 0)
@@ -187,7 +192,7 @@ export function createTableTools<Row>({
         buckets: integer(1, tableToolLimits.buckets),
       }),
     });
-  if (getController)
+  if (getTable)
     definitions.push({
       name: 'navigate_to_row',
       effect: 'navigate',
@@ -203,6 +208,12 @@ export function createTableTools<Row>({
       provider.rowCount !== dataset.rowCount
     )
       fail('STALE_DATASET', 'Dataset changed. Recreate the tools for the current provider.');
+    if (getTable) {
+      const table = getTable();
+      if (!table) fail('UNAVAILABLE', 'No table is mounted.');
+      if (table.provider !== provider)
+        fail('STALE_DATASET', 'Mounted table changed. Recreate the demo tools.');
+    }
   };
 
   async function request<T>(
@@ -323,7 +334,7 @@ export function createTableTools<Row>({
         const index = input.index as number;
         if (index >= dataset.rowCount)
           fail('INVALID_ARGUMENTS', 'Row index is outside the dataset.');
-        const controller = getController!();
+        const controller = getTable!()?.controller;
         if (!controller || controller.getSnapshot().rowCount !== dataset.rowCount)
           fail('UNAVAILABLE', 'No matching table controller is mounted.');
         controller.scrollToIndex(index, { align: 'start' });

@@ -7,14 +7,17 @@ import {
   type RowRange,
   type AtlasRailOptions,
   type DeepScrollEngine,
+  type DeepScrollApi,
   type NavigationLocation,
   type ScrollAlignment,
 } from 'deepscroll';
 import { useEffect, useRef, useState } from 'react';
 import { LiveExample } from './LiveExample';
 import { StylingExamples } from './StylingExamples';
+import { ToolsDemo } from './ai/ToolsDemo';
 import { MapSettings } from './MapSettings';
 import { Playground } from './Playground';
+import { DebugTools } from './DebugTools';
 import { DatasetGallery, DatasetIntro, FeatureTour, ShortcutStrip } from './Showcase';
 import { findDataset } from './datasets';
 import { stopWorker } from './data/worker-client';
@@ -23,7 +26,7 @@ import { setLatency } from './data/provider';
 const pageUrl = (dataset: string, hash: string) =>
   `${location.pathname}?page=1${dataset === 'signal' ? '' : `&dataset=${dataset}`}#view=${hash}`;
 export default function App() {
-  const [pageMode] = useState(
+  const [pageMode, setPageMode] = useState(
     () => new URLSearchParams(window.location.search).get('page') === '1',
   );
   const [dataset, setDataset] = useState(() =>
@@ -50,6 +53,7 @@ export default function App() {
   const [align, setAlign] = useState<ScrollAlignment>('center');
   const [saved, setSaved] = useState<NavigationLocation | null>(null);
   const controller = useRef<DeepScrollEngine>(null);
+  const api = useRef<DeepScrollApi<unknown>>(null);
   const selectionRef = useRef<RowRange | null>(shared?.selection ?? null);
   /** Each dataset keeps its own place while you visit the others. */
   const locations = useRef(new Map<string, NavigationLocation>());
@@ -120,6 +124,28 @@ export default function App() {
     updateLatency(value);
     setLatency(value);
   };
+  const returnToNormal = () => {
+    const params = new URLSearchParams(location.search);
+    params.delete('page');
+    const query = params.toString();
+    const view = controller.current
+      ? `#view=${encodeView({
+          version: 1,
+          dataset: provider.id,
+          revision: provider.revision,
+          location: controller.current.getLocation(),
+          selection: selectionRef.current,
+        })}`
+      : location.hash;
+    history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}${view}`);
+    setPageMode(false);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.querySelector<HTMLElement>('.demo-explorer [role="grid"]')?.focus({
+        preventScroll: true,
+      });
+    });
+  };
   const initialLocation =
     mounted.current === dataset.id
       ? (controller.current?.getLocation() ?? shared?.location)
@@ -129,7 +155,7 @@ export default function App() {
       {!pageMode && (
         <>
           <header className="site-header">
-            <a className="wordmark" href="/" aria-label="deepscroll home">
+            <a className="wordmark" href={import.meta.env.BASE_URL} aria-label="deepscroll home">
               <svg className="logo" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
                 <rect width="20" height="20" rx="4" fill="currentColor" />
                 <path d="M5 6h10M5 10h7M5 14h4" stroke="var(--page)" strokeWidth="1.5" />
@@ -260,7 +286,7 @@ export default function App() {
       <DeepScroll
         key={dataset.id}
         layout={pageMode ? 'page' : 'embedded'}
-        initialSelection={dataset.id === shared?.dataset ? shared.selection : null}
+        initialSelection={shared?.dataset === provider.id ? shared.selection : null}
         onSelectionChange={(range) => {
           selectionRef.current = range;
           if (pageMode && controller.current)
@@ -282,6 +308,16 @@ export default function App() {
         bookmarkStorageKey={`deepscroll-demo:${provider.id}:${provider.revision}`}
         stickyChapters
         fullPageUrl={pageMode ? undefined : (view) => pageUrl(dataset.id, encodeView(view))}
+        toolbarActions={
+          <>
+            {pageMode && (
+              <button className="ds-button" onClick={returnToNormal}>
+                <span aria-hidden="true">↙ </span>Back to normal view
+              </button>
+            )}
+            <DebugTools latency={latency} onLatency={changeLatency} stats={stats} />
+          </>
+        }
         provider={provider}
         atlas={atlas}
         ariaLabel={dataset.ariaLabel}
@@ -291,6 +327,7 @@ export default function App() {
         initialIndex={dataset.initialIndex}
         initialLocation={initialLocation}
         controllerRef={controller}
+        apiRef={api}
         theme={theme}
         features={features}
         reducedMotion={reduced ? true : 'system'}
@@ -325,6 +362,7 @@ export default function App() {
           />
           <LiveExample />
           <StylingExamples />
+          <ToolsDemo key={dataset.id} datasetId={dataset.id} provider={provider} apiRef={api} />
           <footer className="site-footer">
             <span>Rows generated on demand. Overview uses sampled values.</span>
             <span>deepscroll 0.1</span>

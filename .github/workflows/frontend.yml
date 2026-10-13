@@ -1,0 +1,98 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.event.pull_request.number || github.ref }}
+  # Let an active default-branch deployment finish; replace stale PR/branch checks.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref_name != github.event.repository.default_branch }}
+
+jobs:
+  verify:
+    name: Verify frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Type-check and build library and frontend
+        run: npm run build
+
+      - name: Verify npm tarball with React 18.2 and React 19
+        run: npm run test:package
+
+      - name: Upload verified npm tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: output/*.tgz
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Install browser dependencies
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Test production frontend in all browsers
+        run: npm run test:e2e
+
+      - name: Upload browser report and failure traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload verified frontend for Pages
+        if: ${{ github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch }}
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: demo/dist
+
+  deploy:
+    name: Deploy frontend
+    needs: verify
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy verified frontend
+        id: deployment
+        uses: actions/deploy-pages@v4

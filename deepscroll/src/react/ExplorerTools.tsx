@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  decodeView,
-  encodeView,
+  readBookmarks,
   validRange,
+  writeBookmarks,
   type Bookmark,
   type SavedView,
 } from '../core/exploration.js';
@@ -148,18 +148,7 @@ export function ExplorerTools<Row>({
     setBookmarks([]);
     if (!storageKey) return;
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw || raw.length > 100_000) return;
-      const values = JSON.parse(raw);
-      if (!Array.isArray(values)) return;
-      setBookmarks(
-        values.slice(0, 40).flatMap((value) => {
-          const saved = decodeView(encodeURIComponent(JSON.stringify(value)), provider);
-          return saved && typeof value.id === 'string' && typeof value.name === 'string'
-            ? [{ ...saved, id: value.id.slice(0, 128), name: value.name.slice(0, 80) }]
-            : [];
-        }),
-      );
+      setBookmarks(readBookmarks(localStorage.getItem(storageKey), provider));
     } catch {
       setMessage('Browser storage is unavailable. Bookmarks will last for this session.');
     }
@@ -174,7 +163,10 @@ export function ExplorerTools<Row>({
     setBookmarks(next);
     if (storageKey)
       try {
-        localStorage.setItem(storageKey, JSON.stringify(next));
+        localStorage.setItem(
+          storageKey,
+          writeBookmarks(localStorage.getItem(storageKey), next, provider),
+        );
       } catch {
         setMessage('Saved for this session; browser storage is unavailable.');
       }

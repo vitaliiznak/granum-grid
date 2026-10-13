@@ -142,3 +142,16 @@ test('live append follows the end, preserves a reader and resumes explicitly', a
   await expect(page.locator('.ds-live-status')).toContainText('up to date');
   expect(errors).toEqual([]);
 });
+test('a shared full-page link restores its selected range', async ({ page }) => {
+  const view = {
+    version: 1,
+    dataset: 'signal-observatory',
+    revision: '1',
+    location: { position: 999_999, view: 'rows', rowsPerPixel: 1 / 32 },
+    selection: { start: 999_999, end: 1_000_100 },
+  };
+  await page.goto(`/?page=1#view=${encodeURIComponent(JSON.stringify(view))}`);
+  await page.getByRole('button', { name: /^Explore · range selected/ }).click();
+  await expect(page.getByLabel('First row', { exact: true })).toHaveValue('1000000');
+  await expect(page.getByLabel('Last row', { exact: true })).toHaveValue('1000100');
+});

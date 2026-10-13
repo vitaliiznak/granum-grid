@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest';
-import { createTableTools } from '../src/tools';
-import { createEngine } from '../src/core/engine';
-import type { DataProvider } from '../src/data/types';
+import { createTableTools } from '../src/ai/table-tools';
+import { createEngine } from '../../deepscroll/src/core/engine';
+import type { DataProvider, DeepScrollApi } from 'deepscroll';
 
 const makeProvider = (): DataProvider<{ value: number }> => ({
   id: 'huge',
@@ -190,7 +190,10 @@ it('navigates through the existing controller and keeps Back available', async (
   const provider = makeProvider();
   const engine = createEngine({ rowCount: provider.rowCount });
   try {
-    const tools = createTableTools({ provider, getController: () => engine });
+    const tools = createTableTools({
+      provider,
+      getTable: () => ({ provider, controller: engine }),
+    });
     expect(await tools.execute('navigate_to_row', { index: 73_499_999 })).toMatchObject({
       ok: true,
       data: { index: 73_499_999 },
@@ -198,7 +201,7 @@ it('navigates through the existing controller and keeps Back available', async (
     expect(engine.getSnapshot()).toMatchObject({ activeIndex: 73_499_999, canGoBack: true });
     expect(provider.fetchRows).not.toHaveBeenCalled();
     expect(
-      await createTableTools({ provider, getController: () => null }).execute('navigate_to_row', {
+      await createTableTools({ provider, getTable: () => null }).execute('navigate_to_row', {
         index: 0,
       }),
     ).toMatchObject({ ok: false, error: { code: 'UNAVAILABLE' } });
@@ -228,6 +231,38 @@ it('cancels provider work and never returns a late result', async () => {
   expect(
     await tools.execute('read_rows', { start: 0, count: 1 }, { signal: controller.signal }),
   ).toMatchObject({ ok: false, error: { code: 'CANCELLED' } });
+});
+
+it('rejects stale mounted table handles and late results after a dataset switch', async () => {
+  const provider = makeProvider();
+  const replacement = makeProvider(); // Even identical metadata must not target another table.
+  const engine = createEngine({ rowCount: provider.rowCount });
+  let table: DeepScrollApi<{ value: number }> | null = { provider, controller: engine };
+  let finish!: (rows: { value: number }[]) => void;
+  provider.fetchRows = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  const tools = createTableTools({ provider, getTable: () => table });
+  try {
+    const pending = tools.execute('read_rows', { start: 0, count: 1 });
+    await Promise.resolve();
+    table = { provider: replacement, controller: engine };
+    finish([{ value: 0 }]);
+    expect(await pending).toMatchObject({ ok: false, error: { code: 'STALE_DATASET' } });
+    expect(await tools.execute('navigate_to_row', { index: 10 })).toMatchObject({
+      ok: false,
+      error: { code: 'STALE_DATASET' },
+    });
+    expect(engine.getSnapshot().activeIndex).toBe(0);
+    table = null;
+    expect(await tools.execute('describe_table', {})).toMatchObject({
+      ok: false,
+      error: { code: 'UNAVAILABLE' },
+    });
+  } finally {
+    engine.destroy();
+  }
 });
 
 it('times out callers but retains request slots until an uncooperative provider settles', async () => {

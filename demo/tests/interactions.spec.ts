@@ -178,3 +178,16 @@ test('touch pinch and pan navigate the same coordinate system', async ({ page, b
     }
   }
 });
+test('marker keys leave modified browser shortcuts such as Ctrl/Cmd+P alone', async ({ page }) => {
+  const grid = page.getByRole('grid');
+  const prevented = (init: KeyboardEventInit) =>
+    grid.evaluate((element, init) => {
+      const event = new KeyboardEvent('keydown', { ...init, bubbles: true, cancelable: true });
+      element.dispatchEvent(event);
+      return event.defaultPrevented;
+    }, init);
+  expect(await prevented({ key: 'p', ctrlKey: true })).toBe(false);
+  expect(await prevented({ key: 'p', metaKey: true })).toBe(false);
+  expect(await prevented({ key: 'n', altKey: true })).toBe(false);
+  expect(await prevented({ key: 'p' })).toBe(true);
+});

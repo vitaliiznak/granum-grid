@@ -1,4 +1,5 @@
 export { DeepScroll } from './react/DeepScroll.js';
+export type { DeepScrollApi } from './core/api.js';
 export type { DeepScrollProps, RowRenderContext } from './react/DeepScroll.js';
 export { useDeepScroll } from './react/useDeepScroll.js';
 export type { UseDeepScrollOptions, DeepScrollState, ScrollStats } from './react/useDeepScroll.js';

@@ -9,6 +9,7 @@ import type {
   OverviewTrack,
 } from './types.js';
 type Owner = 'visible' | 'preview' | 'prefetch';
+const THROTTLED = 'Waiting for canceled requests. The provider must honor AbortSignal.';
 export class DataSession<Row> {
   readonly cache: PageCache<Row>;
   overview: Bucket[] = [];
@@ -291,10 +292,7 @@ export class DataSession<Row> {
       // Four useful requests plus at most four canceled transports still settling.
       // Never open unlimited underlying requests when a provider ignores cancellation.
       if (this.pending.size >= 8) {
-        this.errors.set(
-          page,
-          'Waiting for canceled requests. The provider must honor AbortSignal. Retry after they settle.',
-        );
+        this.errors.set(page, THROTTLED);
         this.emit();
         continue;
       }
@@ -348,6 +346,9 @@ export class DataSession<Row> {
             this.active.delete(page);
             if (!this.pinned().has(page)) this.owners.get('prefetch')?.delete(page);
           }
+          // A settled transport frees a slot, so throttled pages load without a manual retry.
+          for (const [held, error] of this.errors)
+            if (error === THROTTLED) this.errors.delete(held);
           this.emit();
           this.pump();
         });

@@ -408,6 +408,102 @@ details[open] > summary .details-indicator {
   min-width: 52px;
   color: var(--muted);
 }
+.debug-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #b42318;
+  background: #fff2f0;
+  border-color: #f2b8b2;
+  font-weight: 600;
+}
+.debug-trigger:hover {
+  background: #ffe3df;
+  border-color: #d92d20;
+}
+.debug-trigger:focus-visible {
+  outline-color: #d92d20;
+}
+.debug-icon {
+  flex-shrink: 0;
+}
+.debug-heading .debug-icon {
+  color: #b42318;
+}
+:root[data-theme='dark'] .debug-trigger {
+  color: #fda29b;
+  background: #351e20;
+  border-color: #88413b;
+}
+:root[data-theme='dark'] .debug-trigger:hover {
+  background: #4d2528;
+  border-color: #f97066;
+}
+:root[data-theme='dark'] .debug-heading .debug-icon {
+  color: #fda29b;
+}
+.debug-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--page);
+  color: var(--ink);
+  box-shadow: 0 20px 80px #0003;
+  font-size: 13px;
+  white-space: normal;
+  overscroll-behavior: contain;
+}
+.debug-dialog::backdrop {
+  background: #10182866;
+}
+.debug-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.debug-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.debug-dialog p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.debug-dialog .latency-label {
+  display: grid;
+  grid-template-columns: auto minmax(60px, 1fr) auto;
+  gap: 8px;
+  margin-top: 24px;
+}
+.debug-dialog .latency-label input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+.debug-dialog .latency-label output {
+  text-align: right;
+}
+.debug-help {
+  font-size: 12px;
+}
+.debug-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 20px 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -888,6 +984,33 @@ details[open] > summary .details-indicator {
   }
 }
 
+/* Keep the full-page demo's native scroll track visible, even while idle. */
+:root:has(.app-page) {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--muted) var(--surface);
+}
+@supports selector(::-webkit-scrollbar) {
+  :root:has(.app-page) {
+    /* Explicit dimensions keep Chromium/WebKit from using an overlay scrollbar. */
+    scrollbar-color: auto;
+  }
+  :root:has(.app-page)::-webkit-scrollbar {
+    width: 14px;
+  }
+  :root:has(.app-page)::-webkit-scrollbar-track {
+    background: var(--surface);
+  }
+  :root:has(.app-page)::-webkit-scrollbar-thumb {
+    min-height: 40px;
+    border: 3px solid var(--surface);
+    border-radius: 7px;
+    background: var(--muted);
+  }
+  :root:has(.app-page)::-webkit-scrollbar-thumb:hover {
+    background: var(--ink);
+  }
+}
 .app-page {
   padding: 0;
   max-width: none;
@@ -1714,11 +1837,14 @@ details[open] > summary .details-indicator {
 }
 @media (max-width: 650px) {
   .dataset-gallery {
-    grid-auto-columns: 156px;
+    grid-auto-columns: 210px;
     margin: 0 -16px;
     padding-left: 16px;
     padding-right: 16px;
     scroll-padding: 0 16px;
+  }
+  .scale-stats {
+    white-space: normal;
   }
   .scale-stats dd {
     font-size: 17px;

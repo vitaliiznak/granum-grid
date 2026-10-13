@@ -1,0 +1,41 @@
+.ai-tools-demo .playground-inner {
+  display: grid;
+  gap: 12px;
+}
+.ai-tools-demo label {
+  display: grid;
+  gap: 6px;
+}
+.ai-tools-demo select,
+.ai-tools-demo textarea,
+.ai-tools-demo button {
+  color: var(--ink);
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+}
+.ai-tools-demo textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, monospace;
+}
+.ai-tools-demo pre {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ai-tools-demo p {
+  margin: 0;
+}
+.ai-tools-demo [role='status']:empty {
+  display: none;
+}
+.ai-tools-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
