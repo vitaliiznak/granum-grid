@@ -11,7 +11,10 @@
     "build": "npm run build -w deepscroll && npm run build -w demo",
     "test": "vitest run deepscroll/tests",
     "test:e2e": "playwright test",
-    "test:perf": "playwright test --grep performance"
+    "test:perf": "playwright test --grep performance",
+    "test:package": "node scripts/package-smoke.mjs && tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --jsx react-jsx scripts/package-consumer.tsx",
+    "format": "prettier --write deepscroll/src deepscroll/tests demo/src demo/tests scripts playwright.config.ts",
+    "format:check": "prettier --check deepscroll/src deepscroll/tests demo/src demo/tests scripts playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",
@@ -19,6 +22,7 @@
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "prettier": "^3.9.10",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
     "vitest": "^5.0.4"

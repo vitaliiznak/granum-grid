@@ -292,7 +292,7 @@ Browser automation will reuse one named headless Playwright session per task and
 ## Work sequence and decisions
 
 1. **Completed:** select A, Atlas rail, with Rows and reliable navigation as the initial product focus.
-2. **Completed:** public API and folder layout accepted; implementation is underway.
+2. **Completed:** public API and folder layout accepted; all six implementation phases are built. See README.md for measured checks and remaining human/device acceptance.
 3. Build and commit the six requested phases, leaving the demo runnable after each: engine/Rows; progressive data/cache; full rail; navigation/history; Lens/Zoom; speed-driven aggregation/trail/polish.
 4. Run relevant checks as each behavior lands, then the five acceptance flows and cross-browser performance review. Record verified results and remaining human checks separately.
 
