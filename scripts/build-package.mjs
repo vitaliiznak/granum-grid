@@ -3,7 +3,7 @@ import { copyFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const root = new URL('../', import.meta.url);
-const pkg = new URL('deepscroll/', root);
+const pkg = new URL('granum-grid/', root);
 rmSync(new URL('dist/', pkg), { recursive: true, force: true });
 execFileSync(
   process.execPath,

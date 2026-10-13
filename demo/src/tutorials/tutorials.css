@@ -1,0 +1,47 @@
+.tutorial-page h1 {
+  font-size: clamp(28px, 5vw, 42px);
+  margin: 8px 0;
+}
+.tutorial-page h2 {
+  font-size: 23px;
+  margin-bottom: 8px;
+}
+.tutorial-eyebrow {
+  color: var(--page-muted);
+  margin: 24px 0 4px;
+}
+.tutorial-page nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 24px 0;
+}
+.tutorial-page nav a {
+  border: 1px solid var(--page-line);
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: var(--page-panel);
+  text-decoration: none;
+}
+.tutorial-page nav a[aria-current] {
+  color: var(--page-accent-ink);
+  background: var(--page-accent);
+  border-color: var(--page-accent);
+}
+.tutorial-page section > button {
+  margin-bottom: 8px;
+}
+.tutorial-checkpoint {
+  margin: 24px 0;
+  padding: 4px 20px;
+  border-left: 3px solid var(--page-accent);
+  background: var(--page-accent-soft);
+}
+@media (max-width: 600px) {
+  .tutorial-page nav {
+    display: grid;
+  }
+  .tutorial-page h2 {
+    font-size: 20px;
+  }
+}

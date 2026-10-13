@@ -1,7 +1,8 @@
 import { expect, it, vi } from 'vitest';
 import { createTableTools } from '../src/ai/table-tools';
-import { createEngine } from '../../deepscroll/src/core/engine';
-import type { DataProvider, DeepScrollApi } from 'deepscroll';
+import { createEngine } from '../../granum-grid/src/core/engine';
+import { createGranumGridApi } from '../../granum-grid/src/core/api';
+import type { DataProvider, GranumGridApi } from 'granum-grid';
 
 const makeProvider = (): DataProvider<{ value: number }> => ({
   id: 'huge',
@@ -194,7 +195,12 @@ it('navigates through the existing controller and keeps Back available', async (
   try {
     const tools = createTableTools({
       provider,
-      getTable: () => ({ provider, controller: engine }),
+      getTable: () =>
+        createGranumGridApi(provider, engine, {
+          getSelection: () => null,
+          setSelection: () => {},
+          openSearch: () => {},
+        }),
     });
     expect(await tools.execute('navigate_to_row', { index: 73_499_999 })).toMatchObject({
       ok: true,
@@ -239,7 +245,12 @@ it('rejects stale mounted table handles and late results after a dataset switch'
   const provider = makeProvider();
   const replacement = makeProvider(); // Even identical metadata must not target another table.
   const engine = createEngine({ rowCount: provider.rowCount });
-  let table: DeepScrollApi<{ value: number }> | null = { provider, controller: engine };
+  const actions = { getSelection: () => null, setSelection: () => {}, openSearch: () => {} };
+  let table: GranumGridApi<{ value: number }> | null = createGranumGridApi(
+    provider,
+    engine,
+    actions,
+  );
   let finish!: (rows: { value: number }[]) => void;
   provider.fetchRows = () =>
     new Promise((resolve) => {
@@ -249,7 +260,7 @@ it('rejects stale mounted table handles and late results after a dataset switch'
   try {
     const pending = tools.execute('read_rows', { start: 0, count: 1 });
     await Promise.resolve();
-    table = { provider: replacement, controller: engine };
+    table = createGranumGridApi(replacement, engine, actions);
     finish([{ value: 0 }]);
     expect(await pending).toMatchObject({ ok: false, error: { code: 'STALE_DATASET' } });
     expect(await tools.execute('navigate_to_row', { index: 10 })).toMatchObject({

@@ -1,11 +1,11 @@
 import { createRoot } from 'react-dom/client';
 import { useEffect, useState } from 'react';
-import { encodeView } from 'deepscroll';
+import { encodeView } from 'granum-grid';
 import Demo from '../../demo/src/App';
 import { findDataset } from '../../demo/src/datasets';
 import { scenes } from './scenes';
 import { filmWindow, Marketing, titleCards } from './Marketing';
-import 'deepscroll/styles.css';
+import 'granum-grid/styles.css';
 import '../../demo/src/styles.css';
 import './studio.css';
 
@@ -37,14 +37,14 @@ if (capture && !location.hash) {
 
 declare global {
   interface Window {
-    __deepscrollMedia?: {
+    __granumGridMedia?: {
       scenes: typeof scenes;
       titleCards: typeof titleCards;
       filmWindow: typeof filmWindow;
     };
   }
 }
-window.__deepscrollMedia = { scenes, titleCards, filmWindow };
+window.__granumGridMedia = { scenes, titleCards, filmWindow };
 
 /** Chromium screencasts omit the OS cursor. This follows real pointer events for the film. */
 function RecordingPointer() {
@@ -84,7 +84,7 @@ function Studio() {
     <main className="media-studio">
       <aside className="media-director">
         <h1>Media</h1>
-        <p>deepscroll / demo captures</p>
+        <p>Granum Grid / demo captures</p>
         <nav aria-label="Media scenes">
           {scenes.map((item, index) => (
             <button
@@ -123,12 +123,22 @@ function Studio() {
         </a>
         <a
           className="media-preview-link"
-          href="output/deepscroll-launch.mp4"
+          href="?artwork=capabilities"
           target="_blank"
           rel="noreferrer"
         >
-          Play latest exported film ↗
+          Integration features ↗
         </a>
+        {import.meta.env.DEV && (
+          <a
+            className="media-preview-link"
+            href="output/granum-grid-launch.mp4"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Play latest exported film ↗
+          </a>
+        )}
         <button className="media-reset" onClick={() => setTake((n) => n + 1)}>
           Reset demo
         </button>
@@ -140,20 +150,46 @@ function Studio() {
       </aside>
       <iframe
         key={`${scene.id}:${take}`}
-        title={`${scene.label} — actual deepscroll demo`}
+        title={`${scene.label} — actual Granum Grid demo`}
         src={`?capture=1&scene=${scene.id}`}
       />
     </main>
   );
 }
 
-createRoot(document.getElementById('root')!).render(
+function ArtworkPreview() {
+  const measure = () => Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  const [scale, setScale] = useState(measure);
+  useEffect(() => {
+    const resize = () => setScale(measure());
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+  return (
+    <div className="media-artwork-preview">
+      <div style={{ width: 1920 * scale, height: 1080 * scale }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+          <Marketing
+            scene={selected}
+            card={
+              artwork === 'intro' || artwork === 'outro' || artwork === 'capabilities'
+                ? artwork
+                : undefined
+            }
+            plate={params.get('plate') === '1'}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Keep one root when editing the studio's copy or artwork through Vite HMR.
+const root = import.meta.hot?.data.reactRoot ?? createRoot(document.getElementById('root')!);
+if (import.meta.hot) import.meta.hot.data.reactRoot = root;
+root.render(
   artwork ? (
-    <Marketing
-      scene={selected}
-      card={artwork === 'intro' || artwork === 'outro' ? artwork : undefined}
-      plate={params.get('plate') === '1'}
-    />
+    <ArtworkPreview />
   ) : capture ? (
     <>
       <Demo />

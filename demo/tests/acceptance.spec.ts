@@ -1,7 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, openSignal } from './fixtures';
 test.beforeEach(async ({ page }) => {
-  await page.goto('/?dataset=signal');
-  await expect(page.getByRole('button', { name: 'Spike 3', exact: true })).toBeVisible();
+  await openSignal(page);
 });
 test('overview exposes shape and the third spike can be found directly', async ({ page }) => {
   await expect(page.getByTestId('overview')).toBeVisible();
@@ -46,7 +45,9 @@ test('all views preserve the selected row and summaries open grouped then refine
 }) => {
   await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
-  for (const label of ['Focused rows', 'Range summaries', 'Rows']) {
+  const menu = page.getByRole('combobox', { name: 'View', exact: true });
+  await expect(menu.locator('option')).toHaveText(['Rows', 'Range summaries']);
+  for (const label of ['Range summaries', 'Rows']) {
     await page.getByRole('combobox', { name: 'View', exact: true }).selectOption({ label });
     await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
     await expect(page.getByRole('slider', { name: 'Dataset position' })).toHaveAttribute(

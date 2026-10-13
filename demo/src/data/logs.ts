@@ -1,9 +1,12 @@
 import { bump, clamp, gaussian, noise, pick } from './noise';
+import { timeline } from './timeline';
 
 export const LOG_COUNT = 4_000_000_000;
 export const LOG_START = Date.UTC(2026, 8, 1);
-export const LOG_END = Date.UTC(2026, 9, 1);
-const DAY = 86_400_000;
+const LOG_END = Date.UTC(2026, 9, 1);
+export const DAY = 86_400_000;
+/** September 2026, UTC. */
+export const logTime = timeline(LOG_START, LOG_END, LOG_COUNT);
 const day = (d: number) => (d * DAY) / (LOG_END - LOG_START);
 
 export const INCIDENTS = [
@@ -55,7 +58,7 @@ export const DEPLOYS = [
   { label: 'Deploy orders v4.13', x: day(27.07) },
   { label: 'Rollback orders v4.12', x: day(27.16) },
 ] as const;
-export const SERVICES = ['gateway', 'auth', 'orders', 'payments', 'search', 'cdn'] as const;
+const SERVICES = ['gateway', 'auth', 'orders', 'payments', 'search', 'cdn'] as const;
 const ROUTES: Record<(typeof SERVICES)[number], readonly string[]> = {
   gateway: ['GET /healthz', 'GET /v1/config'],
   auth: ['POST /oauth/token', 'GET /v1/session', 'POST /v1/login'],
@@ -135,7 +138,7 @@ export function logAt(index: number): LogLine {
       ? 3000 + Math.round(noise(index, 5) * 27_000)
       : Math.round(clamp(18 * Math.exp(0.9 * gaussian(index, 6)) * slow, 1, 29_000));
   return {
-    time: new Date(LOG_START + x * (LOG_END - LOG_START - 1)).toISOString(),
+    time: new Date(logTime.timeAt(index)).toISOString(),
     level,
     service,
     route: pick(ROUTES[service], noise(index, 7)),
@@ -146,7 +149,4 @@ export function logAt(index: number): LogLine {
       .padStart(8, '0'),
     message: pick(MESSAGES[level], noise(index, 9)),
   };
-}
-export function logIndexAt(time: number) {
-  return Math.ceil(((time - LOG_START) / (LOG_END - LOG_START - 1)) * (LOG_COUNT - 1));
 }

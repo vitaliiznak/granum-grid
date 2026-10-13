@@ -1,7 +1,4 @@
-node_modules
-dist
-output
-test-results
-playwright-report
+# Prettier 3 also skips everything in .gitignore (dependencies, builds, test output).
 package-lock.json
-.playwright-cli
+# Recorded browser trace fixture; keep the captured bytes.
+demo/src/data/fixtures

@@ -1,83 +1,49 @@
-# deepscroll
+# Granum Grid
 
-[Live demo on GitHub Pages](https://vitaliiznak.github.io/deepsearch/)
+[Live demo on GitHub Pages](https://vitaliiznak.github.io/deepscroll/)
 
 A React + TypeScript library for exploring large indexed datasets: inspect individual rows, navigate a map of the whole dataset, and move between detail and overview without losing your place.
 
-![deepscroll showing a live table near row 73,500,000 and a map of 100 million synthetic readings](media/images/hero.png)
+![Granum Grid showing a live table near row 73,500,000 and a map of 100 million synthetic readings](media/images/hero.png)
 
-[Quick start](#quick-start) · [Visual tour](#visual-tour) · [Provider contract](#connect-your-data) · [API](API.md) · [Styling](STYLING.md) · [Media studio](media/README.md)
+[Tutorial wiki](docs/wiki/Home.md) · [Quick start](docs/QUICK_START.md) · [Documentation](docs/README.md) · [Visual tour](#visual-tour) · [Provider contract](#connect-your-data) · [Integration guide](docs/GUIDE.md) · [Styling](STYLING.md) · [Media studio](media/README.md)
 
-Give deepscroll a known row count and a function that fetches a slice. It mounts a bounded set of rows and loads pages as you navigate. Add summaries, events, chapters, and search when your provider supports them.
+Give Granum Grid a known row count and a function that fetches a slice. It mounts a bounded set of rows and loads pages as you navigate. Add summaries, events, chapters, and search when your provider supports them.
 
 - **Go anywhere:** exact row addresses, percentages, named events, provider-backed search, and reversible jumps.
-- **Explore at different scales:** Rows, Focused rows, and Range summaries share the same dataset address.
+- **Explore at different scales:** Rows and Range summaries share the same dataset address.
 - **Bring your own UI:** custom React rows, dynamic heights, light/dark themes, CSS tokens, replacement controls, or a headless hook.
 - **Work with a range:** select, summarize, compare, bookmark, and share a view.
 
 This is an initial local release, **not yet published to npm**. React and React DOM 18.2–19 are peer dependencies; the library has no additional runtime dependencies. Five demos generate synthetic records on demand; the Performance demo reads a bundled Chromium recording or a local Chrome trace JSON file. Their billion-row counts describe navigable addresses, not billions of downloaded records or a remote-database benchmark.
 
+## Demo limitations
+
+The generated examples demonstrate navigation and paging. **Their sampled search and simulated server delays are demo choices.** Your `DataProvider` can use a real backend for complete searches and exact aggregates while the browser requests only the pages and summaries it needs.
+
+- **Rows are generated on demand.** The same index produces the same content while the generator is unchanged, even after reloading or evicting a cached page. The full synthetic dataset is never materialized. Artificial request delays do not establish real server performance.
+- **General searches are partial.** They check a bounded sample of roughly 20,000 candidate rows, with some direct lookups for dates and known locations. Returned matches are verified, but other matches can be missed. Samples depend on the current position; zero sampled matches does not prove that none exist. Overview summaries are sampled estimates where labeled.
+- **Persistence is limited.** Bookmarks use browser storage. Full-page view URLs restore position, zoom, and selection for the same dataset revision. The embedded demo does not automatically save the latest position, and search input/results are not saved across reloads. Row caches are in memory and rebuilt as needed.
+- **The Performance example is different.** It holds a bounded recording in browser memory, computes exact summaries of supported events, and searches those events with explicit truncation. Imported files and their views are session-only; reload returns to the bundled recording.
+
+The library's built-in search dialog currently requests up to **100 matches** and has no result pagination. Browsing more requires custom search controls. The host application supplies its backend, search coverage, and persistence policy; the generated demo's sampling is not imposed by the library.
+
 ## Quick start
 
-Run the demo from this checkout:
+Use Node 22, then run the demo from this checkout:
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. Choose a dataset and try its guided actions. No API key or backend is needed for these generated examples.
+Open the URL printed by Vite. No API key or backend is needed for the generated
+examples. Open `/tutorials.html` for working inventory, sensor, and log lessons.
+The HTTP lesson needs the local server and is unavailable on static GitHub Pages.
 
-To try the built package in another local React app:
-
-```sh
-# In this repository
-npm run release:check
-
-# In your React app, using the actual path to the generated archive
-npm install /path/to/vit-scroll-lib/output/deepscroll-0.1.0.tgz
-```
-
-Here is a complete component with a generated provider:
-
-```tsx
-import { DeepScroll, type DataProvider } from 'deepscroll';
-import 'deepscroll/styles.css';
-
-type Reading = { value: number };
-
-// Keep the provider stable: define it outside render, or memoize it.
-const provider: DataProvider<Reading> = {
-  id: 'example-readings',
-  revision: '1',
-  rowCount: 1_000_000,
-  async fetchRows(start, count, signal) {
-    signal.throwIfAborted();
-    return Array.from({ length: count }, (_, offset) => ({
-      value: Math.sin((start + offset) / 100) * 50 + 50,
-    }));
-  },
-};
-
-export function ReadingsTable() {
-  return (
-    <DeepScroll
-      provider={provider}
-      ariaLabel="Generated readings"
-      rowHeight={40}
-      style={{ height: 600 }}
-      renderRow={({ row, rowNumber }) => (
-        <>
-          <span role="gridcell">{rowNumber.toLocaleString()}</span>
-          <span role="gridcell">{row.value.toFixed(1)}</span>
-        </>
-      )}
-    />
-  );
-}
-```
-
-That is enough for indexed navigation and virtualized rows. The richer maps and searches below use the optional provider capabilities described in [Connect your data](#connect-your-data).
+To use the library in your own React app, follow the [quick start](docs/QUICK_START.md)
+for a local package install and a complete component. The [tutorial wiki](docs/wiki/Home.md)
+builds up from a simple array to summaries, search, and HTTP data.
 
 ## Visual tour
 
@@ -91,17 +57,14 @@ Enter `73,500,000`, `50%`, a loaded event name, or a query your provider underst
 
 ### See patterns, then inspect records
 
-The **View** menu offers three ways to read the same dataset:
+The **View** menu offers two ways to read the same dataset:
 
 - **Rows:** read individual records, one per line.
-- **Focused rows** (previously Focus + context): keep a few nearby rows readable in the middle, with compressed summaries of the rest above and below. Click the surroundings to move your focus.
-- **Range summaries** (previously Overview): compare groups of rows to find patterns. Choosing this from the menu opens summaries around your current row; use **Fit dataset** to see the whole dataset, **Zoom in** to narrow a range, and **Inspect rows** to read its records.
+- **Range summaries**: compare groups of rows to find patterns. Choosing this from the menu opens summaries around your current row; use **Fit dataset** to see the whole dataset, **Zoom in** to narrow a range, and **Inspect rows** to read its records.
 
 **Compare views** opens a small illustrated guide in the explorer. The map on the right always covers the whole dataset, whichever main view you choose. Sampled summaries remain labeled.
 
-| Range summaries | Focused rows |
-| --- | --- |
-| [![Overview of 100 million synthetic readings, rendered as sampled aggregate bands](media/images/overview.png)](media/images/overview.png) | [![Full-size focus rows surrounded by compressed context](media/images/lens.png)](media/images/lens.png) |
+[![Overview of 100 million synthetic readings, rendered as sampled aggregate bands](media/images/overview.png)](media/images/overview.png)
 
 The demo's means, minima, and maxima are **sampled estimates**. The UI labels them; the library does not silently scan the dataset to manufacture missing summaries.
 
@@ -109,15 +72,15 @@ The demo's means, minima, and maxima are **sampled estimates**. The UI labels th
 
 Your renderer owns the cells. Your provider supplies the ordering, chapters, landmarks, and meaning of the map.
 
-| Genome explorer | Market tape |
-| --- | --- |
+| Genome explorer                                                                                                                              | Market tape                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | [![Synthetic genome rows at the BRCA1 landmark, with sequence context and chromosome map](media/images/genome.png)](media/images/genome.png) | [![Generated trade records at a named event, with a price-profile map](media/images/market.png)](media/images/market.png) |
-| **3,088,269,832 base addresses.** Synthetic sequence with reference chromosome lengths and approximate gene landmarks. | **750,000,000 trades.** Generated prices, buy/sell cells, venue labels, and event landmarks. |
+| **3,088,269,832 base addresses.** Synthetic sequence with reference chromosome lengths and approximate gene landmarks.                       | **750,000,000 trades.** Generated prices, buy/sell cells, venue labels, and event landmarks.                              |
 
-| Log search | Star catalog |
-| --- | --- |
+| Log search                                                                                                                                                            | Star catalog                                                                                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Provider-backed search for server responses with status greater than or equal to 500, explicitly marked as partial](media/images/logs.png)](media/images/logs.png) | [![Dark-themed synthetic star catalog at Sirius, showing coordinates, magnitude, and spectral class](media/images/stars.png)](media/images/stars.png) |
-| **4,000,000,000 log lines.** Generated services and incidents. Predicate search verifies a bounded sample and reports partial results. | **1,811,709,771 star addresses.** A generated catalog with named-star landmarks; this is not an imported Gaia dataset. |
+| **4,000,000,000 log lines.** Generated services and incidents. Predicate search verifies a bounded sample and reports partial results.                                | **1,811,709,771 star addresses.** A generated catalog with named-star landmarks; this is not an imported Gaia dataset.                                |
 
 The fifth synthetic demo is the **100,000,000-row signal archive** shown throughout this README. None of these five generated examples requires allocating its full row count in memory. The separate Performance demo holds its bounded recording in memory and identifies that explicitly.
 
@@ -127,9 +90,9 @@ The fifth synthetic demo is the **100,000,000-row signal archive** shown through
 
 Choose **Performance** and **See whole recording**. Zoom from activity windows into
 small event groups, inspect exact events, and use Back to recover the previous scale.
-Every demo now starts with a concrete exploration task, and guided actions select their
+Each demo starts with a concrete exploration task, and guided actions select their
 required view automatically. Selecting a summary or map range reveals a selection card
-with View selection, Compare ranges, and Save view actions. Statistics are available
+with View selection, Compare ranges, and Save bookmark actions. Statistics are available
 under Show summary.
 
 The bundled fixture is a real, redacted Chromium recording of this demo. You can also
@@ -140,7 +103,7 @@ are not added together as CPU time. [Fixture provenance](demo/src/data/fixtures/
 
 The reusable pieces are `renderAggregate`, `aggregateRowHeight`, `formatRange`, and
 `controller.zoomToRange(range)`. Parsing, file inputs, trace vocabulary, and the recording
-remain in the demo. [Meaningful zoom API](API.md#meaningful-zoom-and-range-inspection).
+remain in the demo. [Range summaries guide](docs/GUIDE.md#range-summaries-and-custom-bands).
 
 ### Let rows grow naturally
 
@@ -152,148 +115,125 @@ Use `controllerRef` for `scrollToIndex(index, { align })`, save/restore, and mea
 
 ### Compare two parts of a dataset
 
-Choose **Select rows**, then use the rows on screen, draw on the map, or enter row numbers. Your selection card offers **View selection**, **Compare ranges**, and **Save view**; **Show summary** reveals statistics when needed. Comparing keeps your first range visible while **Choose second range** opens the same selection choices. **Show comparison** opens two virtualized panes once you have two different ranges. Linked scrolling matches relative progress through the ranges, rather than matching timestamps or record identities.
+Choose **Select rows**, then use the rows on screen, draw on the map, or enter row numbers. Your selection card offers **View selection**, **Compare ranges**, and **Save bookmark**; **Show summary** reveals statistics when needed. Comparing keeps your first range visible while **Choose second range** opens the same selection choices. **Show comparison** opens two virtualized panes once you have two different ranges. Linked scrolling matches relative progress through the ranges, rather than matching timestamps or record identities.
 
 [![Two selected ranges with estimated summaries and linked virtualized comparison panes](media/images/compare.png)](media/images/compare.png)
 
-Bookmarks keep a location, view, zoom, and selection. Hosts can opt into browser persistence and serialize a dataset-scoped view for a shareable URL. [Exploration and saved views →](docs/GUIDE.md#explore-compare-and-save)
+Bookmarks keep a location, view, zoom, and selection, and appear on the dataset map beside the provider's markers. Hosts can opt into browser persistence and serialize a dataset-scoped view for a shareable URL. [Exploration and bookmarks →](docs/GUIDE.md#explore-compare-and-save)
 
 ## Connect your data
 
+### Which datasets work?
+
+Granum Grid is domain-independent: `DataProvider<Row>` and `renderRow` accept your
+row type without required fields. Rows can be text, numbers, tuples, nested
+objects, or nullable values. No timestamp, numeric metric, or record ID is required.
+The library does not inspect or serialize row payloads. Use `createArrayProvider`
+for an immutable array already in memory, or implement `fetchRows` for another source.
+
+The common requirement is a **known count and a stable ordered sequence that can
+fetch any requested slice by index**. Database results, documents, logs, inventory,
+and measurements can all use this contract. The adapter owns data access and must
+make distant slices efficient; browser virtualization cannot make a slow backend
+query fast. CSV/JSON files need parsing, trees/graphs need a flattened ordered view,
+and a cursor server uses `createCursorProvider`: each response is a cursor, a window
+of rows, and the next cursor. Unknown-length
+streams do not work directly; append mode accepts a known growing count.
+
+Search, summaries, markers, and chapters are optional. Text-only data works without
+a numeric overview; the library keeps row navigation available and shows a neutral
+map. Built-in summary charts use the numeric `Bucket` contract, and the built-in
+search dialog uses `ProviderQuery`; richer domain controls belong to the host.
+Sorting, filtering, or editing existing rows produces a new revision.
+
+### Required provider contract
+
 Four fields are required:
 
-| Field | Contract |
-| --- | --- |
-| `id` | Stable dataset identity |
-| `revision` | Identity of this ordered snapshot; change it when existing rows or their order change |
-| `rowCount` | Known total number of addressable rows |
-| `fetchRows(start, count, signal)` | Return exactly the requested rows in order; honor cancellation |
+| Field                             | Contract                                                                              |
+| --------------------------------- | ------------------------------------------------------------------------------------- |
+| `id`                              | Stable dataset identity                                                               |
+| `revision`                        | Identity of this ordered snapshot; change it when existing rows or their order change |
+| `rowCount`                        | Known total number of addressable rows                                                |
+| `fetchRows(start, count, signal)` | Return exactly the requested rows in order; honor cancellation                        |
 
-API indices are **zero-based**; displayed row numbers are **one-based**. Ranges are half-open: `{ start: 99, end: 200 }` selects rows 100–200. A real adapter can delegate paging to your server:
-
-```ts
-async function fetchRows(start: number, count: number, signal: AbortSignal) {
-  const response = await fetch(`/api/readings?start=${start}&count=${count}`, {
-    signal,
-  });
-  if (!response.ok) throw new Error('Could not fetch readings');
-  // Validate the response shape and ordered row count in your adapter.
-  return response.json();
-}
-```
+API indices are **zero-based**; displayed row numbers are **one-based**. Ranges are half-open: `{ start: 99, end: 200 }` selects rows 100–200. The [HTTP provider recipe](docs/QUICK_START.md#connect-an-http-api) shows a validating server adapter.
 
 Add capabilities progressively:
 
-| Optional method | What it enables |
-| --- | --- |
-| `fetchOverview(buckets, signal)` | Global profile on the dataset map |
-| `fetchAggregates(range, signal)` | Regional zoom, selected-range summaries, and comparison summaries |
-| `fetchMarkers(signal)` | Named events, jump targets, and map markers |
-| `fetchChapters(signal)` | Chapters, breadcrumbs, and chapter navigation |
-| `search(query, context)` | Provider-backed date and predicate search |
-| `fetchOverviewTracks(buckets, signal)` | Up to four extra profiles sharing the same row addresses |
+| Optional method                        | What it enables                                                   |
+| -------------------------------------- | ----------------------------------------------------------------- |
+| `fetchOverview(buckets, signal)`       | Global profile on the dataset map                                 |
+| `fetchAggregates(range, signal)`       | Regional zoom, selected-range summaries, and comparison summaries |
+| `fetchMarkers(signal)`                 | Named events, jump targets, and map markers                       |
+| `fetchChapters(signal)`                | Chapters, breadcrumbs, and chapter navigation                     |
+| `search(query, context)`               | Provider-backed date and predicate search                         |
+| `fetchOverviewTracks(buckets, signal)` | Up to four extra profiles sharing the same row addresses          |
 
-Aggregates carry `exact`, `estimated`, or `unavailable` accuracy; missing values are `null`. Search reports whether its results are complete. Sorting and filtering belong to the provider: return a new ordered revision and count.
-
-The default page cache uses 256-row pages, a 32 MiB **estimated** budget, and up to four useful concurrent row requests. Supply `estimateRowBytes` for your row shape. The cache estimate is not a JavaScript heap measurement, and visible pages can temporarily exceed a small budget. [Provider and cache details →](docs/GUIDE.md#provider-capabilities)
+Aggregates carry `exact`, `estimated`, or `unavailable` accuracy; missing values are `null`. Search reports whether its results are complete. Sorting, filtering, and editing stay on the server: `ServerDataset` describes the intent, and the server returns a new ordered revision and count. [Manifest →](docs/MANIFEST.md) [Provider rules, search, and cache limits →](docs/GUIDE.md#provider-capabilities)
 
 ## Fit your application
 
-| Need | Use |
-| --- | --- |
-| Ready-made explorer | `DeepScroll` with your `renderRow` and optional column `header` |
-| Your colors and typography | `deepscroll/styles.css`, `--ds-*` tokens, `classNames`, and `styles` |
-| Your controls | `renderToolbar`, `renderFooter`, `renderRail`, or `toolbarActions` |
-| Your entire layout | `useDeepScroll`; choose layout-only CSS or no stylesheet |
-| Host automation | `apiRef` exposes `DeepScrollApi<Row>`: the mounted provider and controller |
-| A separate full-page route | `layout="page"`, `fullPageUrl`, and encoded saved views |
-| An append-only feed | A known increasing count with `followOutput` and a stable dataset revision |
+| Need                       | Use                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| Ready-made explorer        | `GranumGrid` with your `renderRow` and optional column `header`                 |
+| Your colors and typography | `granum-grid/styles.css`, `--ds-*` tokens, `classNames`, and `styles`            |
+| Your controls              | `renderToolbar`, `renderFooter`, `renderRail`, or `toolbarActions`              |
+| Your entire layout         | `useGranumGrid`; choose layout-only CSS or no stylesheet                        |
+| Host automation            | `apiRef` exposes `GranumGridApi<Row>`: the mounted provider and controller      |
+| A separate full-page route | `layout="page"`, `fullPageUrl`, and encoded saved views                         |
+| An append-only feed        | `dataMode="append"` with a known increasing count and a stable dataset revision |
 
-Styles are optional and use a low-priority CSS layer. The core engine is also available without React through `deepscroll/core`. Built output is ESM with TypeScript declarations.
+Styles are optional and use a low-priority CSS layer. The core engine is also available without React through `granum-grid/core`. Built output is ESM with TypeScript declarations.
 
-[Styling examples](STYLING.md) · [Complete API](API.md) · [Full-page integration](docs/GUIDE.md#open-in-a-separate-tab-and-scroll-the-window) · [Live feeds](docs/GUIDE.md#append-only-live-feeds) · [Host integration / application-owned AI example](docs/GUIDE.md#integration-interface-and-ai-demo)
+[Styling examples](STYLING.md) · [Integration guide](docs/GUIDE.md) · [Full-page integration](docs/GUIDE.md#open-in-a-separate-tab-and-scroll-the-window) · [Live feeds](docs/GUIDE.md#append-only-live-feeds) · [Host integration / application-owned AI example](docs/GUIDE.md#integration-interface-and-ai-demo)
 
 The AI example lives in the demo and has no live model connection. AI schemas, execution budgets, and model calls belong to the host application; the library ships the provider/controller interface.
 
 ## Scope and current limits
 
-| Supported | Current boundary |
-| --- | --- |
-| Fixed or automatically measured row heights | Known, index-addressable row counts are required |
-| Keyboard navigation, ARIA row addresses, reduced motion | Screen-reader user testing and physical-device touch testing remain outstanding |
-| Server-rendered placeholder markup | DOM measurement begins on the client |
-| Append-only growth | Unknown-length streams and prepend anchoring are not implemented |
-| Custom table cells and host controls | No built-in editing, column resizing/pinning, horizontal virtualization, or RTL scrolling |
-| Native window scrolling in page layout | Its global scrollbar uses a compressed range; exact jumps and local inputs retain row precision |
+| Supported                                               | Current boundary                                                                                |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Fixed or automatically measured row heights             | Known, index-addressable row counts are required                                                |
+| Keyboard navigation, ARIA row addresses, reduced motion | Screen-reader user testing and physical-device touch testing remain outstanding                 |
+| Server-rendered placeholder markup                      | DOM measurement begins on the client                                                            |
+| Append-only growth                                      | Unknown-length streams and prepend anchoring are not implemented                                |
+| Custom table cells and host controls                    | No built-in editing, column resizing/pinning, horizontal virtualization, or RTL scrolling       |
+| Native window scrolling in page layout                  | Its global scrollbar uses a compressed range; exact jumps and local inputs retain row precision |
 
-Choose deepscroll when global navigation and context are central to the experience. If you need a spreadsheet-style editing and column-management layer, your application must provide it. There is no built-in CSV/Parquet import or database connector.
+Choose Granum Grid when global navigation and context are central to the experience. If you need a spreadsheet-style editing and column-management layer, your application must provide it. There is no built-in CSV/Parquet import or database connector.
 
-## Screenshots and marketing video
+## Screenshots and video
 
-The dedicated [`media/`](media/README.md) folder contains an interactive scene studio, the image assets used here, and a repeatable capture/export pipeline.
-
-```sh
-npm run media:dev           # Preview and interact with scenes
-npm run media:screenshots   # Rebuild the 10 README images
-npm run media:video         # Render a silent 1080p marketing film + SRT
-```
-
-Install Chromium once with `npx playwright install chromium`. MP4 export also needs FFmpeg. The script starts its own local server, checks loaded content, and closes its browser after capture. It does not publish anything.
-
-Edit [scene copy and timings](media/src/scenes.ts), use the [storyboard and narration draft](media/STORYBOARD.md), or export a single scene with `-- --scene=genome`. Generated videos and capture manifests live in `media/output/` and stay out of Git; README PNGs live in `media/images/`.
+The [media studio](media/README.md) documents screenshot capture, film export,
+FFmpeg setup, and music attribution. Scene sources and README images live in
+`media/`; generated films stay out of Git and are published separately.
 
 ## Development and verification
 
-### Working with AI coding tools
-
-Start with [AGENTS.md](AGENTS.md) and the [AI development workflow](docs/AI_WORKFLOW.md).
-They map the codebase, record library contracts, and explain which checks to run.
-The same guidance is linked from the Claude, Copilot, and Cursor instruction files.
+Read [AGENTS.md](AGENTS.md) and the [development workflow](docs/AI_WORKFLOW.md)
+for setup, focused checks, browser debugging, and contribution guidance.
 
 ```sh
-npm run ai:doctor     # Diagnose Node, dependencies, and available browser binaries
-npm run check         # Type-check source and tests, then run unit tests
-npm run test:smoke    # Short Chromium acceptance suite
-npm run check:full   # Builds, unit/browser tests, and React 18/19 package consumers
-```
-
-This coding harness needs no AI credentials. The application-owned AI tool example
-under `demo/src/ai/` is a separate feature. See the workflow for first-time installs,
-focused validation, retained browser traces, and cleanup.
-
-### Individual checks
-
-```sh
-npm run build
-npm test
-npm run test:package
+npm run ai:doctor                       # Read-only setup diagnostic
+npm run check                           # Types, documentation, and unit tests
 npx playwright install chromium firefox webkit
-npm run test:e2e
-npm run media:build
+npm run check:full                      # Lint, format, builds, package and browser checks
 ```
 
-Unit tests cover mappings, navigation, cache behavior, measurement, and application-owned tool contracts. Browser cases cover navigation, dataset switching, dynamic rows, comparisons, saved views, full-page layouts, and append behavior. Media exports additionally exercise their own real UI flows and fail on browser console errors.
+The functional browser suite covers Chromium, Firefox, and WebKit. Navigation
+performance and injected touch gestures run in Chromium only. Playwright closes
+its browsers and servers; failure traces are retained. Native Safari, physical
+touch devices, and screen-reader user acceptance remain separate checks.
 
-The GitHub Actions workflow and Pages setup are documented in [Frontend CI/CD](docs/GUIDE.md#frontend-cicd). Successful default-branch checks deploy the demo to [GitHub Pages](https://vitaliiznak.github.io/deepsearch/). Hosted workflow results remain separate from local verification.
-
-The [integration guide](docs/GUIDE.md#local-verification-snapshot--13-october-2026) preserves the earlier local verification snapshot and benchmark context. Those machine-specific measurements are not a cross-device performance guarantee. Human usability acceptance, native Safari, and real remote-provider performance need their own verification.
-
-| Directory / document | Purpose |
-| --- | --- |
-| [`deepscroll/`](deepscroll/) | Publishable library source and unit tests |
-| [`demo/`](demo/) | Interactive showcase, generated providers, and browser tests |
-| [`media/`](media/README.md) | Image and video production, kept separate from the library |
-| [`docs/GUIDE.md`](docs/GUIDE.md) | Detailed integration behavior and retained verification notes |
-| [`API.md`](API.md) | Public API reference |
-| [`STYLING.md`](STYLING.md) | Themes, CSS hooks, custom controls, and headless examples |
-| [`DESIGN.md`](DESIGN.md) | Navigation model and design rationale |
+[Frontend CI/CD](docs/PUBLISHING.md#frontend-cicd) verifies pull requests and deploys
+verified `main` builds to [GitHub Pages](https://vitaliiznak.github.io/deepscroll/) and
+the [GitHub Wiki](https://github.com/vitaliiznak/deepscroll/wiki). The library source is
+in [`granum-grid/`](granum-grid/), the demo and browser tests in [`demo/`](demo/), and
+every guide is listed in the [documentation home](docs/README.md).
 
 ## npm release
 
-Run `npm run release:check` to test and build the workspace, pack the library, and install the tarball into isolated React 18.2 and React 19 consumers. The checks exercise runtime exports, server rendering, CSS, source maps, and TypeScript declarations with both NodeNext and Bundler resolution. Successful verification writes `output/deepscroll-0.1.0.tgz`. Registry access is needed to install the consumer dependencies when they are not cached.
-
-The package rebuilds automatically before packing or publishing. Only the library output, source files for source maps, package README, manifest, and Apache 2.0 license are included. The demo and media assets stay outside the package.
-
-See [Publishing to npm](docs/PUBLISHING.md) for the first release and version updates. No npm release has been published yet.
+`npm run release:check` verifies the workspace and installs the packed library into isolated React 18.2 and React 19 consumers. See [Publishing to npm](docs/PUBLISHING.md) for what the package contains, the first release, and version updates.
 
 Licensed under the [Apache License, Version 2.0](LICENSE).

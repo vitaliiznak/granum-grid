@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import type { DataProvider, DeepScrollApi, ProviderQuery } from 'deepscroll';
+import type { DataProvider, GranumGridApi, ProviderQuery } from 'granum-grid';
 import { createTableTools } from './table-tools';
 import './tools-demo.css';
 
@@ -10,6 +10,7 @@ const searches: Record<string, ProviderQuery> = {
   market: { kind: 'predicate', field: 'size', operator: '>', value: 5000 },
   logs: { kind: 'predicate', field: 'status', operator: '>=', value: 500 },
   stars: { kind: 'predicate', field: 'mag', operator: '<', value: 6 },
+  bitcoin: { kind: 'predicate', field: 'high', operator: '>=', value: 100_000 },
 };
 const labels: Record<string, string> = {
   describe_table: 'Describe the table',
@@ -25,7 +26,7 @@ export function ToolsDemo<Row>({
   datasetId,
 }: {
   provider: DataProvider<Row>;
-  apiRef: RefObject<DeepScrollApi<Row> | null>;
+  apiRef: RefObject<GranumGridApi<Row> | null>;
   datasetId: string;
 }) {
   const tools = useMemo(

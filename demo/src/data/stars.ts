@@ -12,7 +12,7 @@ const circular = (h: number, center: number) => {
 const lobe = (h: number, center: number, width: number) =>
   Math.exp(-((circular(h, center) / width) ** 2));
 /** Relative stars per hour of right ascension: the Milky Way crosses twice. */
-export function skyDensity(hours: number) {
+function skyDensity(hours: number) {
   return (
     0.32 +
     1.25 * lobe(hours, 17.76, 1.25) +
@@ -32,9 +32,6 @@ const mean = integral / CELLS;
 /** Millions of stars per minute of right ascension; the mean is STAR_COUNT / 1440. */
 const perMinute = (hours: number) => (skyDensity(hours) / mean) * (STAR_COUNT / 1440 / 1e6);
 export const densityAt = (index: number) => Math.round(perMinute(raAt(index)) * 100) / 100;
-let peak = 0;
-for (let k = 0; k < CELLS; k++) peak = Math.max(peak, perMinute(((k + 0.5) * 24) / CELLS));
-export const DENSITY_MAX = Math.ceil(peak);
 
 export function raAt(index: number) {
   const u = (index + 0.5) / STAR_COUNT;
@@ -176,8 +173,7 @@ export const NAMED_STARS = [
     ly: 25,
   },
 ].map((star) => ({ ...star, index: indexAtRa(star.ra) }));
-export const GALACTIC_CENTER = { ra: ra(17, 45, 40), dec: dec(-29, 0, 28) };
-export const GALACTIC_CENTER_INDEX = indexAtRa(GALACTIC_CENTER.ra);
+export const GALACTIC_CENTER_INDEX = indexAtRa(ra(17, 45, 40));
 
 export const CONSTELLATIONS = [
   'Andromeda',

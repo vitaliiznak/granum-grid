@@ -1,5 +1,5 @@
 {
-  "name": "deepscroll-demo",
+  "name": "granum-grid-demo",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,5 +8,5 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1"
   },
-  "dependencies": { "deepscroll": "*", "react": "^19.0.0", "react-dom": "^19.0.0" }
+  "dependencies": { "granum-grid": "*", "react": "^19.0.0", "react-dom": "^19.0.0" }
 }

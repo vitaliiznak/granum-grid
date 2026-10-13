@@ -1,4 +1,4 @@
-import type { AggregateRequest, Bucket, OverviewTrack } from 'deepscroll';
+import type { AggregateRequest, Bucket, OverviewTrack } from 'granum-grid';
 let nextId = 0;
 let worker: Worker | undefined;
 const jobs = new Map<

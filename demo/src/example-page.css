@@ -1,0 +1,70 @@
+/* Shared frame for the standalone HTTP and tutorial pages. Explorers inside
+   follow the same system color scheme through Granum Grid's `theme="system"`. */
+:root {
+  --page-ink: #202938;
+  --page-muted: #596679;
+  --page-bg: #f8fafc;
+  --page-panel: #ffffff;
+  --page-line: #cad4e2;
+  --page-link: #214fa3;
+  --page-accent: #2855b8;
+  --page-accent-ink: #ffffff;
+  --page-accent-soft: #eef3fb;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-ink: #e7e9ed;
+    --page-muted: #a3acba;
+    --page-bg: #14171c;
+    --page-panel: #1c2027;
+    --page-line: #364050;
+    --page-link: #8aaef5;
+    --page-accent: #8aaef5;
+    --page-accent-ink: #14171c;
+    --page-accent-soft: #1d2638;
+    color-scheme: dark;
+  }
+}
+body {
+  margin: 0;
+  color: var(--page-ink);
+  background: var(--page-bg);
+  font:
+    16px/1.55 system-ui,
+    sans-serif;
+}
+.example-page {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px;
+}
+.example-page a {
+  color: var(--page-link);
+}
+/* Page controls only; the explorer styles its own buttons. */
+.http-actions button,
+.tutorial-page section > button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: var(--page-panel);
+  border: 1px solid var(--page-line);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.http-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.example-page .ds-row [role='gridcell'],
+.example-page [data-ds-part='row'] > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .example-page {
+    padding: 12px;
+  }
+}

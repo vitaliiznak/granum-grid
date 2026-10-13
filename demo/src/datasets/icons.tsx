@@ -28,6 +28,15 @@ export const MarketIcon = () => (
     <rect x="13.5" y="8" width="3" height="4" rx=".6" />
   </svg>
 );
+export const BitcoinIcon = () => (
+  <svg {...props}>
+    <circle cx="10" cy="10" r="7.5" />
+    <path
+      d="M8 6v8M8 6h3a2 2 0 0 1 0 4H8m0 0h3.5a2 2 0 0 1 0 4H8M9 4.8V6m0 8v1.2"
+      strokeWidth="1.2"
+    />
+  </svg>
+);
 export const LogsIcon = () => (
   <svg {...props}>
     <rect x="2.5" y="3" width="15" height="14" rx="2" />

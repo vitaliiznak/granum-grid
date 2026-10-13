@@ -2,9 +2,9 @@ import type {
   AggregateRequest,
   Bucket,
   DataProvider,
-  DeepScrollApi,
+  GranumGridApi,
   ProviderQuery,
-} from 'deepscroll';
+} from 'granum-grid';
 
 /** JSON Schema subset used by the tool definitions and their runtime validator. */
 export interface TableToolSchema {
@@ -35,7 +35,7 @@ export interface TableToolsOptions<Row> {
   provider: DataProvider<Row>;
   columns?: readonly TableToolColumn[];
   /** Read the current mounted table through the library's public integration interface. */
-  getTable?: () => DeepScrollApi<Row> | null;
+  getTable?: () => GranumGridApi<Row> | null;
   timeoutMs?: number;
 }
 export type TableToolResult =

@@ -11,7 +11,7 @@ import {
 import { syntheticProvider } from '../data/synthetic';
 import type { CSSProperties } from 'react';
 import { StarsIcon } from './icons';
-import { formatCount, type DemoDataset } from './types';
+import { formatCount, showAll, type DemoDataset } from './types';
 
 const pad = (value: number, digits = 2) => String(value).padStart(digits, '0');
 function sexagesimal(value: number) {
@@ -21,11 +21,11 @@ function sexagesimal(value: number) {
     seconds = ((total - whole) * 60 - minutes) * 60;
   return { sign: value < 0 ? '−' : '+', whole, minutes, seconds };
 }
-export const formatRa = (hours: number) => {
+const formatRa = (hours: number) => {
   const { whole, minutes, seconds } = sexagesimal(hours);
   return `${pad(whole)}h ${pad(minutes)}m ${seconds.toFixed(2).padStart(5, '0')}s`;
 };
-export const formatDec = (degrees: number) => {
+const formatDec = (degrees: number) => {
   const { sign, whole, minutes, seconds } = sexagesimal(degrees);
   return `${sign}${pad(whole)}° ${pad(minutes)}′ ${pad(Math.floor(seconds))}″`;
 };
@@ -61,7 +61,7 @@ const provider = syntheticProvider<Star>({
     breadcrumb: ['Sky catalog', `RA ${pad(h)}h`, CONSTELLATIONS[h]],
   })),
   search: {
-    examples: 'mag < 6, class = "O", distance < 100, or name = "Vega"',
+    examples: ['mag < 6', 'class = "O"', 'distance < 100', 'name = "Vega"'],
     fields: {
       mag: { kind: 'number', read: (i) => starAt(i).mag },
       class: { kind: 'text', read: (i) => starAt(i).type },
@@ -71,9 +71,12 @@ const provider = syntheticProvider<Star>({
     },
     lookup(query) {
       if (query.field !== 'name' || query.operator !== '=') return null;
-      return NAMED_STARS.filter(
-        (s) => s.name.toLowerCase() === String(query.value).toLowerCase(),
-      ).map((s) => ({ id: s.name, index: s.index, label: s.name, kind: 'search' }));
+      return {
+        complete: true,
+        matches: NAMED_STARS.filter(
+          (s) => s.name.toLowerCase() === String(query.value).toLowerCase(),
+        ).map((s) => ({ id: s.name, index: s.index, label: s.name, kind: 'search' })),
+      };
     },
     candidate(query, i, from) {
       // Bright stars sit on a fixed stride, so brightness queries can visit them directly.
@@ -103,11 +106,7 @@ export const stars: DemoDataset<Star> = {
   title: 'Gaia-scale star catalog',
   description:
     'A whole-sky catalog ordered by right ascension. The Milky Way crosses twice, so dense hours take more rows. Named stars use real coordinates; the rest are synthetic.',
-  facts: [
-    `${formatCount(STAR_COUNT)} stars`,
-    '24 hours of sky',
-    `${NAMED_STARS.length} named stars`,
-  ],
+  facts: ['24 hours of sky', `${NAMED_STARS.length} named stars`],
   icon: <StarsIcon />,
   provider,
   ariaLabel: 'Synthetic star catalog',
@@ -119,9 +118,8 @@ export const stars: DemoDataset<Star> = {
   task: {
     title: 'Find a dense part of the catalog, then inspect its stars.',
     action: 'See whole catalog',
-    run: (controller) => controller.zoomToRange({ start: 0, end: STAR_COUNT }),
+    run: showAll,
   },
-  help: 'Every row is one star. The map shows where the Milky Way makes the sky crowded.',
   atlas: { axisLabel: 'RA', formatValue: (v) => `${v.toFixed(1)}M` },
   map: {
     chapters: 'Hours of RA',

@@ -70,13 +70,18 @@ export function locate(index: number) {
 }
 const EXON_PERIOD = 7_919,
   EXON_LENGTH = 180;
+/** Assembly gaps around centromeres and at chromosome ends have no sequence. */
+function assemblyGap({ chromosome, position }: ReturnType<typeof locate>) {
+  if (Math.abs(position - chromosome.centromere) < Math.min(3e6, chromosome.length * 0.02) / 2)
+    return 'Centromere';
+  if (position <= 10_000 || position > chromosome.length - 10_000) return 'Telomere';
+  return null;
+}
 export function regionAt(index: number) {
-  const { chromosome, position } = locate(index);
-  const gap = Math.min(3e6, chromosome.length * 0.02);
-  if (Math.abs(position - chromosome.centromere) < gap / 2)
-    return { kind: 'gap', label: 'Centromere' } as const;
-  if (position <= 10_000 || position > chromosome.length - 10_000)
-    return { kind: 'gap', label: 'Telomere' } as const;
+  const locus = locate(index);
+  const { chromosome, position } = locus;
+  const gap = assemblyGap(locus);
+  if (gap) return { kind: 'gap', label: gap } as const;
   const gene = GENES.find((g) => index >= g.index && index < g.index + g.length);
   if (gene) {
     const offset = index - gene.index;
@@ -99,14 +104,9 @@ export function regionAt(index: number) {
 }
 /** Smooth local GC percentage; null inside assembly gaps. */
 export function gcAt(index: number): number | null {
-  const { chromosome, position } = locate(index);
-  const gap = Math.min(3e6, chromosome.length * 0.02);
-  if (
-    Math.abs(position - chromosome.centromere) < gap / 2 ||
-    position <= 10_000 ||
-    position > chromosome.length - 10_000
-  )
-    return null;
+  const locus = locate(index);
+  if (assemblyGap(locus)) return null;
+  const { chromosome, position } = locus;
   const mb = position / 1e6,
     seed = chromosome.start / 1e8;
   const isochores =
@@ -119,7 +119,7 @@ export function gcAt(index: number): number | null {
   );
   return Math.round(clamp(chromosome.gc + isochores + genes, 30, 64) * 10) / 10;
 }
-export type Base = 'A' | 'C' | 'G' | 'T' | 'N';
+type Base = 'A' | 'C' | 'G' | 'T' | 'N';
 export function baseAt(index: number): Base {
   if (index < 0 || index >= GENOME_LENGTH) return 'N';
   const gc = gcAt(index);

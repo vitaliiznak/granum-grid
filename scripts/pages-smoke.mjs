@@ -20,15 +20,15 @@ try {
     assert.ok(['http:', 'https:'].includes(site.protocol), 'PAGES_URL must be an HTTP(S) URL');
     assert.ok(site.pathname.endsWith('/'), 'PAGES_URL must end with /');
   } else {
+    const base = '/__pages_check__/';
     server = await preview({
       root,
       configFile: fileURLToPath(new URL('../demo/vite.config.ts', import.meta.url)),
-      base: '/__pages_check__/',
+      base,
       preview: { host: '127.0.0.1', port: 0, strictPort: true, open: false },
     });
-    const address = server.httpServer.address();
-    assert.ok(address && typeof address === 'object');
-    site = new URL(`http://127.0.0.1:${address.port}/__pages_check__/`);
+    // resolvedUrls carries the port the OS assigned to port 0.
+    site = new URL(base, server.resolvedUrls.local[0]);
   }
 
   await mkdir(output, { recursive: true });
@@ -56,7 +56,7 @@ try {
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
   await expect(page.locator('[role=row][aria-rowindex="61700000"]')).toContainText('SPIKE');
 
-  const home = page.getByRole('link', { name: 'deepscroll home' });
+  const home = page.getByRole('link', { name: 'Granum Grid home' });
   assert.equal(new URL(await home.getAttribute('href'), page.url()).href, site.href);
   const fullPage = page.getByRole('link', { name: 'Open full page' });
   const fullURL = new URL(await fullPage.getAttribute('href'), page.url());
@@ -75,8 +75,19 @@ try {
   await expect(page.locator('[role=row][data-status="ready"]').first()).toBeVisible();
   assert.deepEqual(errors, [], 'The Pages navigation must have no runtime or HTTP errors');
   await page.screenshot({ path: `${output}/site.png`, fullPage: true });
+  await page.goto(new URL('tutorials.html', site).href);
+  await page.getByRole('button', { name: 'Find SKU-060' }).click();
+  await expect(page.getByTestId('position')).toHaveText('Row 60 of 120');
+  await page.getByRole('link', { name: 'Continue to the next lesson' }).click();
+  assert.equal(new URL(page.url()).pathname, `${site.pathname}tutorials.html`);
+  await expect(
+    page.getByRole('grid', { name: 'Sensor readings' }).locator('[data-status="ready"]').first(),
+  ).toBeVisible();
+  assert.deepEqual(errors, [], 'Tutorials must load and navigate under the project path');
   await context.tracing.stop();
-  console.log(`Pages smoke passed: ${site.href} (worker data, jump, full-page reload, home).`);
+  console.log(
+    `Pages smoke passed: ${site.href} (worker data, jump, full-page reload, home, tutorials).`,
+  );
 } catch (error) {
   if (context) await context.tracing.stop({ path: `${output}/trace.zip` }).catch(() => {});
   if (page) await page.screenshot({ path: `${output}/failure.png` }).catch(() => {});
@@ -85,6 +96,6 @@ try {
   try {
     await browser?.close();
   } finally {
-    if (server) await new Promise((resolve) => server.httpServer.close(resolve));
+    await server?.close();
   }
 }

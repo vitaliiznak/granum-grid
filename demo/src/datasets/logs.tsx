@@ -1,11 +1,11 @@
 import {
+  DAY,
   DEPLOYS,
   INCIDENTS,
   LOG_COUNT,
-  LOG_END,
   LOG_START,
   logAt,
-  logIndexAt,
+  logTime,
   type LogLine,
 } from '../data/logs';
 import { syntheticProvider } from '../data/synthetic';
@@ -13,18 +13,19 @@ import { LogsIcon } from './icons';
 import { formatCount, type DemoDataset } from './types';
 
 const at = (x: number) => Math.round(x * (LOG_COUNT - 1));
-const days = Array.from({ length: 30 }, (_, i) => {
-  const date = new Date(LOG_START + i * 86_400_000);
-  const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  const weekday = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
-  return {
-    id: `day-${i + 1}`,
-    start: logIndexAt(date.getTime()),
-    end: i === 29 ? LOG_COUNT : logIndexAt(date.getTime() + 86_400_000),
-    label: day,
-    breadcrumb: ['prod-eu-west-1', `${weekday}, ${day}`],
-  };
-});
+const days = logTime.chapters(
+  Array.from({ length: 30 }, (_, i) => LOG_START + i * DAY),
+  (time, i) => {
+    const date = new Date(time);
+    const day = date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+    return { id: `day-${i + 1}`, label: day, breadcrumb: ['prod-eu-west-1', `${weekday}, ${day}`] };
+  },
+);
 const provider = syntheticProvider<LogLine>({
   id: 'logs',
   revision: '2',
@@ -41,19 +42,18 @@ const provider = syntheticProvider<LogLine>({
   ].sort((a, b) => a.index - b.index),
   chapters: days,
   search: {
-    examples: 'level = "ERROR", status >= 500, latency > 2000, or 2026-09-18',
+    examples: ['auth', 'service = "auth"', 'status >= 500', '2026-09-18'],
     fields: {
       level: { kind: 'text', read: (i) => logAt(i).level },
       service: { kind: 'text', read: (i) => logAt(i).service },
+      route: { kind: 'text', read: (i) => logAt(i).route },
+      message: { kind: 'text', read: (i) => logAt(i).message },
+      trace: { kind: 'text', read: (i) => logAt(i).trace },
       status: { kind: 'number', read: (i) => logAt(i).status },
       latency: { kind: 'number', read: (i) => logAt(i).latency },
     },
-    date(text) {
-      const time = Date.parse(
-        `${text.length === 4 ? `${text}-09-01` : text.length === 7 ? `${text}-01` : text}T00:00:00Z`,
-      );
-      return Number.isFinite(time) && time >= LOG_START && time < LOG_END ? logIndexAt(time) : null;
-    },
+    // A bare year means its only logged month.
+    date: (text) => logTime.dateIndex(text, '09-01'),
     label: (index, field, value) => {
       const line = logAt(index);
       return `${field} ${typeof value === 'number' ? formatCount(value) : value} · ${line.service} · ${line.time.slice(5, 19).replace('T', ' ')}`;
@@ -69,7 +69,7 @@ export const logs: DemoDataset<LogLine> = {
   title: 'Production logs',
   description:
     'Four billion synthetic request logs from six fictional services across September 2026, with deploys, rollbacks, and five incidents. Rows are generated on demand.',
-  facts: [`${formatCount(LOG_COUNT)} lines`, '6 services', 'September 2026'],
+  facts: ['6 services', 'September 2026'],
   icon: <LogsIcon />,
   provider,
   ariaLabel: 'Synthetic server logs',
@@ -88,7 +88,6 @@ export const logs: DemoDataset<LogLine> = {
         end: Math.min(LOG_COUNT, at(stampede.x) + 300_000),
       }),
   },
-  help: 'Every row is one log line. Red marks on the map are incidents; follow them.',
   atlas: { axisLabel: 'Day', formatValue: (v) => `${v.toFixed(0)}%` },
   map: {
     chapters: 'Days',
@@ -140,12 +139,6 @@ export const logs: DemoDataset<LogLine> = {
       label: 'Whole month at once',
       hint: 'Incidents stand out as spikes in the overview. Ctrl + wheel or pinch to zoom in.',
       run: ({ fit }) => fit(),
-    },
-    {
-      feature: 'History',
-      label: 'Undo last jump',
-      hint: 'Return to the previous location while keeping your selected view and zoom.',
-      run: ({ controller }) => controller.back({ preserveView: true }),
     },
   ],
   renderRow: ({ row }) => (

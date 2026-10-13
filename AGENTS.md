@@ -1,4 +1,4 @@
-# Working on deepscroll
+# Working on Granum Grid
 
 This npm workspace contains a React/TypeScript indexed-data explorer. Read this
 file first; use [the AI workflow](docs/AI_WORKFLOW.md) for setup, focused checks,
@@ -13,23 +13,24 @@ browser debugging, and handoffs. No API key, backend, or AI service is needed.
 - Make the smallest complete change. For work spanning several subsystems,
   record the intended behavior, steps, and validation in a task-specific file
   under `docs/plans/`; update it when decisions change. Small edits need no plan file.
+  When the plan is complete, move durable decisions to `DESIGN.md` and delete it.
 
 ## Find the right code
 
-| Area                                    | Entry points / guidance                                                                           |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Public exports and contracts            | `deepscroll/src/index.ts`, `deepscroll/src/core/api.ts`, `deepscroll/src/data/types.ts`, `API.md` |
-| Navigation, zoom, row measurements      | `deepscroll/src/core/engine.ts`, `mappings.ts`, `rowSizes.ts`                                     |
-| Paging, cancellation, dataset lifecycle | `deepscroll/src/data/cache.ts`, `session.ts`, `range.ts`                                          |
-| React, DOM inputs, layout, styles       | `deepscroll/src/react/`, `deepscroll/src/base.css`, `styles.css`, `STYLING.md`                    |
-| Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                        |
-| Application-owned AI tools              | `demo/src/ai/README.md`, `demo/unit/table-tools.test.ts`                                          |
-| Screenshots and video                   | `media/README.md`, `media/scripts/capture.mjs`                                                    |
-| Packaging and consumer compatibility    | `scripts/build-package.mjs`, `scripts/package-test.mjs`, `docs/PUBLISHING.md`                     |
+| Area                                    | Entry points / guidance                                                                                  |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Public exports and contracts            | `granum-grid/src/index.ts`, `granum-grid/src/core/api.ts`, `granum-grid/src/data/types.ts`, `docs/GUIDE.md` |
+| Navigation, zoom, row measurements      | `granum-grid/src/core/engine.ts`, `mappings.ts`, `rowSizes.ts`                                            |
+| Paging, cancellation, dataset lifecycle | `granum-grid/src/data/cache.ts`, `session.ts`, `range.ts`                                                 |
+| React, DOM inputs, layout, styles       | `granum-grid/src/react/`, `granum-grid/src/base.css`, `styles.css`, `STYLING.md`                           |
+| Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                               |
+| Application-owned AI tools              | `demo/src/ai/README.md`, `demo/unit/table-tools.test.ts`                                                 |
+| Screenshots and video                   | `media/README.md`, `media/scripts/capture.mjs`                                                           |
+| Packaging and consumer compatibility    | `scripts/build-package.mjs`, `scripts/package-test.mjs`, `docs/PUBLISHING.md`                            |
 
-`README.md` describes current use; `docs/GUIDE.md` expands it. `DESIGN.md` and parts
-of `API.md` contain design/proposal history. Check actual exports and tests before
-treating a proposal or an old verification snapshot as implemented behavior.
+`README.md` describes current use; `docs/GUIDE.md` is the integration reference, with
+limits and defaults. `DESIGN.md` records rationale and decisions. Check actual exports
+and tests before treating documentation as implemented behavior.
 
 ## Preserve these contracts
 
@@ -51,10 +52,12 @@ treating a proposal or an old verification snapshot as implemented behavior.
 
 ## Validate and finish
 
-- `npm run check`: type-check source **and tests**, then run unit tests.
+- `npm run check`: type-check source **and tests**, verify tutorial snippets and doc
+  links (`test:tutorials`), test the wiki export (`test:wiki`), then run unit tests.
 - `npm run test:smoke`: four Chromium acceptance cases for navigation and views.
-- `npm run check:full`: check, library/demo/media builds, isolated React 18/19
-  tarball consumers, then Chromium/Firefox/WebKit tests. Requires browser installs
+- `npm run check:full`: format check, lint, `check`, library/demo builds, isolated
+  React 18/19 tarball consumers (`test:package`), media and wiki builds,
+  Chromium/Firefox/WebKit tests, and the Pages smoke test. Requires browser installs
   and possibly npm registry access for consumer dependencies.
 - Use the change-to-check table in [the workflow](docs/AI_WORKFLOW.md). Reproduce
   bug fixes with a relevant test; do not weaken assertions to obtain a green run.

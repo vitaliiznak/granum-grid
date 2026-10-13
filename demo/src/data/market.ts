@@ -1,8 +1,11 @@
 import { bump, clamp, gaussian, noise, pick } from './noise';
+import { timeline } from './timeline';
 
 export const TRADE_COUNT = 750_000_000;
-export const MARKET_START = Date.UTC(2016, 0, 1);
-export const MARKET_END = Date.UTC(2026, 0, 1);
+const MARKET_START = Date.UTC(2016, 0, 1);
+const MARKET_END = Date.UTC(2026, 0, 1);
+/** 2016 through 2025, UTC. */
+export const marketTime = timeline(MARKET_START, MARKET_END, TRADE_COUNT);
 const at = (date: string) =>
   (Date.parse(`${date}T00:00:00Z`) - MARKET_START) / (MARKET_END - MARKET_START);
 
@@ -40,7 +43,7 @@ function shock(x: number) {
     return sum + e.depth * (t < 0 ? bump(t, 0, e.fall) : Math.exp(-t / e.recover));
   }, 0);
 }
-export function trendAt(x: number) {
+function trendAt(x: number) {
   const wave =
     1.12 * x +
     0.2 * Math.sin(2 * Math.PI * 1.7 * x + 0.4) +
@@ -91,9 +94,7 @@ export function tradeAt(index: number): Trade {
     ? Math.round(5_000 + noise(index, 12) * 45_000)
     : Math.round(10 ** (1 + 2.3 * noise(index, 13) ** 3));
   return {
-    time: new Date(
-      MARKET_START + (index / (TRADE_COUNT - 1)) * (MARKET_END - MARKET_START - 1),
-    ).toISOString(),
+    time: new Date(marketTime.timeAt(index)).toISOString(),
     side: noise(index, 14) < 0.5 + (price - previous) * 2 ? 'BUY' : 'SELL',
     price,
     change: Math.round((price - previous) * 100) / 100,
@@ -103,7 +104,4 @@ export function tradeAt(index: number): Trade {
       : pick(['Lit', 'Lit', 'Lit', 'Dark'] as const, noise(index, 15)),
     block,
   };
-}
-export function marketIndexAt(time: number) {
-  return Math.ceil(((time - MARKET_START) / (MARKET_END - MARKET_START - 1)) * (TRADE_COUNT - 1));
 }
