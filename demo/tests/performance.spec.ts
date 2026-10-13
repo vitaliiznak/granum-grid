@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 test('performance: sustained navigation remains bounded at 100M rows', async ({ page }, info) => {
   await page.addInitScript(() => localStorage.setItem('deepscroll-hints-v1', 'done'));
-  await page.goto('/');
+  await page.goto('/?dataset=signal');
   await expect(page.getByRole('button', { name: 'Spike 1', exact: true })).toBeVisible();
   await page.getByText('Developer tools', { exact: false }).first().click();
   await page.getByRole('grid').focus();

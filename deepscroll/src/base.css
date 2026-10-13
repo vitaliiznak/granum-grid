@@ -563,7 +563,7 @@
     flex-shrink: 0;
     padding: 6px 18px;
   }
-  :where(.ds-rail[data-has-tracks]) {
+  :where(.ds-rail[data-has-tracks]:not([data-layout='compact'])) {
     --ds-map-axis-width: 126px;
     width: 316px;
   }
@@ -593,13 +593,34 @@
     writing-mode: vertical-rl;
     font-size: 9px;
   }
+  :where(.ds-rail[data-layout='compact'] .ds-overview-tracks) {
+    display: none;
+  }
+  :where(.ds-rail[data-show-markers='false']) {
+    --ds-map-events-width: 0px;
+  }
   @media (max-width: 650px) {
-    :where(.ds-rail[data-has-tracks]) {
+    :where(.ds-rail[data-has-tracks][data-layout='auto']) {
       --ds-map-axis-width: 0px;
       width: var(--ds-rail-width-mobile, 72px);
     }
-    :where(.ds-overview-tracks) {
+    :where(.ds-rail[data-layout='auto'] .ds-overview-tracks) {
       display: none;
     }
+  }
+}
+
+@layer deepscroll {
+  :where(.ds-summary-band) { position: absolute; left: 0; right: 0; padding: 5px 10px; box-sizing: border-box; }
+  :where(.ds-summary-content) { height: 100%; box-sizing: border-box; padding: 8px 12px; overflow: hidden; }
+  :where(.ds-summary-heading) { display: flex; align-items: baseline; gap: 10px; }
+  :where(.ds-summary-heading strong) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :where(.ds-summary-content p) { margin: 3px 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :where(.ds-summary-actions, .ds-selection-actions) { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  :where(.ds-summary-status) { padding: 18px; }
+  @media (max-width: 650px) {
+    :where(.ds-summary-band) { padding: 3px 5px; }
+    :where(.ds-summary-content) { padding: 6px; }
+    :where(.ds-summary-actions) { gap: 4px; }
   }
 }

@@ -133,11 +133,7 @@ export function ExplorerTools<Row>({
   const { provider, selection } = scroll;
   const identity = `${provider.id}:${provider.revision}`;
   const previousIdentity = useRef(identity);
-  const wasSelecting = useRef(false);
-  useEffect(() => {
-    if (wasSelecting.current && !scroll.selectionMode && selection) setOpen(true);
-    wasSelecting.current = scroll.selectionMode;
-  }, [scroll.selectionMode, selection]);
+  const bookmarkInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (previousIdentity.current !== identity) {
       setPinned(null);
@@ -190,6 +186,13 @@ export function ExplorerTools<Row>({
           <span aria-hidden="true">{open ? '−' : '+'}</span>
         </button>
         {pinned && <span>Comparison A saved</span>}
+        {selection && !scroll.selectionMode && <div className="ds-selection-actions" role="group" aria-label="Selected range actions">
+          <span>{(selection.end - selection.start).toLocaleString()} rows selected</span>
+          <button className="ds-button" onClick={() => scroll.controller.scrollToIndex(selection.start, { align: 'start' })}>Inspect</button>
+          <button className="ds-button" onClick={() => { if (pinned) setCompare(true); else setPinned({ ...selection }); }}>{pinned ? 'Compare with A' : 'Compare'}</button>
+          <button className="ds-button" onClick={() => { setOpen(true); requestAnimationFrame(() => bookmarkInput.current?.focus()); }}>Bookmark</button>
+          <button className="ds-button" aria-label="Clear selected range" onClick={() => scroll.setSelection(null)}>×</button>
+        </div>}
       </div>
       {open && (
         <div className="ds-explorer-panel" data-ds-native-scroll>
@@ -272,12 +275,7 @@ export function ExplorerTools<Row>({
                 <button
                   className="ds-button"
                   onClick={() => {
-                    scroll.controller.setZoom(
-                      (selection.end - selection.start) / scroll.snapshot.height,
-                    );
-                    scroll.controller.goTo(Math.floor((selection.start + selection.end - 1) / 2), {
-                      motion: 'instant',
-                    });
+                    scroll.controller.zoomToRange(selection);
                   }}
                 >
                   Fit selected range
@@ -321,6 +319,7 @@ export function ExplorerTools<Row>({
               <input
                 className="ds-input"
                 maxLength={80}
+                ref={bookmarkInput}
                 placeholder="e.g. Unusual spike"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

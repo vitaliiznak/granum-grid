@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
+  await page.goto('/?dataset=signal');
   await expect(page.getByRole('button', { name: 'Spike 3', exact: true })).toBeVisible();
 });
 
@@ -150,7 +150,7 @@ test('a shared full-page link restores its selected range', async ({ page }) => 
     location: { position: 999_999, view: 'rows', rowsPerPixel: 1 / 32 },
     selection: { start: 999_999, end: 1_000_100 },
   };
-  await page.goto(`/?page=1#view=${encodeURIComponent(JSON.stringify(view))}`);
+  await page.goto(`/?page=1&dataset=signal#view=${encodeURIComponent(JSON.stringify(view))}`);
   await page.getByRole('button', { name: /^Explore · range selected/ }).click();
   await expect(page.getByLabel('First row', { exact: true })).toHaveValue('1000000');
   await expect(page.getByLabel('Last row', { exact: true })).toHaveValue('1000100');

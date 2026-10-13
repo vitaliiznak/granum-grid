@@ -55,12 +55,13 @@ export const signal: DemoDataset<Reading> = {
     },
     {
       feature: 'Lens',
+      requiredView: 'lens',
       label: 'Focus + context',
       hint: 'Rows near the focus stay full size; distant rows compress logarithmically. Click a row to explore.',
-      run: ({ controller }) => controller.setView('lens'),
     },
     {
       feature: 'Zoom',
+      requiredView: 'zoom',
       label: 'See all 100M rows',
       hint: 'Overview zoom draws regional summaries. Ctrl + wheel or pinch to zoom; “Inspect rows” returns.',
       run: ({ fit }) => fit(),
@@ -68,8 +69,8 @@ export const signal: DemoDataset<Reading> = {
     {
       feature: 'History',
       label: 'Undo last jump',
-      hint: 'Every jump is reversible. Alt + ← and Alt + → work too.',
-      run: ({ controller }) => controller.back(),
+      hint: 'Return to the previous location while keeping your selected view and zoom.',
+      run: ({ controller }) => controller.back({ preserveView: true }),
     },
   ],
   renderRow: ({ row, rowNumber, index }, { dynamic, expanded, toggle }) =>

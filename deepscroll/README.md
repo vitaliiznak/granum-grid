@@ -6,13 +6,11 @@ A React + TypeScript explorer for very large indexed datasets. A floating row ad
 
 React and React DOM 18.2–19 are required. The package ships ESM JavaScript and TypeScript declarations; use an ESM-capable bundler and TypeScript 5+ for typed consumers.
 
-After the first npm release:
-
 ```sh
 npm install deepscroll
 ```
 
-Before publication, install the verified `deepscroll-0.1.0.tgz` archive produced by `npm run release:check` in the repository.
+For local testing, install the verified `deepscroll-0.1.0.tgz` archive produced by `npm run release:check` in the repository.
 
 ## Use
 
@@ -67,6 +65,8 @@ Cache defaults: 256-row pages, 32 MiB estimated budget, four concurrent row fetc
 
 The default dataset map shows row order vertically, a group mean horizontally (density for density metrics), event diamonds, and a current-row line. Its fixed-size handle does not indicate visible range. The question-mark button explains the encoding; hovering shows the actual group range and summary. Chapter labels are supplied by the provider and fall back to row numbers.
 
+Configure it with `atlas`: choose `layout`, `maxAxisTicks`, `showMarkers`, `showTracks`, `showRange`, `showVisibleRange`, `showTrail`, and `showLegend`. Set `preview` to `'rows'`, `'summary'`, or `'none'`, choose `previewRows` (1–10), and toggle `showMagnifier` or `snapToMarkers`. Summary-only hover does not request exact rows. Global feature flags still take precedence, and changing map options preserves your current row.
+
 Configure it with `atlas={{ variant: 'profile', axis: 'chapters', axisLabel: 'Year', showRange: false, markerLabels: 'label', layout: 'auto' }}`. Alternatives are `variant: 'markers'`, `axis: 'rows'`, `markerLabels: 'number' | 'none'`, and `layout: 'expanded' | 'compact'`. Automatic layout becomes compact below 650 px. `showRange` enables min–max shading for value metrics. `title` and `formatValue(value)` customize labels. Set `axisLabel` to match your provider; dates are not inferred. `AtlasRail` accepts the same `AtlasRailOptions` as its `options` prop.
 
 No stylesheet is imported automatically. Choose `deepscroll/styles.css` for the default theme, `deepscroll/base.css` for layout only, or no CSS when using the headless hook. `unstyled` skips the skin for an individual component, including when the full stylesheet is loaded elsewhere.
@@ -103,7 +103,7 @@ Default tokens: `--ds-bg`, `--ds-panel`, `--ds-text`, `--ds-muted`, `--ds-line`,
 | `deepscroll/base.css` | Structural layout only |
 | `deepscroll/styles.css` | Optional skin and `--ds-*` theme variables; includes base layout |
 
-React and React DOM 18.2 or 19 are peers. There are no other runtime dependencies. Output is ESM with TypeScript declarations. This is an initial local release; the package has not been published to npm.
+React and React DOM 18.2 or 19 are peers. There are no other runtime dependencies. Output is ESM with TypeScript declarations; CommonJS `require()` is not supported.
 
 Not yet implemented: unknown-length streams, prepend anchoring, horizontal/column virtualization, or a built-in grid layer for sorting/filtering/editing. Sorting and filtering currently belong to the provider and require a fresh revision/count. Server-rendered placeholders are supported; measurement begins on the client.
 

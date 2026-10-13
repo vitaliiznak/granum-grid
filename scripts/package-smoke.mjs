@@ -5,6 +5,18 @@ import { DeepScroll, useDeepScroll, AtlasRail } from 'deepscroll';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { readFileSync, existsSync } from 'node:fs';
+function renderWithoutWarnings(element) {
+  const warnings = [];
+  const originalError = console.error;
+  console.error = (...args) => warnings.push(args);
+  try {
+    const markup = renderToString(element);
+    assert.deepEqual(warnings, [], 'Server rendering must not produce React warnings');
+    return markup;
+  } finally {
+    console.error = originalError;
+  }
+}
 assert.match(import.meta.resolve('deepscroll'), /\/dist\/index\.js$/);
 const engine = createEngine({ rowCount: 100_000_000 });
 engine.goTo(73_499_999);
@@ -20,7 +32,7 @@ assert.throws(() => import.meta.resolve('deepscroll/tools'), {
   code: 'ERR_PACKAGE_PATH_NOT_EXPORTED',
 });
 assert.equal(existsSync(new URL('./tools.js', import.meta.resolve('deepscroll'))), false);
-const markup = renderToString(
+const markup = renderWithoutWarnings(
   createElement(DeepScroll, {
     provider: { id: 'ssr', revision: '1', rowCount: 100_000_000, fetchRows: async () => [] },
     dynamicRowHeight: true,
@@ -30,7 +42,7 @@ const markup = renderToString(
 );
 assert.ok(markup.includes('aria-rowcount="100000000"'));
 assert.ok(markup.includes('Loading row'));
-const customMarkup = renderToString(
+const customMarkup = renderWithoutWarnings(
   createElement(DeepScroll, {
     provider: { id: 'custom', revision: '1', rowCount: 12, fetchRows: async () => [] },
     ariaLabel: 'Custom component',

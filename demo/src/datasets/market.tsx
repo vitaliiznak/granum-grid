@@ -116,15 +116,16 @@ export const market: DemoDataset<Trade> = {
     },
     {
       feature: 'Zoom',
+      requiredView: 'zoom',
       label: 'Ten years at once',
       hint: 'The overview turns 750 million trades into a readable chart. Ctrl + wheel to zoom.',
       run: ({ fit }) => fit(),
     },
     {
       feature: 'Lens',
+      requiredView: 'lens',
       label: 'Focus + context',
       hint: 'Read the trades around you while the rest of the decade compresses beside them.',
-      run: ({ controller }) => controller.setView('lens'),
     },
   ],
   renderRow: ({ row }) => (

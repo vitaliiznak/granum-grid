@@ -13,12 +13,13 @@ import { partProps, type DeepScrollAppearance } from './styling.js';
 import { ContextHints } from './ContextHints.js';
 import { ViewLayer } from './ViewLayer.js';
 import { ViewCanvas } from './ViewCanvas.js';
+import { AggregateLayer, type AggregateRenderContext } from './AggregateLayer.js';
 import { JumpBar } from './JumpBar.js';
 import { AtlasRail, type AtlasRailOptions } from './AtlasRail.js';
 import { ExplorerTools, savedView } from './ExplorerTools.js';
 import { CompareRanges } from './CompareRanges.js';
 import type { SavedView } from '../core/exploration.js';
-import type { PendingRowSlot } from '../data/types.js';
+import type { PendingRowSlot, RowRange } from '../data/types.js';
 export interface RowRenderContext<Row> {
   row: Row;
   index: number;
@@ -29,6 +30,10 @@ export interface DeepScrollProps<Row> extends UseDeepScrollOptions<Row>, DeepScr
   header?: ReactNode;
   renderRow(context: RowRenderContext<Row>): ReactNode;
   renderPlaceholder?(slot: PendingRowSlot): ReactNode;
+  /** Render domain-specific content inside a summary band in Overview. */
+  renderAggregate?(context: AggregateRenderContext): ReactNode;
+  /** Describe a half-open range in domain units, such as elapsed time or base pairs. */
+  formatRange?(range: RowRange): string;
   ariaLabel: string;
   className?: string;
   style?: CSSProperties;
@@ -82,11 +87,13 @@ const LoadedRow = memo(function LoadedRow<Row>({
 export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
   const scroll = useDeepScroll({
     ...props,
+    aggregateRowHeight: props.aggregateRowHeight ?? 120,
     scrollMode: props.layout === 'page' ? 'window' : props.scrollMode,
   });
   useImperativeHandle(props.controllerRef, () => scroll.controller, [scroll.controller]);
   useImperativeHandle(props.apiRef, () => scroll.api, [scroll.api]);
   const { snapshot } = scroll;
+  const summaryCards = scroll.aggregateMode && snapshot.view === 'zoom' && !snapshot.moving && !!props.provider.fetchAggregates;
   const chapter = scroll.session.chapters.find(
     (c) => snapshot.position >= c.start && snapshot.position < c.end,
   );
@@ -233,7 +240,9 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
               ? 'Traveling through the overview'
               : snapshot.view === 'lens'
                 ? 'Full-size focus · logarithmic context · click to explore'
-                : `${snapshot.rowsPerPixel.toLocaleString(undefined, { maximumFractionDigits: 2 })} rows / pixel · Ctrl+wheel or pinch to zoom`}
+                : props.formatRange && scroll.visibleRange.end > scroll.visibleRange.start
+                  ? `Showing ${props.formatRange(scroll.visibleRange)}`
+                  : `${Math.max(0, scroll.visibleRange.end - scroll.visibleRange.start).toLocaleString()} rows in view · Ctrl+wheel or pinch to zoom`}
           </span>
           {snapshot.view === 'zoom' && (
             <div>
@@ -254,17 +263,14 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
               <button
                 className="ds-button"
                 onClick={() => {
-                  scroll.controller.setZoom(snapshot.rowCount / snapshot.height);
-                  scroll.controller.goTo(Math.round(Math.max(0, snapshot.rowCount - 1) / 2), {
-                    motion: 'instant',
-                  });
+                  if (snapshot.rowCount) scroll.controller.zoomToRange({ start: 0, end: snapshot.rowCount });
                 }}
               >
                 Fit dataset
               </button>
               <button
                 className="ds-button"
-                onClick={() => scroll.controller.setZoom(1 / snapshot.rowHeight)}
+                onClick={() => scroll.controller.scrollToIndex(snapshot.activeIndex ?? 0, { align: 'center' })}
               >
                 Inspect rows
               </button>
@@ -294,8 +300,8 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
               height={snapshot.height}
               motion={!scroll.reduceMotion && scroll.features.transitions}
             >
-              <ViewCanvas scroll={scroll} />
-              {scroll.aggregateMode && (
+              {summaryCards ? <AggregateLayer scroll={scroll} renderAggregate={props.renderAggregate} formatRange={props.formatRange} /> : <ViewCanvas scroll={scroll} />}
+              {scroll.aggregateMode && !summaryCards && (
                 <div className="ds-aggregate-label">
                   {snapshot.moving ? 'Overview during travel' : 'Aggregate view'} ·{' '}
                   {scroll.session.aggregates.length ? 'regional summaries' : 'coarse overview'}

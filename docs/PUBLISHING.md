@@ -43,7 +43,7 @@ GitHub Actions also uploads the checked archive as the `npm-package` artifact. I
 
    Complete npm's authentication/2FA prompt if requested. This is the only step above that publishes. A dry run does not verify publishing permissions, reserve the name, or claim success.
 
-6. Verify `npm view deepscroll@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/`, then remove the “not yet published” wording from both READMEs.
+6. Verify `npm view deepscroll@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/`, then remove the “not yet published” wording from the repository README.
 
 Publishing a tarball uses its existing contents; it does not rebuild or run this repository's release checks. Always use an archive from the latest successful `release:check` for the intended source version. Publishing directly from the workspace with `npm publish -w deepscroll` runs `prepublishOnly` to verify the release and `prepack` to rebuild it.
 

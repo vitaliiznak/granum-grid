@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?dataset=signal');
   await expect(page.getByRole('button', { name: 'Spike 3', exact: true })).toBeVisible();
 });
 test('overview exposes shape and the third spike can be found directly', async ({ page }) => {

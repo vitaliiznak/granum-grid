@@ -489,6 +489,77 @@
     width: 12px;
     border-top: 2px solid var(--ds-accent);
   }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling]) {
+    --ds-scroll-step: 3px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling='up']) {
+    --ds-scroll-step: -3px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling] .ds-thumb) {
+    background: var(--ds-accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ds-accent) 18%, transparent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling] .ds-thumb)::after {
+    content: '';
+    position: absolute;
+    inset: 4px 2px;
+    background: repeating-linear-gradient(to bottom, transparent 0 4px, var(--ds-bg) 4px 6px);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling] .ds-track-line) {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 14%, transparent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling] .ds-map-position i) {
+    border-top-color: transparent;
+    position: relative;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling] .ds-map-position i)::after {
+    content: '↓';
+    position: absolute;
+    inset: -9px 0 auto;
+    text-align: center;
+    font-size: 14px;
+    font-style: normal;
+    line-height: 16px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scrolling='up'] .ds-map-position i)::after {
+    content: '↑';
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scroll-motion='on'] .ds-thumb) {
+    transition:
+      background-color 160ms ease,
+      box-shadow 220ms ease;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-scroll-motion='on'] .ds-track-line) {
+    transition: box-shadow 220ms ease;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-rail[data-scroll-motion='on'][data-scrolling] .ds-thumb
+  )::after {
+    animation: ds-scroll-grip 360ms linear infinite;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-rail[data-scroll-motion='on'][data-scrolling='up'] .ds-thumb
+  )::after {
+    animation-direction: reverse;
+  }
+  :where(
+    .ds-root:not([data-unstyled])
+      .ds-rail[data-scroll-motion='on'][data-scrolling]
+      .ds-map-position
+      i
+  )::after {
+    animation: ds-scroll-direction 600ms ease-in-out infinite alternate;
+  }
+  @keyframes ds-scroll-grip {
+    to {
+      background-position-y: 6px;
+    }
+  }
+  @keyframes ds-scroll-direction {
+    to {
+      transform: translateY(var(--ds-scroll-step));
+    }
+  }
   :where(.ds-root:not([data-unstyled]) .ds-rail-end) {
     margin-top: 3px;
     font-size: 10px;
@@ -582,4 +653,11 @@
     text-decoration: none;
     font-size: 12px;
   }
+}
+
+@layer deepscroll {
+  :where(.ds-root:not([data-unstyled]) .ds-summary-content) { background: var(--ds-panel); border: 1px solid var(--ds-line); border-radius: var(--ds-radius); }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-accuracy, .ds-root:not([data-unstyled]) .ds-summary-content p) { color: var(--ds-muted); font-size: 11px; }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-button) { font-size: 11px; padding: 3px 7px; }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-actions) { color: var(--ds-accent); font-size: 12px; }
 }

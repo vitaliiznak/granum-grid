@@ -18,7 +18,7 @@ async function assertAdjacent(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('deepscroll-hints-v1', 'done'));
-  await page.goto('/');
+  await page.goto('/?dataset=signal');
   await page.getByRole('checkbox', { name: 'Dynamic row heights' }).check();
   await expect(page.getByRole('button', { name: 'Expand row 1', exact: true })).toBeVisible();
 });

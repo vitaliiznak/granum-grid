@@ -1,4 +1,5 @@
 import { defaultFeatures, type Features, type ScrollStats } from 'deepscroll';
+import { DEFAULT_LATENCY } from './data/provider';
 
 export function LatencyControl({
   latency,
@@ -9,17 +10,17 @@ export function LatencyControl({
 }) {
   return (
     <label className="latency-label">
-      Server latency{' '}
+      <span>Simulated server latency</span>
       <input
-        aria-label="Server latency"
+        aria-label="Simulated server latency"
         type="range"
         min="0"
-        max="2000"
+        max="10000"
         step="40"
         value={latency}
         onChange={(event) => onLatency(+event.target.value)}
       />
-      <output>{latency} ms</output>
+      <output>{latency / 1000} s</output>
     </label>
   );
 }
@@ -84,7 +85,7 @@ export function Playground({
             onClick={() => {
               onFeatures({ ...defaultFeatures });
               onReduced(false);
-              onLatency(80);
+              onLatency(DEFAULT_LATENCY);
             }}
           >
             Reset defaults

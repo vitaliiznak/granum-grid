@@ -22,6 +22,7 @@ export type { Features } from './features.js';
 export type { DeepScrollPart, DeepScrollAppearance } from './react/styling.js';
 export { JumpBar } from './react/JumpBar.js';
 export { ViewCanvas } from './react/ViewCanvas.js';
+export type { AggregateRenderContext } from './react/AggregateLayer.js';
 
 export { encodeView, decodeView } from './core/exploration.js';
 export type { SavedView, Bookmark } from './core/exploration.js';

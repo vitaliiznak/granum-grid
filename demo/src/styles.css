@@ -399,14 +399,17 @@ details[open] > summary .details-indicator {
 .latency-label {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+  color: #b42318;
+  font-weight: 600;
 }
 .latency-label input {
   width: 110px;
 }
 .latency-label output {
   min-width: 52px;
-  color: var(--muted);
+  color: inherit;
 }
 .debug-trigger {
   display: inline-flex;
@@ -439,11 +442,12 @@ details[open] > summary .details-indicator {
   background: #4d2528;
   border-color: #f97066;
 }
-:root[data-theme='dark'] .debug-heading .debug-icon {
+:root[data-theme='dark'] .debug-heading .debug-icon,
+:root[data-theme='dark'] .latency-label {
   color: #fda29b;
 }
 .debug-dialog {
-  width: min(440px, calc(100vw - 32px));
+  width: min(520px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   margin: auto;
   padding: 24px;
@@ -479,9 +483,12 @@ details[open] > summary .details-indicator {
 }
 .debug-dialog .latency-label {
   display: grid;
-  grid-template-columns: auto minmax(60px, 1fr) auto;
+  grid-template-columns: minmax(60px, 1fr) auto;
   gap: 8px;
   margin-top: 24px;
+}
+.debug-dialog .latency-label > span {
+  grid-column: 1 / -1;
 }
 .debug-dialog .latency-label input {
   width: 100%;
@@ -904,7 +911,10 @@ details[open] > summary .details-indicator {
   position: absolute;
   right: 0;
   top: calc(100% + 12px);
-  width: 284px;
+  width: min(340px, calc(100vw - 32px));
+  max-height: min(680px, 70dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px;
   background: var(--page);
   border: 1px solid var(--line);
@@ -921,7 +931,18 @@ details[open] > summary .details-indicator {
   line-height: 1.6;
   margin: 8px 0 14px;
 }
-.map-settings-panel > label {
+.map-settings-group {
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 8px 0 0;
+  margin: 16px 0 0;
+  min-width: 0;
+}
+.map-settings-group > legend {
+  padding: 0 8px 0 0;
+  font-weight: 600;
+}
+.map-settings-group > label {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -941,13 +962,26 @@ details[open] > summary .details-indicator {
 .map-settings-panel select {
   width: 160px;
 }
-.map-settings-panel > .map-range-option {
+.map-settings-group > .map-range-option {
   justify-content: flex-start;
   gap: 8px;
   white-space: normal;
 }
-.map-settings-panel > button {
-  width: 100%;
+.map-settings-panel :disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.map-settings-actions {
+  position: sticky;
+  bottom: -16px;
+  display: flex;
+  gap: 8px;
+  padding: 12px 0;
+  background: var(--page);
+  border-top: 1px solid var(--line);
+}
+.map-settings-actions > button {
+  flex: 1;
   cursor: pointer;
 }
 @media (max-width: 950px) {

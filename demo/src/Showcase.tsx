@@ -1,4 +1,4 @@
-import type { DeepScrollEngine, ScrollStats } from 'deepscroll';
+import type { DeepScrollEngine, ScrollStats, View } from 'deepscroll';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { datasets, type DemoDataset, type TourContext } from './datasets';
 import { compact, formatCount } from './datasets/types';
@@ -8,6 +8,7 @@ const sparklines = new Map<string, string>();
 function sparkline(id: string) {
   if (sparklines.has(id)) return sparklines.get(id)!;
   const model = models[id];
+  if (!model) return 'M0 26 L18 26 L24 10 L30 26 L57 26 L65 3 L73 26 L120 26';
   const points = Array.from({ length: 96 }, (_, i) =>
     model.value(Math.floor((i / 95) * (model.rowCount - 1))),
   );
@@ -112,6 +113,11 @@ export function DatasetIntro({
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const viewLabels: Record<View, string> = {
+  rows: 'List',
+  lens: 'Focus + context',
+  zoom: 'Overview',
+};
 /** Type into the explorer's own jump bar, so the tour shows the real search UI. */
 async function typeIntoJumpBar(root: HTMLElement, text: string, signal: { cancelled: boolean }) {
   root.querySelector<HTMLButtonElement>('.ds-jump-trigger')?.click();
@@ -156,19 +162,21 @@ export function FeatureTour({
     if (!engine || !root) return;
     typing.current.cancelled = true;
     typing.current = { cancelled: false };
+    const step = dataset.tour[i];
+    setActive(i);
+    if (step.requiredView && engine.getSnapshot().view !== step.requiredView) {
+      engine.setView(step.requiredView);
+    }
     const signal = typing.current;
     const tour: TourContext = {
       controller: engine,
       search: (text) => typeIntoJumpBar(root, text, signal),
       fit: () => {
-        engine.setView('zoom');
         const snapshot = engine.getSnapshot();
-        engine.setZoom(snapshot.rowCount / snapshot.height);
-        engine.goTo(Math.round(Math.max(0, snapshot.rowCount - 1) / 2), { motion: 'instant' });
+        if (snapshot.rowCount) engine.zoomToRange({ start: 0, end: snapshot.rowCount });
       },
     };
-    setActive(i);
-    void dataset.tour[i].run(tour);
+    void step.run?.(tour);
   };
   const step = active === null ? null : dataset.tour[active];
   return (
@@ -219,6 +227,7 @@ const shortcuts = [
 export function ShortcutStrip() {
   return (
     <p className="shortcut-strip" aria-label="Keyboard shortcuts">
+      <span>Click the table to focus it, then use these shortcuts:</span>
       {shortcuts.map(([keys, label]) => (
         <span key={label}>
           <kbd>{keys}</kbd> {label}

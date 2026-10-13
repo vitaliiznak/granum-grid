@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('deepscroll-hints-v1', 'done'));
-  await page.goto('/');
+  await page.goto('/?dataset=signal');
   await expect(page.getByRole('button', { name: 'Spike 3', exact: true })).toBeVisible();
 });
 test('date and predicate search are honest, cancellable, and do not jump while typing', async ({
@@ -28,14 +28,14 @@ test('date and predicate search are honest, cancellable, and do not jump while t
 });
 test('slow-server jumps keep meaningful estimates and bounded cache', async ({ page }) => {
   await page.getByText('Developer tools', { exact: false }).first().click();
-  const latency = page.getByRole('slider', { name: 'Server latency' });
+  const latency = page.getByRole('slider', { name: 'Simulated server latency' });
   await latency.focus();
   await latency.press('End');
   await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
   await expect(page.getByText('Approximate').first()).toBeVisible();
   await expect(page.locator('[role=row][aria-rowindex="61700000"]')).toContainText('SPIKE', {
-    timeout: 8000,
+    timeout: 15_000,
   });
   const footer = await page.locator('.playground-stats').innerText();
   expect(Number(footer.match(/([\d,]+) cached/)![1].replaceAll(',', ''))).toBeLessThan(4096);

@@ -1,5 +1,6 @@
 import { clamp, rowToProgress, createLensMapping, createMeasuredLensMapping } from './mappings.js';
-import type { Chapter, Marker } from '../data/types.js';
+import type { Chapter, Marker, RowRange } from '../data/types.js';
+import { validRange } from './exploration.js';
 import { RowSizes, type RowMeasurement } from './rowSizes.js';
 export type View = 'rows' | 'lens' | 'zoom';
 export interface NavigationLocation {
@@ -248,6 +249,21 @@ export function createEngine(options: EngineOptions) {
       chapters = nextChapters;
     },
     goTo,
+    /** Fit a half-open range in Overview, recording the previous location once. */
+    zoomToRange: (range: RowRange) => {
+      if (!validRange(range, snapshot.rowCount)) throw new RangeError('Invalid navigation range');
+      interrupt();
+      alignment = undefined;
+      const from = location();
+      const to: NavigationLocation = {
+        position: (range.start + range.end) / 2,
+        view: 'zoom',
+        rowsPerPixel: Math.max(1 / rowHeight, (range.end - range.start) / snapshot.height),
+      };
+      if (from.position === to.position && from.view === to.view && from.rowsPerPixel === to.rowsPerPixel) return;
+      record(from);
+      travel(to, 'jump', false);
+    },
     /** Align a row in the Rows view; new measurements keep the target aligned until input. */
     scrollToIndex: (index: number, config: ScrollToOptions = {}) => {
       if (!Number.isSafeInteger(index)) throw new RangeError('index must be a safe integer');
@@ -403,19 +419,21 @@ export function createEngine(options: EngineOptions) {
       const chapter = chapters.findLast((c) => c.start < snapshot.position);
       if (chapter) goTo(chapter.start, { reason: 'chapter' });
     },
-    back: () => {
+    /** Optionally keep the current view and zoom while returning to a previous position. */
+    back: (config: { preserveView?: boolean } = {}) => {
       alignment = undefined;
       const to = backStack.pop();
       if (!to) return;
       forwardStack.push(location());
-      travel(to, 'history');
+      travel(config.preserveView ? { ...location(), position: to.position } : to, 'history');
     },
-    forward: () => {
+    /** Optionally keep the current view and zoom while revisiting a position. */
+    forward: (config: { preserveView?: boolean } = {}) => {
       alignment = undefined;
       const to = forwardStack.pop();
       if (!to) return;
       backStack.push(location());
-      travel(to, 'history');
+      travel(config.preserveView ? { ...location(), position: to.position } : to, 'history');
     },
     cancel: () => {
       interrupt();

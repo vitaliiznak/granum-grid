@@ -1,7 +1,8 @@
 import type { DataProvider } from 'deepscroll';
 import { rowAt, valueAt, ROW_COUNT, SPIKES, START_TIME, END_TIME, type Reading } from './signal';
 import { aggregate } from './worker-client';
-let latency = 80;
+export const DEFAULT_LATENCY = 1000;
+let latency = DEFAULT_LATENCY;
 export const setLatency = (value: number) => {
   latency = value;
 };

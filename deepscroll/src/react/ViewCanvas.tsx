@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { prepareCanvas } from '../visuals/atlas.js';
 import type { DeepScrollState } from './useDeepScroll.js';
 export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
@@ -7,7 +8,7 @@ export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
   const visible = aggregateMode || snapshot.view === 'lens';
   const drawRef = useRef<() => void>(() => {});
   const scheduleRef = useRef<() => void>(() => {});
-  useLayoutEffect(() => {
+  useClientLayoutEffect(() => {
     drawRef.current = () => {
       if (!canvas.current) return;
       const target = prepareCanvas(canvas.current!);
