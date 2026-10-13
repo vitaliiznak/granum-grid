@@ -93,13 +93,38 @@ export const provider: DataProvider<Reading> = {
     await delay(signal);
     return Array.from({ length: count }, (_, i) => rowAt(start + i));
   },
+  async fetchOverviewTracks(buckets, signal) {
+    await delay(signal);
+    return ['North', 'East', 'West', 'South'].map((label, channel) => ({
+      id: label,
+      label,
+      metric: { label, kind: 'value' as const, domain: [0, 180] as const },
+      buckets: Array.from({ length: buckets }, (_, i) => {
+        const start = Math.floor((i * ROW_COUNT) / buckets),
+          end = Math.floor(((i + 1) * ROW_COUNT) / buckets);
+        const samples = Array.from({ length: 16 }, (_, j) => {
+          const index = start + Math.floor((j * (end - start)) / 16);
+          return valueAt(Math.min(end - 1, index + ((channel - (index % 4) + 4) % 4)));
+        });
+        return {
+          start,
+          end,
+          count: null,
+          avg: samples.reduce((a, b) => a + b, 0) / samples.length,
+          min: Math.min(...samples),
+          max: Math.max(...samples),
+          accuracy: 'estimated' as const,
+        };
+      }),
+    }));
+  },
   async fetchOverview(buckets, signal) {
     await delay(signal);
-    return aggregate({ start: 0, end: ROW_COUNT, buckets }, ROW_COUNT, signal);
+    return aggregate('signal', { start: 0, end: ROW_COUNT, buckets }, signal);
   },
   async fetchAggregates(range, signal) {
     await delay(signal);
-    return aggregate(range, ROW_COUNT, signal);
+    return aggregate('signal', range, signal);
   },
   async fetchMarkers(signal) {
     await delay(signal);

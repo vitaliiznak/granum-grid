@@ -1,24 +1,27 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { prepareCanvas } from '../visuals/atlas.js';
 import type { DeepScrollState } from './useDeepScroll.js';
 export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const { mapping, snapshot, session, aggregateMode } = scroll;
-  useEffect(() => {
-    if (!canvas.current || (!aggregateMode && snapshot.view !== 'lens')) return;
-    const draw = () => {
+  const visible = aggregateMode || snapshot.view === 'lens';
+  const drawRef = useRef<() => void>(() => {});
+  const scheduleRef = useRef<() => void>(() => {});
+  useLayoutEffect(() => {
+    drawRef.current = () => {
+      if (!canvas.current) return;
       const target = prepareCanvas(canvas.current!);
       if (!target) return;
       const { context: ctx, width, height } = target;
       const styles = getComputedStyle(canvas.current!),
-        accent = styles.getPropertyValue('--ds-accent').trim(),
-        muted = styles.getPropertyValue('--ds-muted').trim();
+        accent = styles.getPropertyValue('--ds-accent').trim() || styles.color,
+        muted = styles.getPropertyValue('--ds-muted').trim() || styles.color;
       const domain = scroll.provider.metric?.domain ?? [
         Math.min(0, ...session.overview.map((b) => b.min ?? 0)),
         Math.max(1, ...session.overview.map((b) => b.max ?? 1)),
       ];
       const buckets = session.aggregates.length ? session.aggregates : session.overview;
-      ctx.font = '10px ui-monospace, monospace';
+      ctx.font = `11px ${styles.fontFamily}`;
       for (let y = 0; y < height; y += 5) {
         const row = mapping.toRow(y);
         if (row < 0 || row >= snapshot.rowCount) continue;
@@ -68,6 +71,19 @@ export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
       ctx.stroke();
       ctx.globalAlpha = 1;
     };
+    scheduleRef.current();
+  });
+  useEffect(() => {
+    if (!visible || !canvas.current) return;
+    let frame = 0;
+    const draw = () => {
+      if (!frame)
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          drawRef.current();
+        });
+    };
+    scheduleRef.current = draw;
     draw();
     const observer = new ResizeObserver(draw);
     observer.observe(canvas.current);
@@ -76,19 +92,13 @@ export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
     const media = matchMedia('(prefers-color-scheme: dark)');
     media.addEventListener('change', draw);
     return () => {
+      cancelAnimationFrame(frame);
+      scheduleRef.current = () => {};
       observer.disconnect();
       theme.disconnect();
       media.removeEventListener('change', draw);
     };
-  }, [
-    mapping,
-    snapshot,
-    session.overview,
-    session.aggregates,
-    aggregateMode,
-    scroll.provider,
-    scroll.rows,
-  ]);
+  }, [visible]);
   if (!aggregateMode && snapshot.view !== 'lens') return null;
   return <canvas ref={canvas} className="ds-view-canvas" aria-hidden="true" />;
 }

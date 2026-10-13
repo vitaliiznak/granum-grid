@@ -2,6 +2,83 @@ import { expect, it } from 'vitest';
 import { PageCache } from '../src/data/cache';
 import { DataSession } from '../src/data/session';
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+it('starts a new destination despite canceled transports, without unbounded concurrency', async () => {
+  const pending: { start: number; resolve: (rows: number[]) => void }[] = [];
+  const s = new DataSession(
+    {
+      id: 'a',
+      revision: '1',
+      rowCount: 1000,
+      fetchRows: (start) => new Promise<number[]>((resolve) => pending.push({ start, resolve })),
+    },
+    { pageSize: 4 },
+  );
+  try {
+    s.setRange('visible', 0, 16);
+    await tick();
+    s.setRange('visible', 400, 16);
+    await tick();
+    expect(pending.map((p) => p.start)).toContain(400);
+    expect(pending).toHaveLength(8);
+    s.setRange('visible', 800, 4);
+    await tick();
+    expect(pending).toHaveLength(8);
+    expect(s.error(800)).toContain('AbortSignal');
+    pending.slice(0, 4).forEach((p) => p.resolve([1, 2, 3, 4]));
+    await tick();
+    s.retry();
+    await tick();
+    expect(pending.at(-1)?.start).toBe(800);
+  } finally {
+    s.stop();
+    pending.forEach((p) => p.resolve([1, 2, 3, 4]));
+    await tick();
+  }
+});
+it('reports request deadlines and rejects late data', async () => {
+  let finish!: (rows: number[]) => void;
+  const s = new DataSession(
+    {
+      id: 'a',
+      revision: '1',
+      rowCount: 100,
+      fetchRows: () =>
+        new Promise<number[]>((resolve) => {
+          finish = resolve;
+        }),
+    },
+    { pageSize: 4, requestTimeoutMs: 5 },
+  );
+  s.setRange('visible', 0, 4);
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  expect(s.error(0)).toContain('timed out');
+  finish([1, 2, 3, 4]);
+  await tick();
+  expect(s.has(0)).toBe(false);
+  s.stop();
+});
+it('append refreshes a previously short final page and retains completed pages', async () => {
+  const make = (rowCount: number) => ({
+    id: 'a',
+    revision: '1',
+    rowCount,
+    async fetchRows(start: number, count: number) {
+      return Array.from({ length: count }, (_, i) => start + i);
+    },
+  });
+  const s = new DataSession(make(6), { pageSize: 4 });
+  s.setRange('visible', 0, 6);
+  await tick();
+  expect(s.getStats().completedFetches).toBe(2);
+  expect(s.has(5)).toBe(true);
+  expect(s.has(6)).toBe(false);
+  s.updateAppendProvider(make(9));
+  s.setRange('visible', 0, 9);
+  await tick();
+  expect(s.read(8)).toBe(8);
+  expect(s.getStats().completedFetches).toBe(4);
+  s.stop();
+});
 it('evicts least recently read pages while preserving visible pages', () => {
   const cache = new PageCache<number>({ pageSize: 2, maxBytes: 180, estimateRowBytes: () => 10 });
   cache.put(0, [0, 1]);

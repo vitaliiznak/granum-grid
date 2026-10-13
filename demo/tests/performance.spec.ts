@@ -4,6 +4,7 @@ test('performance: sustained navigation remains bounded at 100M rows', async ({ 
   await page.addInitScript(() => localStorage.setItem('deepscroll-hints-v1', 'done'));
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Spike 1', exact: true })).toBeVisible();
+  await page.getByText('Developer tools', { exact: false }).first().click();
   await page.getByRole('grid').focus();
   const report = await page.getByRole('grid').evaluate(async (element) => {
     const intervals: number[] = [];
@@ -38,13 +39,13 @@ test('performance: sustained navigation remains bounded at 100M rows', async ({ 
     };
   });
   expect(report.maxMountedRows).toBeLessThan(256);
-  expect(report.p95FrameMs).toBeLessThan(150); // Regression ceiling, not a 60fps assertion.
-  await expect(page.locator('.ds-footer-stats')).toContainText('0 fetching', { timeout: 8000 });
+  expect(report.p95FrameMs).toBeLessThan(50); // Regression ceiling, not a 60fps assertion.
+  await expect(page.locator('.playground-stats')).toContainText('0 in flight', { timeout: 8000 });
   await mkdir('output/playwright', { recursive: true });
   const result = {
     browser: info.project.name,
     ...report,
-    footer: await page.locator('.ds-footer-stats').innerText(),
+    footer: await page.locator('.playground-stats').innerText(),
   };
   await writeFile(
     `output/playwright/performance-${info.project.name}.json`,

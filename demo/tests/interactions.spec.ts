@@ -10,24 +10,24 @@ test('date and predicate search are honest, cancellable, and do not jump while t
   const origin = await page.getByTestId('position').innerText();
   await page.getByRole('grid').focus();
   await page.getByRole('grid').press('/');
-  const input = page.getByRole('textbox', { name: 'Row, date, or expression' });
+  const input = page.getByRole('textbox', { name: 'Go to row, date, or event' });
   await input.fill('2017-03');
   await expect(page.getByRole('button', { name: /^2017-03 Row/ })).toBeVisible();
   await expect(page.getByTestId('position')).toHaveText(origin);
   await input.press('Enter');
   await expect(page.getByTestId('breadcrumb')).toContainText('2017');
-  await page.getByRole('button', { name: 'Jump to…' }).click();
+  await page.getByRole('button', { name: 'Go to…' }).click();
   await input.fill('value > 120');
   await expect(page.getByText(/Partial results/)).toBeVisible();
   await expect(page.getByRole('button', { name: /^value:/ }).first()).toBeVisible();
   await input.press('Escape');
   await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.getByRole('button', { name: 'Jump to…' }).click();
+  await page.getByRole('button', { name: 'Go to…' }).click();
   await input.fill('2017-02-30');
   await expect(page.getByText('Enter a valid date, such as 2017-03.')).toBeVisible();
 });
 test('slow-server jumps keep meaningful estimates and bounded cache', async ({ page }) => {
-  await page.getByText('Playground', { exact: false }).first().click();
+  await page.getByText('Developer tools', { exact: false }).first().click();
   const latency = page.getByRole('slider', { name: 'Server latency' });
   await latency.focus();
   await latency.press('End');
@@ -37,7 +37,7 @@ test('slow-server jumps keep meaningful estimates and bounded cache', async ({ p
   await expect(page.locator('[role=row][aria-rowindex="61700000"]')).toContainText('SPIKE', {
     timeout: 8000,
   });
-  const footer = await page.locator('.ds-footer-stats').innerText();
+  const footer = await page.locator('.playground-stats').innerText();
   expect(Number(footer.match(/([\d,]+) cached/)![1].replaceAll(',', ''))).toBeLessThan(4096);
 });
 test('precision changes do not teleport and escape reverses a scrub', async ({ page }) => {
@@ -78,17 +78,22 @@ test('keyboard, reduced motion, and light mobile layout remain usable', async ({
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
+  await expect(page.locator('.ds-root')).toHaveAttribute('data-theme', 'dark');
+  await page.getByRole('button', { name: 'Toggle color theme' }).click();
   await expect(page.locator('.ds-root')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('slider', { name: 'Dataset position' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
-  await page.getByRole('button', { name: 'Jump to…' }).click();
+  await page.getByRole('button', { name: 'Go to…' }).click();
   await page.getByRole('textbox').fill('50%');
   await page.getByRole('textbox').press('Enter');
   await expect(page.getByTestId('position')).toHaveText('Row 50,000,001 of 100,000,000');
 });
 test('no runtime or console errors on a fresh load and view changes', async ({ page }) => {
+  // Finish the initial worker bootstrap before reloading. Firefox's automation
+  // worker reports NS_BINDING_ABORTED if navigation interrupts its module load.
+  await expect(page.locator('.ds-legend')).toContainText('sampled overview');
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
@@ -97,17 +102,21 @@ test('no runtime or console errors on a fresh load and view changes', async ({ p
   await page.reload();
   await expect(page.getByRole('button', { name: 'Spike 1', exact: true })).toBeVisible();
   for (const view of ['Lens', 'Zoom', 'Rows'])
-    await page.getByRole('button', { name: view, exact: true }).click();
+    await page
+      .getByRole('combobox', { name: 'View', exact: true })
+      .selectOption(view.toLowerCase());
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
   expect(errors).toEqual([]);
 });
 test('automatic speed zoom is optional and returns to rows after settling', async ({ page }) => {
+  await page.getByText('Developer tools', { exact: false }).first().click();
+  await expect(page.getByRole('checkbox', { name: 'Zoom out at speed' })).not.toBeChecked();
+  await page.getByRole('checkbox', { name: 'Zoom out at speed' }).check();
   const grid = page.getByRole('grid');
   await grid.focus();
   await grid.dispatchEvent('wheel', { deltaY: 1800, deltaMode: 0 });
   await expect(page.locator('.ds-aggregate-label')).toBeVisible();
   await expect(page.locator('.ds-aggregate-label')).not.toBeVisible({ timeout: 4000 });
-  await page.getByText('Playground', { exact: false }).first().click();
   await page.getByRole('checkbox', { name: 'Zoom out at speed' }).uncheck();
   await grid.dispatchEvent('wheel', { deltaY: 1800, deltaMode: 0 });
   await expect(page.locator('.ds-aggregate-label')).not.toBeVisible();
@@ -117,7 +126,7 @@ test('touch pinch and pan navigate the same coordinate system', async ({ page, b
     browserName !== 'chromium',
     'CDP touch injection is Chromium-specific; physical touch needs manual verification.',
   );
-  await page.getByRole('button', { name: 'Zoom', exact: true }).click();
+  await page.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
   await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
   const grid = page.getByRole('grid'),
     rect = await grid.boundingBox();

@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { createEngine, createLensMapping } from 'deepscroll/core';
 import { PageCache } from 'deepscroll/data';
+import { createTableTools } from 'deepscroll/tools';
 import { DeepScroll, useDeepScroll, AtlasRail } from 'deepscroll';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
+import { readFileSync } from 'node:fs';
 assert.match(import.meta.resolve('deepscroll'), /\/dist\/index\.js$/);
 const engine = createEngine({ rowCount: 100_000_000 });
 engine.goTo(73_499_999);
@@ -15,6 +17,24 @@ assert.ok(
   ),
 );
 engine.destroy();
+const tools = createTableTools({
+  provider: {
+    id: 'tool-smoke',
+    revision: '1',
+    rowCount: 100_000_000,
+    fetchRows: async (start, count) =>
+      Array.from({ length: count }, (_, i) => ({ value: start + i })),
+  },
+});
+assert.equal((await tools.execute('describe_table', {})).dataset.rowCount, 100_000_000);
+assert.equal(
+  (await tools.execute('read_rows', { start: 99_999_999, count: 1 })).data.rows[0].value,
+  99_999_999,
+);
+assert.equal(
+  (await tools.execute('read_rows', { start: 0, count: 100_000_000 })).error.code,
+  'INVALID_ARGUMENTS',
+);
 const markup = renderToString(
   createElement(DeepScroll, {
     provider: { id: 'ssr', revision: '1', rowCount: 100_000_000, fetchRows: async () => [] },
@@ -24,5 +44,32 @@ const markup = renderToString(
   }),
 );
 assert.ok(markup.includes('aria-rowcount="100000000"'));
-assert.ok(markup.includes('Loading reading'));
-console.log('Built ESM entry points, exact navigation, and server-rendered placeholders verified.');
+assert.ok(markup.includes('Loading row'));
+const customMarkup = renderToString(
+  createElement(DeepScroll, {
+    provider: { id: 'custom', revision: '1', rowCount: 12, fetchRows: async () => [] },
+    ariaLabel: 'Custom component',
+    unstyled: true,
+    classNames: { row: 'consumer-row', viewport: 'consumer-viewport' },
+    styles: { row: { padding: 12, transform: 'translateY(999px)' } },
+    renderToolbar: ({ snapshot }) => createElement('nav', null, `${snapshot.rowCount} records`),
+    renderRail: () => null,
+    renderFooter: () => null,
+    renderRow: ({ row }) => String(row),
+  }),
+);
+assert.match(customMarkup, /data-unstyled="true"/);
+assert.match(customMarkup, /<nav>12 records<\/nav>/);
+assert.match(customMarkup, /consumer-row/);
+assert.match(customMarkup, /consumer-viewport/);
+assert.match(customMarkup, /data-ds-part="row"/);
+assert.match(customMarkup, /padding:12px/);
+assert.ok(!customMarkup.includes('translateY(999px)'), 'Row geometry must remain engine-owned');
+assert.ok(!customMarkup.includes('class="ds-rail'));
+assert.ok(!customMarkup.includes('class="ds-footer'));
+const baseCss = readFileSync(new URL(import.meta.resolve('deepscroll/base.css')), 'utf8');
+const themeCss = readFileSync(new URL(import.meta.resolve('deepscroll/styles.css')), 'utf8');
+assert.match(baseCss, /@layer deepscroll/);
+assert.match(themeCss, /@import ['"]\.\/base.css['"]/);
+assert.ok(!themeCss.includes('!important'));
+console.log('Built exports, navigation, SSR, composition hooks, and packaged styles verified.');

@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useCallback,
   useId,
   useMemo,
   useRef,
@@ -18,12 +19,14 @@ import {
   type View,
   type NavigationLocation,
 } from '../core/index.js';
+import { validRange } from '../core/exploration.js';
+import { useWindowScroll } from './useWindowScroll.js';
 import { useRowMeasurements } from './useRowMeasurements.js';
 import { bindInputs } from './input.js';
 import { useFrameRate } from './useFrameRate.js';
 import { DataSession } from '../data/session.js';
 import { defaultFeatures, type Features } from '../features.js';
-import type { CacheOptions, DataProvider, Marker, RowSlot } from '../data/types.js';
+import type { CacheOptions, DataProvider, Marker, RowSlot, RowRange } from '../data/types.js';
 export interface ScrollStats {
   cachedRows: number;
   cachedBytes: number;
@@ -36,6 +39,12 @@ export interface ScrollStats {
 }
 export interface UseDeepScrollOptions<Row> {
   provider: DataProvider<Row>;
+  scrollMode?: 'embedded' | 'window';
+  /** Opt into append-only revisions. True follows only when already at the end. */
+  followOutput?: boolean;
+  selection?: RowRange | null;
+  initialSelection?: RowRange | null;
+  onSelectionChange?(range: RowRange | null): void;
   rowHeight?: number;
   /** Automatically measure loaded row content; rowHeight becomes the estimate. */
   dynamicRowHeight?: boolean;
@@ -53,6 +62,11 @@ export interface UseDeepScrollOptions<Row> {
 }
 export function useDeepScroll<Row>({
   provider,
+  scrollMode = 'embedded',
+  followOutput,
+  selection: controlledSelection,
+  initialSelection = null,
+  onSelectionChange,
   rowHeight = 32,
   dynamicRowHeight = false,
   maxMeasuredRows = 4096,
@@ -100,12 +114,33 @@ export function useDeepScroll<Row>({
     [
       provider.id,
       provider.revision,
-      provider.rowCount,
+      followOutput === undefined ? provider.rowCount : null,
+      followOutput === undefined,
       rowHeight,
       dynamicRowHeight,
       maxMeasuredRows,
     ],
   );
+  useWindowScroll(engine, scrollMode === 'window');
+  const [selectionState, setSelectionState] = useState({ engine, value: initialSelection });
+  const [selectionMode, setSelectionMode] = useState(false);
+  const candidate =
+    controlledSelection !== undefined
+      ? controlledSelection
+      : selectionState.engine === engine
+        ? selectionState.value
+        : initialSelection;
+  const selection = candidate && validRange(candidate, provider.rowCount) ? candidate : null;
+  const setSelection = useCallback(
+    (value: RowRange | null) => {
+      if (value && !validRange(value, provider.rowCount))
+        throw new RangeError('Invalid selected range');
+      setSelectionState({ engine, value });
+      onSelectionChange?.(value);
+    },
+    [engine, provider.rowCount, onSelectionChange],
+  );
+  useEffect(() => setSelectionMode(false), [engine]);
   const measurements = useRowMeasurements(engine);
   const sizes = engine.rowSizes;
   const snapshot = useSyncExternalStore(engine.subscribe, engine.getSnapshot, engine.getSnapshot);
@@ -117,15 +152,43 @@ export function useDeepScroll<Row>({
   const session = useMemo(
     () => new DataSession(provider, cache),
     [
-      provider,
+      followOutput === undefined ? provider : provider.id,
+      followOutput === undefined,
       provider.id,
       provider.revision,
-      provider.rowCount,
+      followOutput === undefined ? provider.rowCount : null,
       cache?.maxBytes,
       cache?.pageSize,
       cache?.estimateRowBytes,
+      cache?.requestTimeoutMs,
     ],
   );
+  const [unseenRows, setUnseenRows] = useState(0);
+  useEffect(() => {
+    if (followOutput === undefined) return;
+    const before = engine.getSnapshot();
+    const added = provider.rowCount - before.rowCount;
+    const atEnd =
+      before.view === 'rows' &&
+      engine.rowSizes.distance(before.position, before.rowCount) <= before.height + 1;
+    session.updateAppendProvider(provider);
+    engine.appendRows(provider.rowCount, followOutput);
+    if (added > 0) setUnseenRows((value) => (followOutput && atEnd ? 0 : value + added));
+  }, [engine, session, provider, provider.rowCount, followOutput]);
+  useEffect(() => {
+    if (
+      snapshot.view === 'rows' &&
+      engine.rowSizes.distance(snapshot.position, snapshot.rowCount) <= snapshot.height + 1
+    )
+      setUnseenRows(0);
+  }, [
+    engine,
+    snapshot.position,
+    snapshot.rowCount,
+    snapshot.height,
+    snapshot.view,
+    snapshot.layoutVersion,
+  ]);
   useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   useEffect(() => {
     session.start();
@@ -271,6 +334,7 @@ export function useDeepScroll<Row>({
     observer.observe(viewport);
     const unbind = bindInputs(viewport, engine, {
       reducedMotion: reduceMotion,
+      windowScroll: scrollMode === 'window',
       inertia: features.inertia,
       elasticity: features.edgeElasticity,
       automaticAggregation: features.automaticAggregation,
@@ -286,6 +350,7 @@ export function useDeepScroll<Row>({
     };
   }, [
     viewport,
+    scrollMode,
     engine,
     rowHeight,
     reduceMotion,
@@ -296,8 +361,23 @@ export function useDeepScroll<Row>({
     measurements,
   ]);
   useEffect(() => {
-    session.setRange('visible', start, count || (snapshot.rowCount ? 1 : 0));
-  }, [session, start, count, snapshot.rowCount]);
+    if (snapshot.moving && snapshot.targetIndex !== null) {
+      session.setRange(
+        'visible',
+        snapshot.targetIndex,
+        Math.ceil(snapshot.height / rowHeight) + overscan,
+      );
+    } else session.setRange('visible', start, count);
+  }, [
+    session,
+    start,
+    count,
+    snapshot.moving,
+    snapshot.targetIndex,
+    snapshot.height,
+    rowHeight,
+    overscan,
+  ]);
   useEffect(() => {
     if (!features.prefetch || snapshot.moving) {
       session.setRange('prefetch', 0, 0);
@@ -368,6 +448,15 @@ export function useDeepScroll<Row>({
       ? `${id}-row-${snapshot.activeIndex}`
       : undefined,
     className: `ds-viewport ${props.className ?? ''}`,
+    'data-ds-part': 'viewport',
+    style: {
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: 0,
+      flex: 1,
+      touchAction: 'none',
+      ...props.style,
+    } as CSSProperties,
     onClick: (event: React.MouseEvent<HTMLDivElement>) => {
       props.onClick?.(event);
       if (
@@ -455,6 +544,12 @@ export function useDeepScroll<Row>({
   });
   return {
     id,
+    unseenRows,
+    selection,
+    setSelection,
+    selectionMode,
+    setSelectionMode,
+    scrollMode,
     controller: engine,
     snapshot,
     rows,
@@ -473,13 +568,29 @@ export function useDeepScroll<Row>({
     edgeOffset,
     setSearchBusy,
     getViewportProps,
-    getRowProps: (slot: RowSlot<Row>) => ({
+    getRowProps: (slot: RowSlot<Row>, props: HTMLAttributes<HTMLDivElement> = {}) => ({
+      ...props,
       ref: dynamicRowHeight && slot.status === 'ready' ? measurements.ref(slot.index) : undefined,
       role: 'row',
       'aria-rowindex': slot.index + 1,
       id: `${id}-row-${slot.index}`,
-      className: `ds-row${dynamicRowHeight ? ' ds-row-dynamic' : ''}`,
+      className:
+        `ds-row${dynamicRowHeight ? ' ds-row-dynamic' : ''} ${props.className ?? ''}`.trim(),
+      'data-ds-part': 'row',
+      'data-status': slot.status,
+      'aria-selected': selection
+        ? slot.index >= selection.start && slot.index < selection.end
+        : undefined,
+      'data-selected':
+        (selection && slot.index >= selection.start && slot.index < selection.end) || undefined,
+      'data-focused': slot.index === snapshot.activeIndex || undefined,
       style: {
+        ...props.style,
+        position: 'absolute',
+        boxSizing: 'border-box',
+        top: 0,
+        left: 0,
+        right: 0,
         height: dynamicRowHeight && slot.status === 'ready' ? 'auto' : slot.height,
         minHeight: dynamicRowHeight ? 1 : undefined,
         transform: `translateY(${slot.y}px)`,
@@ -487,6 +598,16 @@ export function useDeepScroll<Row>({
     }),
     getAnnouncementProps: () => ({
       className: 'ds-sr',
+      style: {
+        position: 'absolute',
+        width: 1,
+        height: 1,
+        padding: 0,
+        overflow: 'hidden',
+        clipPath: 'inset(50%)',
+        whiteSpace: 'nowrap',
+        border: 0,
+      } as CSSProperties,
       'aria-live': 'polite' as const,
       children: announcement,
     }),

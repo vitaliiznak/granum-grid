@@ -1,16 +1,50 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { clamp, progressToRow, rowToProgress } from '../core/mappings.js';
-import { drawAtlas } from '../visuals/atlas.js';
+import { atlasDomain, atlasTicks, drawAtlas, profileValue } from '../visuals/atlas.js';
+import { OverviewTracks } from './OverviewTracks.js';
+import { MarkerLayer } from './MarkerLayer.js';
+import type { RowRange } from '../data/types.js';
 import type { DeepScrollState } from './useDeepScroll.js';
+export interface AtlasRailOptions {
+  /** Presentation only; the navigation and provider stay the same. */
+  variant?: 'profile' | 'markers';
+  layout?: 'auto' | 'expanded' | 'compact';
+  axis?: 'chapters' | 'rows';
+  axisLabel?: string;
+  title?: string;
+  showRange?: boolean;
+  showTracks?: boolean;
+  markerLabels?: 'label' | 'number' | 'none';
+  formatValue?(value: number): string;
+}
+export interface AtlasRailProps<Row> {
+  scroll: DeepScrollState<Row>;
+  options?: AtlasRailOptions;
+  ariaLabel?: string;
+  className?: string;
+  style?: CSSProperties;
+  renderPreviewRow?(row: Row, index: number): ReactNode;
+}
 export function AtlasRail<Row>({
   scroll,
   ariaLabel = 'Dataset position',
   renderPreviewRow,
-}: {
-  scroll: DeepScrollState<Row>;
-  ariaLabel?: string;
-  renderPreviewRow?(row: Row, index: number): ReactNode;
-}) {
+  className,
+  style,
+  options = {},
+}: AtlasRailProps<Row>) {
+  const helpId = useId();
+  const rangeDrag = useRef<{ anchor: number; previous: RowRange | null } | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [trackHeight, setTrackHeight] = useState(400);
   const track = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const magnifier = useRef<HTMLCanvasElement>(null);
@@ -28,25 +62,68 @@ export function AtlasRail<Row>({
   const [dragging, setDragging] = useState(false);
   const { session, snapshot, features } = scroll;
   const total = snapshot.rowCount;
+  const markers = useMemo(
+    () => [...session.markers, ...scroll.searchMarkers],
+    [session.markers, scroll.searchMarkers],
+  );
+  const visibleStart = Math.max(0, scroll.mapping.toRow(0));
+  const visibleEnd = Math.min(total, scroll.mapping.toRow(snapshot.height));
   const chapterAt = (index: number) =>
     session.chapters.find((chapter) => index >= chapter.start && index < chapter.end);
-  const domain: readonly [number, number] =
-    scroll.provider.metric?.domain ??
-    (scroll.provider.metric?.kind === 'density'
-      ? [0, 1]
-      : [
-          Math.min(0, ...session.overview.map((b) => b.min ?? 0)),
-          Math.max(1, ...session.overview.map((b) => b.max ?? 1)),
-        ]);
+  const domain = atlasDomain(
+    session.overview,
+    scroll.provider.metric?.domain,
+    scroll.provider.metric?.kind,
+  );
+  const kind = scroll.provider.metric?.kind ?? 'value';
+  const showProfile = options.variant !== 'markers' && features.overview;
+  const showRange = !!options.showRange && kind === 'value';
+  const axis = options.axis ?? 'chapters';
+  const ticks = atlasTicks(
+    total,
+    features.chapters ? session.chapters : [],
+    axis,
+    Math.min(5, Math.max(2, Math.floor(trackHeight / 70))),
+  );
+  const hasChapterAxis = axis === 'chapters' && features.chapters && session.chapters.length > 0;
+  const axisLabel =
+    axis === 'chapters' && !hasChapterAxis
+      ? 'Row'
+      : (options.axisLabel ?? (hasChapterAxis ? 'Position' : 'Row'));
+  const formatValue =
+    options.formatValue ??
+    ((value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 1 }));
+  const profileLabel = kind === 'density' ? 'Density' : 'Average';
+  const accuracy =
+    !scroll.provider.fetchOverview ||
+    session.metadataErrors.overview ||
+    (session.overview.length && session.overview.every((b) => profileValue(b, kind) === null))
+      ? 'Unavailable'
+      : !session.overview.length
+        ? 'Loading'
+        : session.overview.some((b) => b.accuracy === 'estimated')
+          ? 'Sampled'
+          : 'Exact';
+  const hoverBucket = hover
+    ? session.overview.find((b) => hover.index >= b.start && hover.index < b.end)
+    : undefined;
+  const hoverValue = hoverBucket ? profileValue(hoverBucket, kind) : null;
+  useEffect(() => {
+    if (!track.current) return;
+    const observer = new ResizeObserver(() => setTrackHeight(track.current?.clientHeight ?? 400));
+    observer.observe(track.current);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     if (!canvas.current) return;
     const draw = () =>
       drawAtlas(
         canvas.current!,
-        features.overview ? session.overview : [],
+        showProfile ? session.overview : [],
         total,
         domain,
-        scroll.provider.metric?.kind,
+        kind,
+        showRange,
       );
     draw();
     const resize = new ResizeObserver(draw);
@@ -63,7 +140,8 @@ export function AtlasRail<Row>({
   }, [
     session.overview,
     total,
-    features.overview,
+    showProfile,
+    showRange,
     domain[0],
     domain[1],
     scroll.provider.metric?.kind,
@@ -92,8 +170,8 @@ export function AtlasRail<Row>({
         start: Math.max(start, b.start) - start,
         end: Math.min(end, b.end) - start,
       }));
-    drawAtlas(magnifier.current, buckets, end - start, domain, scroll.provider.metric?.kind);
-  }, [hover, session.overview, features.magnifier]);
+    drawAtlas(magnifier.current, buckets, end - start, domain, kind, showRange);
+  }, [hover, session.overview, features.magnifier, showRange, domain[0], domain[1], kind]);
   const atPointer = (clientY: number) => {
     const rect = track.current!.getBoundingClientRect();
     return {
@@ -102,6 +180,13 @@ export function AtlasRail<Row>({
     };
   };
   const finish = (cancel = false) => {
+    if (rangeDrag.current) {
+      if (cancel) scroll.setSelection(rangeDrag.current.previous);
+      rangeDrag.current = null;
+      scroll.setSelectionMode(false);
+      setDragging(false);
+      return;
+    }
     if (drag.current) {
       const state = drag.current;
       if (!state.moved && !cancel) {
@@ -113,24 +198,102 @@ export function AtlasRail<Row>({
     setDragging(false);
   };
   return (
-    <aside className="ds-rail">
+    <aside
+      className={`ds-rail ${className ?? ''}`}
+      style={style}
+      data-ds-part="rail"
+      data-layout={options.layout ?? 'auto'}
+      data-variant={showProfile ? 'profile' : 'markers'}
+      data-has-tracks={(options.showTracks && session.tracks.length > 0) || undefined}
+      data-marker-labels={options.markerLabels ?? 'label'}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') setHelpOpen(false);
+      }}
+    >
       <div className="ds-rail-title">
-        ATLAS <span>↕</span>
+        <strong>
+          <span className="ds-map-title">{options.title ?? 'Dataset map'}</span>
+          <span className="ds-map-title-compact">Map</span>
+        </strong>
+        <button
+          type="button"
+          className="ds-button ds-map-help-button"
+          aria-label="About dataset map"
+          aria-expanded={helpOpen}
+          aria-controls={helpId}
+          onClick={() => setHelpOpen(!helpOpen)}
+        >
+          ?
+        </button>
       </div>
+      <div id={helpId} className="ds-map-help" hidden={!helpOpen} role="note" tabIndex={0}>
+        <strong>How to read this map</strong>
+        <p>
+          Top to bottom follows row order, from the first row to the last. Click or drag to move.
+        </p>
+        {showProfile && (
+          <p>
+            Each horizontal strip summarizes a group of rows. The profile extends toward larger{' '}
+            {kind === 'density' ? 'density' : 'average values'} on the horizontal scale.
+            {showRange ? ' The faint band shows the minimum to maximum.' : ''}
+          </p>
+        )}
+        <p>
+          The blue line is your current row. Shading shows the visible range; very small ranges
+          appear as a thin line. Diamonds mark events; numbered groups open a searchable event list.
+        </p>
+        {showProfile && (
+          <p>
+            {accuracy} overview
+            {session.overview.length > 0
+              ? ` · ${session.overview.length} groups · about ${Math.round(total / session.overview.length).toLocaleString()} rows per group`
+              : ''}
+            . {accuracy === 'Sampled' ? 'Summaries use samples, not every row.' : ''}
+          </p>
+        )}
+      </div>
+      {scroll.selectionMode && (
+        <p className="ds-selection-hint" role="status">
+          Drag on the map to select a range. Escape cancels.
+        </p>
+      )}
+      <div className="ds-map-axis-heading">
+        <span>{axisLabel} ↓</span>
+        <span>{showProfile ? `${scroll.provider.metric?.label ?? 'Value'} →` : 'Events'}</span>
+      </div>
+      {showProfile && (
+        <div
+          className="ds-map-value-axis"
+          aria-label={`${scroll.provider.metric?.label ?? 'Value'} scale: ${formatValue(domain[0])} to ${formatValue(domain[1])} ${scroll.provider.metric?.unit ?? ''}`}
+        >
+          <span>{formatValue(domain[0])}</span>
+          <span>
+            {formatValue(domain[1])}
+            {scroll.provider.metric?.unit ? ` ${scroll.provider.metric.unit}` : ''}
+          </span>
+        </div>
+      )}
       <div
         ref={track}
         className="ds-track"
         role="group"
-        aria-label="Atlas timeline"
+        aria-label="Dataset map navigation"
         tabIndex={-1}
         onPointerDown={(event) => {
           if (event.button !== 0 || !total) return;
           event.preventDefault();
+          setHelpOpen(false);
           event.currentTarget.querySelector<HTMLElement>('[role=slider]')?.focus();
           event.currentTarget.setPointerCapture(event.pointerId);
           const target = atPointer(event.clientY),
             rect = track.current!.getBoundingClientRect();
           const nearThumb = Math.abs(target.y - snapshot.progress * rect.height) <= 14;
+          if (scroll.selectionMode) {
+            rangeDrag.current = { anchor: target.index, previous: scroll.selection };
+            scroll.setSelection({ start: target.index, end: target.index + 1 });
+            setDragging(true);
+            return;
+          }
           scroll.controller.beginScrub();
           drag.current = {
             x: event.clientX,
@@ -145,6 +308,13 @@ export function AtlasRail<Row>({
         }}
         onPointerMove={(event) => {
           const target = atPointer(event.clientY);
+          if (rangeDrag.current) {
+            scroll.setSelection({
+              start: Math.min(target.index, rangeDrag.current.anchor),
+              end: Math.max(target.index, rangeDrag.current.anchor) + 1,
+            });
+            return;
+          }
           if (!drag.current) {
             setHover(target);
             return;
@@ -198,7 +368,7 @@ export function AtlasRail<Row>({
         }}
         onPointerCancel={() => finish(true)}
         onLostPointerCapture={() => {
-          if (drag.current) finish(true);
+          if (drag.current || rangeDrag.current) finish(true);
         }}
         onPointerLeave={() => {
           if (!drag.current) setHover(null);
@@ -221,47 +391,59 @@ export function AtlasRail<Row>({
           }
         }}
       >
-        <canvas
-          ref={canvas}
-          className="ds-overview-canvas"
+        {options.showTracks && session.tracks.length > 0 && (
+          <OverviewTracks tracks={session.tracks} total={total} />
+        )}
+        <div className="ds-map-plot">
+          <canvas
+            ref={canvas}
+            className="ds-overview-canvas"
+            aria-hidden="true"
+            data-testid="overview"
+          />
+          {showProfile && accuracy === 'Unavailable' && (
+            <span className="ds-map-unavailable">No profile</span>
+          )}
+        </div>
+        {ticks.map((tick) => (
+          <div
+            key={tick.index}
+            className="ds-map-tick"
+            style={{
+              top: `clamp(0px, calc(${rowToProgress(tick.index, total) * 100}% - 8px), calc(100% - 16px))`,
+            }}
+            title={`Row ${(tick.index + 1).toLocaleString()}`}
+          >
+            <span>{tick.label}</span>
+          </div>
+        ))}
+        {features.markers && (
+          <MarkerLayer
+            markers={markers}
+            total={total}
+            height={trackHeight}
+            controller={scroll.controller}
+            labels={options.markerLabels}
+          />
+        )}
+        <span
+          className="ds-visible-range"
           aria-hidden="true"
-          data-testid="overview"
+          style={{
+            top: `${(visibleStart / Math.max(1, total)) * 100}%`,
+            height: `${(Math.max(0, visibleEnd - visibleStart) / Math.max(1, total)) * 100}%`,
+          }}
         />
-        {features.chapters &&
-          session.chapters.map((chapter, i) => (
-            <div
-              key={chapter.id}
-              title={chapter.label}
-              className="ds-chapter"
-              style={{ top: `${rowToProgress(chapter.start, total) * 100}%` }}
-            >
-              {i % 5 === 0 && <span>{chapter.label}</span>}
-            </div>
-          ))}
-        {features.markers &&
-          [...session.markers, ...scroll.searchMarkers].map((marker, index) => (
-            <button
-              key={marker.id}
-              className="ds-marker"
-              aria-label={marker.label}
-              title={`${marker.label} · Row ${(marker.index + 1).toLocaleString()}`}
-              style={{ top: `${rowToProgress(marker.index, total) * 100}%`, color: marker.color }}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation();
-                scroll.controller.goTo(marker.index, { reason: 'marker' });
-              }}
-              onFocus={() =>
-                setHover({
-                  index: marker.index,
-                  y: rowToProgress(marker.index, total) * (track.current?.clientHeight ?? 400),
-                })
-              }
-              onBlur={() => setHover(null)}
-            >
-              ◆<span>{index + 1}</span>
-            </button>
-          ))}
+        {scroll.selection && (
+          <span
+            className="ds-map-selection"
+            aria-hidden="true"
+            style={{
+              top: `${(scroll.selection.start / Math.max(1, total)) * 100}%`,
+              height: `${((scroll.selection.end - scroll.selection.start) / Math.max(1, total)) * 100}%`,
+            }}
+          />
+        )}
         {features.trail &&
           snapshot.trail.map((position, i) => (
             <span
@@ -274,6 +456,9 @@ export function AtlasRail<Row>({
           role="slider"
           tabIndex={0}
           aria-label={ariaLabel}
+          aria-orientation="vertical"
+          aria-describedby={helpId}
+          title="Current row — drag to navigate"
           aria-valuemin={total ? 1 : 0}
           aria-valuemax={total}
           aria-valuenow={total ? (snapshot.activeIndex ?? 0) + 1 : 0}
@@ -283,17 +468,34 @@ export function AtlasRail<Row>({
         />
         <span className="ds-track-line" style={{ top: `${snapshot.progress * 100}%` }} />
       </div>
+      <div className="ds-map-position">
+        <span>
+          <i />
+          You are here
+        </span>
+        <strong>{(snapshot.progress * 100).toFixed(2)}%</strong>
+      </div>
       <span className="ds-rail-end">
         {Intl.NumberFormat('en', { notation: 'compact' }).format(total)} rows
       </span>
-      {hover && (dragging || features.preview || features.magnifier) && (
+      <div className="ds-map-legend">
+        {showProfile && (
+          <span>
+            <i className="ds-map-mean-key" />
+            {profileLabel}
+            {showRange ? ' + min–max' : ''} · {accuracy.toLowerCase()}
+          </span>
+        )}
+        {features.markers && <span>◆ Events · click to jump</span>}
+      </div>
+      {hover && !helpOpen && (dragging || features.preview || features.magnifier) && (
         <div
           className="ds-preview"
           style={{ top: clamp(hover.y + 28, 30, Math.max(30, snapshot.height - 180)) }}
           role="note"
         >
           <div className="ds-preview-kicker">
-            {dragging ? 'SCRUBBING' : 'AT THIS POSITION'}{' '}
+            {dragging ? 'Moving to row' : 'At this row'}{' '}
             <span>{chapterAt(hover.index)?.label ?? ''}</span>
           </div>
           <strong>{(hover.index + 1).toLocaleString()}</strong>
@@ -301,7 +503,31 @@ export function AtlasRail<Row>({
             {dragging ? precision : 'Row address'}
             {dragging && features.precision && <small>Move left for precision</small>}
           </div>
-          {features.magnifier && (
+          {showProfile && hoverBucket && (
+            <div className="ds-map-bucket-summary">
+              <span>
+                {hoverBucket.accuracy === 'estimated'
+                  ? 'Sampled group'
+                  : hoverBucket.accuracy === 'exact'
+                    ? 'Exact group'
+                    : 'Unavailable group'}{' '}
+                · rows {(hoverBucket.start + 1).toLocaleString()}–{hoverBucket.end.toLocaleString()}
+              </span>
+              <strong>
+                {profileLabel}:{' '}
+                {hoverValue === null
+                  ? 'Unavailable'
+                  : `${formatValue(hoverValue)} ${scroll.provider.metric?.unit ?? ''}`}
+              </strong>
+              {showRange && hoverBucket.accuracy !== 'unavailable' && (
+                <span>
+                  Min–max: {hoverBucket.min === null ? '—' : formatValue(hoverBucket.min)}–
+                  {hoverBucket.max === null ? '—' : formatValue(hoverBucket.max)}
+                </span>
+              )}
+            </div>
+          )}
+          {features.magnifier && showProfile && (
             <div className="ds-magnifier">
               <canvas ref={magnifier} aria-label="Magnified overview region" />
               <span>Local overview · coarse</span>

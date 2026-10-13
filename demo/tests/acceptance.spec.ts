@@ -5,19 +5,19 @@ test.beforeEach(async ({ page }) => {
 });
 test('overview exposes shape and the third spike can be found directly', async ({ page }) => {
   await expect(page.getByTestId('overview')).toBeVisible();
-  await expect(page.getByText('Signal amplitude · mean / range · sampled')).toBeVisible();
+  await expect(page.getByText('Signal amplitude · sampled overview')).toBeVisible();
   await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
   await expect(page.locator('[role=row][aria-rowindex="61700000"]')).toContainText('SPIKE');
 });
 test('exact row jump and reversible history', async ({ page }) => {
-  await page.getByRole('button', { name: 'Jump to…' }).click();
-  await page.getByRole('textbox', { name: 'Row, date, or expression' }).fill('73,500,000');
+  await page.getByRole('button', { name: 'Go to…' }).click();
+  await page.getByRole('textbox', { name: 'Go to row, date, or event' }).fill('73,500,000');
   await expect(page.getByRole('button', { name: 'Row 73,500,000 Row' })).toBeVisible();
   await page.getByRole('textbox').press('Enter');
   await expect(page.getByTestId('position')).toHaveText('Row 73,500,000 of 100,000,000');
   await expect(page.locator('[role=row][aria-rowindex="73500000"]')).toBeVisible();
-  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to previous location', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
   await page.getByRole('button', { name: 'Forward', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 73,500,000 of 100,000,000');
@@ -45,14 +45,16 @@ test('all views preserve the selected row and Zoom refines back to real rows', a
   await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
   for (const name of ['Lens', 'Zoom', 'Rows']) {
-    await page.getByRole('button', { name, exact: true }).click();
+    await page
+      .getByRole('combobox', { name: 'View', exact: true })
+      .selectOption(name.toLowerCase());
     await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
     await expect(page.getByRole('slider', { name: 'Dataset position' })).toHaveAttribute(
       'aria-valuenow',
       '61700000',
     );
   }
-  await page.getByRole('button', { name: 'Zoom', exact: true }).click();
+  await page.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
   await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
   await expect(page.getByText('Aggregate view', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Inspect rows', exact: true }).click();

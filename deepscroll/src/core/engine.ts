@@ -25,6 +25,9 @@ export interface NavigationSnapshot extends NavigationLocation {
   trail: readonly number[];
   layoutVersion: number;
   measuredRows: number;
+  /** Destination exposed for fetching during an animated jump. */
+  targetIndex: number | null;
+  backLocation: NavigationLocation | null;
 }
 export type ScrollAlignment = 'start' | 'center' | 'end' | 'auto';
 export interface ScrollToOptions {
@@ -85,6 +88,8 @@ export function createEngine(options: EngineOptions) {
     trail: [],
     layoutVersion: 0,
     measuredRows: 0,
+    targetIndex: null,
+    backLocation: null,
   };
   const location = (): NavigationLocation => ({
     position: snapshot.position,
@@ -97,6 +102,7 @@ export function createEngine(options: EngineOptions) {
       ...patch,
       canGoBack: backStack.length > 0,
       canGoForward: forwardStack.length > 0,
+      backLocation: backStack.at(-1) ?? null,
     };
     const last = Math.max(0, next.rowCount - 1);
     const maxPosition =
@@ -133,7 +139,7 @@ export function createEngine(options: EngineOptions) {
   }
   function interrupt() {
     flight = undefined;
-    update({ moving: false, flightSpan: 0 });
+    update({ moving: false, flightSpan: 0, targetIndex: null });
   }
   function alignedPosition(index: number, align: Exclude<ScrollAlignment, 'auto'>) {
     const height = rowSizes.size(index);
@@ -167,7 +173,7 @@ export function createEngine(options: EngineOptions) {
       Math.abs(to.position - from.position) > (2 * snapshot.height) / rowHeight
     ) {
       flight = { from, to, reason, duration: 420 };
-      update({ moving: true });
+      update({ moving: true, targetIndex: Math.floor(to.position) });
     } else {
       update(to);
       notify(from, reason);
@@ -194,6 +200,20 @@ export function createEngine(options: EngineOptions) {
   }
   const engine = {
     rowSizes,
+    /** Append-only count updates preserve addresses, measurements, and history. */
+    appendRows: (rowCount: number, follow = false) => {
+      if (!Number.isSafeInteger(rowCount) || rowCount < options.rowCount)
+        throw new RangeError('Append count must not decrease');
+      if (rowCount === options.rowCount) return;
+      const nearEnd =
+        snapshot.view === 'rows' &&
+        rowSizes.distance(snapshot.position, options.rowCount) <= snapshot.height + 1;
+      options.rowCount = rowCount;
+      rowSizes.rowCount = rowCount;
+      update({ rowCount });
+      if (follow && nearEnd && rowCount)
+        engine.scrollToIndex(rowCount - 1, { align: 'end', history: 'skip' });
+    },
     getLocation: location,
     getSnapshot: () => snapshot,
     subscribe: (listener: () => void) => {
@@ -219,7 +239,7 @@ export function createEngine(options: EngineOptions) {
       if (!enabled && flight) {
         const pending = flight;
         flight = undefined;
-        update({ ...pending.to, moving: false, flightSpan: 0 });
+        update({ ...pending.to, moving: false, flightSpan: 0, targetIndex: null });
         notify(pending.from, pending.reason);
       }
     },
@@ -424,7 +444,7 @@ export function createEngine(options: EngineOptions) {
       });
       if (t === 1) {
         flight = undefined;
-        update({ ...current.to, moving: false, flightSpan: 0 });
+        update({ ...current.to, moving: false, flightSpan: 0, targetIndex: null });
         notify(current.from, current.reason);
       }
       return !!flight;
