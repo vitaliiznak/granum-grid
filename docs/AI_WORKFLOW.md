@@ -60,6 +60,11 @@ npx playwright install chromium firefox webkit
 npm run check:full
 ```
 
+The full check also verifies the built frontend under a Pages project subdirectory
+with `npm run test:pages`. That command requires a production build and Chromium;
+`PAGES_URL=https://vitaliiznak.github.io/deepsearch/ npm run test:pages` checks the
+published site using the same navigation flow.
+
 The full check packs into a temporary consumer environment and may access npm to
 install React 18/19 dependencies. It writes the verified archive into `output/`;
 it does not publish it. CI uses the same commands in separate steps so failures

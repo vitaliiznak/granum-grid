@@ -158,8 +158,9 @@ test('touch pinch and pan navigate the same coordinate system', async ({ page, b
   );
   await page.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
   await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
-  const grid = page.getByRole('grid'),
-    rect = await grid.boundingBox();
+  const grid = page.getByRole('grid');
+  await grid.scrollIntoViewIfNeeded();
+  const rect = await grid.boundingBox();
   if (!rect) throw new Error('Missing viewport');
   const client = await page.context().newCDPSession(page);
   let touching = false;
@@ -186,15 +187,20 @@ test('touch pinch and pan navigate the same coordinate system', async ({ page, b
     await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     touching = false;
     await expect(page.locator('.ds-scale')).not.toHaveText(scaleBefore);
+    // Each gesture targets the current viewport; page scrolling or layout can move it after a pinch.
+    await grid.scrollIntoViewIfNeeded();
+    const panRect = (await grid.boundingBox())!;
+    const panX = panRect.x + panRect.width / 2;
+    const panY = panRect.y + panRect.height / 2;
     const positionBefore = await page.getByTestId('position').innerText();
     await client.send('Input.dispatchTouchEvent', {
       type: 'touchStart',
-      touchPoints: [{ x, y: y + 30, id: 1 }],
+      touchPoints: [{ x: panX, y: panY + 30, id: 1 }],
     });
     touching = true;
     await client.send('Input.dispatchTouchEvent', {
       type: 'touchMove',
-      touchPoints: [{ x, y: y - 30, id: 1 }],
+      touchPoints: [{ x: panX, y: panY - 30, id: 1 }],
     });
     await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     touching = false;

@@ -341,9 +341,16 @@ export function useDeepScroll<Row>({
     latestVisibleRange.current = visibleRange;
   });
   const getVisibleRange = useCallback((): RowRange => latestVisibleRange.current, []);
+  // At either endpoint, only part of the centered viewport contains data.
+  // Size summary bands for that occupied area so their actions remain readable.
+  const aggregateHeight = Math.max(
+    0,
+    Math.min(snapshot.height, mapping.toPixel(aggregateEnd)) -
+      Math.max(0, mapping.toPixel(aggregateStart)),
+  );
   const aggregateBuckets = Math.max(
     1,
-    Math.min(160, Math.ceil(snapshot.height / aggregateRowHeight)),
+    Math.min(160, Math.floor(aggregateHeight / aggregateRowHeight)),
   );
   useEffect(() => {
     if (

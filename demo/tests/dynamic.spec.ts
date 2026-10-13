@@ -101,6 +101,12 @@ test('wrapping responds to width and measured detail works in Lens and Zoom', as
     await page
       .getByRole('combobox', { name: 'View', exact: true })
       .selectOption(view.toLowerCase());
+    if (view === 'Zoom') {
+      // Zoom opens grouped summaries; refine before checking measured row layout.
+      await expect(page.locator('[data-ds-part="aggregate"]').first()).toBeVisible();
+      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+    }
     await expect(target).toHaveAttribute('data-status', 'ready');
     await assertAdjacent(page);
     await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
