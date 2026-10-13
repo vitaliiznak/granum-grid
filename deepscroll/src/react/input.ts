@@ -2,6 +2,7 @@ import { clamp, wheelPixels } from '../core/mappings.js';
 import type { DeepScrollEngine } from '../core/engine.js';
 export interface InputOptions {
   reducedMotion: boolean;
+  windowScroll?: boolean;
   inertia: boolean;
   elasticity: boolean;
   automaticAggregation: boolean;
@@ -11,6 +12,9 @@ export interface InputOptions {
 }
 /** Browser adapters own input listeners and RAFs; the engine only receives numbers. */
 export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, options: InputOptions) {
+  const wheelSurface = options.windowScroll
+    ? (viewport.closest<HTMLElement>('[data-ds-root]') ?? viewport)
+    : viewport;
   const touches = new Map<number, { x: number; y: number }>();
   let distance = 0,
     lastTime = 0,
@@ -71,8 +75,27 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
     settleTimer = setTimeout(settle, 140);
   };
   const wheel = (event: WheelEvent) => {
-    if ((event.target as HTMLElement).closest('input,textarea,select,[contenteditable=true]'))
+    if (
+      event.defaultPrevented ||
+      (event.target as HTMLElement).closest('input,textarea,select,[contenteditable=true]')
+    )
       return;
+    if (options.windowScroll) {
+      // Panels and dialogs retain their own native scrolling, including any
+      // nested explorer. The fixed page's remaining surface uses row pixels.
+      for (
+        let node = event.target as HTMLElement;
+        node !== wheelSurface;
+        node = node.parentElement!
+      ) {
+        if (!node || node.matches('dialog,[data-ds-native-scroll]')) return;
+        if (
+          node.scrollHeight > node.clientHeight &&
+          /^(auto|scroll)$/.test(getComputedStyle(node).overflowY)
+        )
+          return;
+      }
+    }
     cancelInertia();
     if (event.ctrlKey) {
       if (!viewport.contains(document.activeElement)) return;
@@ -83,6 +106,14 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
         event.clientY - viewport.getBoundingClientRect().top,
       );
     } else {
+      const state = engine.getSnapshot();
+      if (
+        (state.position <= 0 && event.deltaY < 0) ||
+        (state.position >= Math.max(0, state.rowCount - 1) && event.deltaY > 0)
+      ) {
+        if (options.windowScroll) event.preventDefault();
+        return;
+      }
       event.preventDefault();
       pan(
         wheelPixels(
@@ -166,7 +197,7 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
     }
   };
   const stopOnKey = () => cancelInertia();
-  viewport.addEventListener('wheel', wheel, { passive: false });
+  wheelSurface.addEventListener('wheel', wheel, { passive: false });
   viewport.addEventListener('pointerdown', down);
   viewport.addEventListener('pointermove', move, { passive: false });
   viewport.addEventListener('pointerup', up);
@@ -180,7 +211,7 @@ export function bindInputs(viewport: HTMLElement, engine: DeepScrollEngine, opti
     clearTimeout(settleTimer);
     options.onSpeed(0);
     options.onEdge(0);
-    viewport.removeEventListener('wheel', wheel);
+    wheelSurface.removeEventListener('wheel', wheel);
     viewport.removeEventListener('pointerdown', down);
     viewport.removeEventListener('pointermove', move);
     viewport.removeEventListener('pointerup', up);

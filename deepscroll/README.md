@@ -51,15 +51,75 @@ Set `dynamicRowHeight` for automatic measurement of wrapped, expandable, or asyn
 
 Cache defaults: 256-row pages, 32 MiB estimated budget, four concurrent row fetches. Supply `cache.estimateRowBytes` for your row shape; the fallback is 256 bytes per row, not an actual heap measurement. Visible pages may exceed a small budget temporarily, reported as `budgetOverage`.
 
+## Styling and custom controls
+
+The default dataset map shows row order vertically, a group mean horizontally (density for density metrics), event diamonds, and a current-row line. Its fixed-size handle does not indicate visible range. The question-mark button explains the encoding; hovering shows the actual group range and summary. Chapter labels are supplied by the provider and fall back to row numbers.
+
+Configure it with `atlas={{ variant: 'profile', axis: 'chapters', axisLabel: 'Year', showRange: false, markerLabels: 'label', layout: 'auto' }}`. Alternatives are `variant: 'markers'`, `axis: 'rows'`, `markerLabels: 'number' | 'none'`, and `layout: 'expanded' | 'compact'`. Automatic layout becomes compact below 650 px. `showRange` enables min–max shading for value metrics. `title` and `formatValue(value)` customize labels. Set `axisLabel` to match your provider; dates are not inferred. `AtlasRail` accepts the same `AtlasRailOptions` as its `options` prop.
+
+No stylesheet is imported automatically. Choose `deepscroll/styles.css` for the default theme, `deepscroll/base.css` for layout only, or no CSS when using the headless hook. `unstyled` skips the skin for an individual component, including when the full stylesheet is loaded elsewhere.
+
+```tsx
+<DeepScroll
+  unstyled
+  provider={provider}
+  ariaLabel="Readings"
+  className="my-explorer"
+  classNames={{ row: 'my-row', toolbar: 'my-toolbar' }}
+  styles={{ footer: { fontSize: 12 } }}
+  renderToolbar={({ controller }) => (
+    <button className="my-button" onClick={() => controller.scrollToIndex(0)}>First row</button>
+  )}
+  renderFooter={() => null}
+  renderRow={({ row }) => <span role="gridcell">{row.value}</span>}
+/>
+```
+
+`classNames` and `styles` support `toolbar`, `header`, `scale`, `body`, `viewport`, `row`, `rail`, `footer`, `jump`, and `hint`. Each has a stable `data-ds-part` hook. Row states are `data-focused` and `data-status`. Replacement `renderToolbar`, `renderFooter`, and `renderRail` callbacks receive the full `DeepScrollState`; return any React content or `null`. Replacement wrappers own their styling. Use the hook for complete markup control.
+
+Default tokens: `--ds-bg`, `--ds-panel`, `--ds-text`, `--ds-muted`, `--ds-line`, `--ds-accent`, `--ds-hover`, `--ds-mark`, `--ds-radius`, `--ds-rail-width` (232px), `--ds-rail-width-mobile` (72px), and `--ds-rail-width-compact` (76px). Override them on your root class. Typography is inherited. Styles use the `deepscroll` cascade layer and zero-specificity selectors, so ordinary unlayered application CSS wins. With layered frameworks, declare `deepscroll` before your framework's layers. No descendant reset targets your own buttons or inputs.
+
+`getViewportProps({ className, style, ...handlers })` and `getRowProps(slot, { className, style, ...handlers })` compose application styles and events. Spread all returned props, including measurement refs. The engine retains row geometry (position, transform, height and border-box sizing). Use dynamic row heights for content-driven sizing. The hook provides structural inline styles and hidden announcements without any CSS import; give the viewport a bounded height. For a rows-only headless list, disable `automaticAggregation` and `flight`, or render `ViewCanvas` when using aggregate views.
+
 ## Exports
 
 | Entry | Surface |
 | --- | --- |
-| `deepscroll` | `DeepScroll`, `useDeepScroll`, `AtlasRail`, defaults and types |
+| `deepscroll` | `DeepScroll`, `useDeepScroll`, `AtlasRail`, `JumpBar`, `ViewCanvas`, defaults and types |
 | `deepscroll/core` | Framework-independent engine and pure coordinate mappings |
 | `deepscroll/data` | Provider types, `PageCache`, `DataSession` |
-| `deepscroll/styles.css` | Component styles and `--ds-*` theme variables |
+| `deepscroll/tools` | `createTableTools`, JSON Schema definitions, bounded tool execution |
+| `deepscroll/base.css` | Structural layout only |
+| `deepscroll/styles.css` | Optional skin and `--ds-*` theme variables; includes base layout |
 
 React and React DOM 18.2 or 19 are peers. There are no other runtime dependencies. Output is ESM with TypeScript declarations. This is an initial local release; the package has not been published to npm.
 
-Not yet implemented: sticky group headers, unknown-length streams, append/prepend anchoring, horizontal/column virtualization, or a built-in grid layer for sorting/filtering/selection/editing. Sorting and filtering currently belong to the provider and require a fresh revision/count. Server-rendered placeholders are supported; measurement begins on the client.
+Not yet implemented: unknown-length streams, prepend anchoring, horizontal/column virtualization, or a built-in grid layer for sorting/filtering/editing. Sorting and filtering currently belong to the provider and require a fresh revision/count. Server-rendered placeholders are supported; measurement begins on the client.
+
+## Exploration and full-page use
+
+- The **View** menu offers List, Focus + context, and Overview. **Go to…** accepts addresses, provider searches, and loaded event names. Automatic speed aggregation defaults off.
+- **Explore** selects a half-open `RowRange`, requests a provider summary, compares two ranges, and saves named bookmarks. `selection`/`onSelectionChange` support controlled use; `exploration={false}` hides the panel. Comparison links relative progress, not matching records.
+- `bookmarkStorageKey` opts into persistent browser bookmarks. `encodeView` and `decodeView` serialize location, zoom, selection, dataset ID and revision. Invalid or mismatched views are rejected.
+- `fullPageUrl(view)` adds **Open full page**, targeting a host route in a new tab. That route renders `layout="page"` with restored `initialLocation`/`initialSelection`. Page mode owns the viewport; its bounded native scrollbar and dataset map both represent global progress. Wheel, touch panning over rows, and keyboard steps retain local precision. Native scrollbar dragging is approximate; Go to selects exact rows. Mount one page-mode explorer per document.
+- `stickyChapters` keeps the current chapter visible. `atlas={{ showTracks: true }}` shows up to four provider-supplied `fetchOverviewTracks` profiles.
+- `followOutput={true}` accepts append-only count growth with the same ID/revision and follows when the List view is already at its end. `false` preserves the current address; omitted keeps immutable snapshot behavior. Existing rows must not change. Unknown counts and prepends are unsupported.
+- `cache.requestTimeoutMs` defaults to 15,000 ms. Four useful row requests run concurrently; at most eight unsettled row transports are retained. Providers must honor cancellation. `showStats` enables footer diagnostics.
+
+The workspace [README](../README.md) includes route integration and provider contracts.
+
+## AI-callable tools
+
+```ts
+import { createTableTools } from 'deepscroll/tools';
+
+const tools = createTableTools({
+  provider,
+  columns: [{ name: 'value', type: 'number' }],
+});
+const result = await tools.execute('read_rows', { start: 73_499_999, count: 5 });
+```
+
+Register `tools.definitions` (`name`, `description`, JSON Schema `inputSchema`, and `effect`) with your agent framework, and pass parsed tool calls to `execute(name, args, { signal })`. Results use `{ ok: true, dataset, data }` or `{ ok: false, error: { code, message } }`. The package provides execution; your application supplies the model connection and its call budget.
+
+Tools include `describe_table`, `read_rows`, optional provider-backed `search_rows` and `summarize_range`, and `navigate_to_row` when you supply `getController: () => controller.current`. All indices are zero-based and ranges are half-open. Limits are 100 rows/matches, 64 summary buckets, 64 KiB per successful result, four outstanding provider requests, and a default 15-second timeout. Partial search flags, summary accuracy, and nulls remain visible. Column metadata does not redact row data. Recreate tools for each dataset snapshot; the controller must display that same dataset/revision. Provider requests must honor cancellation, and expensive backend queries still need host-level budgets.

@@ -1,11 +1,22 @@
-import { useImperativeHandle, type CSSProperties, type ReactNode, type Ref, type Key } from 'react';
+import {
+  memo,
+  useImperativeHandle,
+  type CSSProperties,
+  type ReactNode,
+  type Ref,
+  type Key,
+} from 'react';
 import type { DeepScrollEngine } from '../core/engine.js';
-import { useDeepScroll, type UseDeepScrollOptions } from './useDeepScroll.js';
+import { useDeepScroll, type UseDeepScrollOptions, type DeepScrollState } from './useDeepScroll.js';
+import { partProps, type DeepScrollAppearance } from './styling.js';
 import { ContextHints } from './ContextHints.js';
 import { ViewLayer } from './ViewLayer.js';
 import { ViewCanvas } from './ViewCanvas.js';
 import { JumpBar } from './JumpBar.js';
-import { AtlasRail } from './AtlasRail.js';
+import { AtlasRail, type AtlasRailOptions } from './AtlasRail.js';
+import { ExplorerTools, savedView } from './ExplorerTools.js';
+import { CompareRanges } from './CompareRanges.js';
+import type { SavedView } from '../core/exploration.js';
 import type { PendingRowSlot } from '../data/types.js';
 export interface RowRenderContext<Row> {
   row: Row;
@@ -13,7 +24,7 @@ export interface RowRenderContext<Row> {
   rowNumber: number;
   focused: boolean;
 }
-export interface DeepScrollProps<Row> extends UseDeepScrollOptions<Row> {
+export interface DeepScrollProps<Row> extends UseDeepScrollOptions<Row>, DeepScrollAppearance {
   header?: ReactNode;
   renderRow(context: RowRenderContext<Row>): ReactNode;
   renderPlaceholder?(slot: PendingRowSlot): ReactNode;
@@ -21,28 +32,64 @@ export interface DeepScrollProps<Row> extends UseDeepScrollOptions<Row> {
   className?: string;
   style?: CSSProperties;
   theme?: 'system' | 'dark' | 'light';
+  /** Opt out of the optional skin, even when styles.css is loaded elsewhere. */
+  unstyled?: boolean;
   controllerRef?: Ref<DeepScrollEngine>;
   getRowKey?(row: Row, index: number): Key;
   emptyContent?: ReactNode;
+  atlas?: AtlasRailOptions;
+  /** Page owns the document scroll surface; mount one per page. */
+  layout?: 'embedded' | 'page';
+  exploration?: boolean;
+  bookmarkStorageKey?: string;
+  fullPageUrl?(view: SavedView): string;
+  stickyChapters?: boolean;
+  showStats?: boolean;
+  /** Replace the built-in controls with your own React components. Return null to hide. */
+  renderToolbar?(scroll: DeepScrollState<Row>): ReactNode;
+  renderFooter?(scroll: DeepScrollState<Row>): ReactNode;
+  renderRail?(scroll: DeepScrollState<Row>): ReactNode;
 }
+const LoadedRow = memo(function LoadedRow<Row>({
+  render,
+  row,
+  index,
+  focused,
+}: {
+  render: (context: RowRenderContext<Row>) => ReactNode;
+  row: Row;
+  index: number;
+  focused: boolean;
+}) {
+  const content = render({ row, index, rowNumber: index + 1, focused });
+  return typeof content === 'string' || typeof content === 'number' ? (
+    <span role="gridcell">{content}</span>
+  ) : (
+    content
+  );
+}) as <Row>(props: {
+  render: (context: RowRenderContext<Row>) => ReactNode;
+  row: Row;
+  index: number;
+  focused: boolean;
+}) => ReactNode;
+
 export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
-  const scroll = useDeepScroll(props);
+  const scroll = useDeepScroll({
+    ...props,
+    scrollMode: props.layout === 'page' ? 'window' : props.scrollMode,
+  });
   useImperativeHandle(props.controllerRef, () => scroll.controller, [scroll.controller]);
   const { snapshot } = scroll;
-  const renderLoaded = (context: RowRenderContext<Row>) => {
-    const content = props.renderRow(context);
-    return typeof content === 'string' || typeof content === 'number' ? (
-      <span role="gridcell">{content}</span>
-    ) : (
-      content
-    );
-  };
   const chapter = scroll.session.chapters.find(
     (c) => snapshot.position >= c.start && snapshot.position < c.end,
   );
   return (
     <section
       className={`ds-root ${props.className ?? ''}`}
+      data-ds-root=""
+      data-layout={props.layout ?? 'embedded'}
+      data-unstyled={props.unstyled || undefined}
       style={props.style}
       data-view={snapshot.view}
       data-motion={!scroll.reduceMotion && scroll.features.transitions ? 'on' : 'off'}
@@ -64,61 +111,116 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
         }
       }}
     >
-      <div className="ds-toolbar">
-        <div className="ds-toolbar-main">
-          <div className="ds-history">
-            <button
-              aria-label="Back"
-              disabled={!snapshot.canGoBack}
-              onClick={() => scroll.controller.back()}
-            >
-              ←
-            </button>
-            <button
-              aria-label="Forward"
-              disabled={!snapshot.canGoForward}
-              onClick={() => scroll.controller.forward()}
-            >
-              →
-            </button>
-          </div>
-          <span className="ds-context" data-testid="breadcrumb">
-            {chapter?.breadcrumb?.join(' / ') ?? chapter?.label ?? 'Indexed dataset'}
-          </span>
-        </div>
-        <div className="ds-toolbar-actions">
-          <div className="ds-view-switch" aria-label="View">
-            {(['rows', 'lens', 'zoom'] as const).map((view) => (
+      {props.renderToolbar ? (
+        props.renderToolbar(scroll)
+      ) : (
+        <div {...partProps('toolbar', props)}>
+          <div className="ds-toolbar-main">
+            <div className="ds-history">
               <button
-                key={view}
-                aria-pressed={snapshot.view === view}
-                onClick={() => scroll.controller.setView(view)}
+                className="ds-button"
+                aria-label="Back to previous location"
+                title={
+                  snapshot.backLocation
+                    ? `Back to row ${Math.floor(snapshot.backLocation.position + 1).toLocaleString()}`
+                    : 'No previous location'
+                }
+                disabled={!snapshot.canGoBack}
+                onClick={() => scroll.controller.back()}
               >
-                {view[0].toUpperCase() + view.slice(1)}
+                ← Back
               </button>
-            ))}
+              <button
+                className="ds-button"
+                aria-label="Forward"
+                disabled={!snapshot.canGoForward}
+                onClick={() => scroll.controller.forward()}
+              >
+                →
+              </button>
+            </div>
+            <span className="ds-context" data-testid="breadcrumb">
+              {chapter?.breadcrumb?.join(' / ') ?? chapter?.label ?? 'Indexed dataset'}
+            </span>
           </div>
-          <button className="ds-jump-trigger" onClick={() => scroll.setJumpOpen(true)}>
-            Jump to… <kbd>⌘ K</kbd>
-          </button>
+          <div className="ds-toolbar-actions">
+            <label className="ds-view-menu">
+              View{' '}
+              <select
+                className="ds-input"
+                aria-label="View"
+                value={snapshot.view}
+                onChange={(event) =>
+                  scroll.controller.setView(event.target.value as 'rows' | 'lens' | 'zoom')
+                }
+              >
+                <option value="rows">List</option>
+                <option value="lens">Focus + context</option>
+                <option value="zoom">Overview</option>
+              </select>
+            </label>
+            <button className="ds-button ds-jump-trigger" onClick={() => scroll.setJumpOpen(true)}>
+              Go to… <kbd>⌘ K</kbd>
+            </button>
+            {props.fullPageUrl && (
+              <a
+                className="ds-button ds-open-page"
+                href={props.fullPageUrl(savedView(scroll))}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open full page ↗
+              </a>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="ds-legend">
+      )}
+      {props.exploration !== false && (
+        <ExplorerTools
+          scroll={scroll}
+          storageKey={props.bookmarkStorageKey}
+          renderComparison={(a, b, close) => (
+            <CompareRanges a={a} b={b} host={props} onClose={close} />
+          )}
+        />
+      )}
+      <div {...partProps('header', props, 'ds-legend')}>
         <span>{props.header ?? 'RECORDS'}</span>
         <span>
           <i />
-          {props.provider.metric?.label ?? 'Overview'} · mean / range ·{' '}
-          {!props.provider.fetchOverview
+          {props.provider.metric?.label ?? 'Dataset'} ·{' '}
+          {!props.provider.fetchOverview ||
+          scroll.session.metadataErrors.overview ||
+          (scroll.session.overview.length > 0 &&
+            scroll.session.overview.every((bucket) => bucket.accuracy === 'unavailable'))
             ? 'unavailable'
             : !scroll.session.overview.length
               ? 'loading'
               : scroll.session.overview.some((b) => b.accuracy === 'estimated')
                 ? 'sampled'
-                : 'exact'}
+                : 'exact'}{' '}
+          overview
         </span>
       </div>
+      {props.followOutput !== undefined && (
+        <div className="ds-live-status">
+          <span>
+            {scroll.unseenRows
+              ? `${scroll.unseenRows.toLocaleString()} new rows`
+              : 'Live · up to date'}
+          </span>
+          <button
+            className="ds-button"
+            onClick={() =>
+              scroll.controller.scrollToIndex(Math.max(0, snapshot.rowCount - 1), { align: 'end' })
+            }
+          >
+            Jump to latest
+          </button>
+        </div>
+      )}
       {(snapshot.view !== 'rows' || scroll.aggregateMode) && (
-        <div className="ds-scale">
+        <div {...partProps('scale', props)}>
           <span>
             {snapshot.moving
               ? 'Traveling through the overview'
@@ -129,18 +231,21 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
           {snapshot.view === 'zoom' && (
             <div>
               <button
+                className="ds-button"
                 aria-label="Zoom in"
                 onClick={() => scroll.controller.setZoom(snapshot.rowsPerPixel / 8)}
               >
                 +
               </button>
               <button
+                className="ds-button"
                 aria-label="Zoom out"
                 onClick={() => scroll.controller.setZoom(snapshot.rowsPerPixel * 8)}
               >
                 −
               </button>
               <button
+                className="ds-button"
                 onClick={() => {
                   scroll.controller.setZoom(snapshot.rowCount / snapshot.height);
                   scroll.controller.goTo(Math.round(Math.max(0, snapshot.rowCount - 1) / 2), {
@@ -150,15 +255,32 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
               >
                 Fit dataset
               </button>
-              <button onClick={() => scroll.controller.setZoom(1 / snapshot.rowHeight)}>
+              <button
+                className="ds-button"
+                onClick={() => scroll.controller.setZoom(1 / snapshot.rowHeight)}
+              >
                 Inspect rows
               </button>
             </div>
           )}
         </div>
       )}
-      <div className="ds-body">
-        <div {...scroll.getViewportProps({ 'aria-label': props.ariaLabel })}>
+      {props.stickyChapters && chapter && (
+        <div className="ds-sticky-chapter">
+          {chapter.breadcrumb?.join(' / ') ?? chapter.label}{' '}
+          <span>
+            Rows {(chapter.start + 1).toLocaleString()}–{chapter.end.toLocaleString()}
+          </span>
+        </div>
+      )}
+      <div {...partProps('body', props)}>
+        <div
+          {...scroll.getViewportProps({
+            'aria-label': props.ariaLabel,
+            className: props.classNames?.viewport,
+            style: props.styles?.viewport,
+          })}
+        >
           <div className="ds-pan-layer" style={{ transform: `translateY(${scroll.edgeOffset}px)` }}>
             <ViewLayer
               view={snapshot.view}
@@ -182,36 +304,41 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
                         : `index:${slot.index}`
                       : `index:${slot.index}`
                   }
-                  {...scroll.getRowProps(slot)}
-                  data-status={slot.status}
-                  data-focused={slot.index === snapshot.activeIndex || undefined}
+                  {...scroll.getRowProps(slot, {
+                    className: props.classNames?.row,
+                    style: props.styles?.row,
+                  })}
                 >
-                  {slot.status === 'ready'
-                    ? renderLoaded({
-                        row: slot.row,
-                        index: slot.index,
-                        rowNumber: slot.index + 1,
-                        focused: slot.index === snapshot.activeIndex,
-                      })
-                    : (props.renderPlaceholder?.(slot) ?? (
-                        <>
-                          <span role="gridcell" className="ds-row-id">
-                            {(slot.index + 1).toLocaleString()}
-                          </span>
-                          <span role="gridcell" className="ds-loading">
-                            {slot.error ? (
-                              <button onClick={() => scroll.session.retry()}>Retry rows</button>
-                            ) : slot.estimate ? (
-                              <>
-                                ≈ {slot.estimate.avg?.toFixed(1) ?? '—'} · {slot.estimate.label}{' '}
-                                <span className="ds-estimate">Approximate</span>
-                              </>
-                            ) : (
-                              'Loading reading…'
-                            )}
-                          </span>
-                        </>
-                      ))}
+                  {slot.status === 'ready' ? (
+                    <LoadedRow
+                      render={props.renderRow}
+                      row={slot.row}
+                      index={slot.index}
+                      focused={slot.index === snapshot.activeIndex}
+                    />
+                  ) : (
+                    (props.renderPlaceholder?.(slot) ?? (
+                      <>
+                        <span role="gridcell" className="ds-row-id">
+                          {(slot.index + 1).toLocaleString()}
+                        </span>
+                        <span role="gridcell" className="ds-loading">
+                          {slot.error ? (
+                            <button className="ds-button" onClick={() => scroll.session.retry()}>
+                              Retry rows
+                            </button>
+                          ) : slot.estimate ? (
+                            <>
+                              ≈ {slot.estimate.avg?.toFixed(1) ?? '—'} · {slot.estimate.label}{' '}
+                              <span className="ds-estimate">Approximate</span>
+                            </>
+                          ) : (
+                            'Loading row…'
+                          )}
+                        </span>
+                      </>
+                    ))
+                  )}
                 </div>
               ))}
             </ViewLayer>
@@ -220,33 +347,50 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
             <div className="ds-empty">{props.emptyContent ?? 'No rows in this dataset.'}</div>
           )}
         </div>
-        <AtlasRail scroll={scroll} />
+        {props.renderRail ? (
+          props.renderRail(scroll)
+        ) : (
+          <AtlasRail
+            scroll={scroll}
+            options={props.atlas}
+            className={props.classNames?.rail}
+            style={props.styles?.rail}
+          />
+        )}
       </div>
       {Object.keys(scroll.session.metadataErrors).length > 0 && (
         <div className="ds-meta-error">
           Some summaries are unavailable.{' '}
-          <button onClick={() => scroll.session.retry()}>Retry summaries</button>
+          <button className="ds-button" onClick={() => scroll.session.retry()}>
+            Retry summaries
+          </button>
         </div>
       )}
-      <ContextHints scroll={scroll} />
-      <JumpBar scroll={scroll} />
+      <ContextHints scroll={scroll} className={props.classNames?.hint} style={props.styles?.hint} />
+      <JumpBar scroll={scroll} className={props.classNames?.jump} style={props.styles?.jump} />
       <div {...scroll.getAnnouncementProps()} />
-      <footer className="ds-footer">
-        <span data-testid="position">
-          Row{' '}
-          <strong>
-            {snapshot.rowCount ? ((snapshot.activeIndex ?? 0) + 1).toLocaleString() : '0'}
-          </strong>{' '}
-          of {snapshot.rowCount.toLocaleString()}
-        </span>
-        <span>
-          {(snapshot.progress * 100).toFixed(2)}%{' '}
-          <span className="ds-footer-stats">
-            · {scroll.stats.cachedRows.toLocaleString()} cached · {scroll.stats.activeRequests}{' '}
-            fetching · {scroll.stats.fps ?? '—'} fps
+      {props.renderFooter ? (
+        props.renderFooter(scroll)
+      ) : (
+        <footer {...partProps('footer', props)}>
+          <span data-testid="position">
+            Row{' '}
+            <strong>
+              {snapshot.rowCount ? ((snapshot.activeIndex ?? 0) + 1).toLocaleString() : '0'}
+            </strong>{' '}
+            of {snapshot.rowCount.toLocaleString()}
           </span>
-        </span>
-      </footer>
+          <span>
+            {(snapshot.progress * 100).toFixed(2)}%{' '}
+            {props.showStats && (
+              <span className="ds-footer-stats">
+                · {scroll.stats.cachedRows.toLocaleString()} cached · {scroll.stats.activeRequests}{' '}
+                fetching · {scroll.stats.fps ?? '—'} fps
+              </span>
+            )}
+          </span>
+        </footer>
+      )}
     </section>
   );
 }

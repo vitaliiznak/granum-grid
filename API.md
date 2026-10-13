@@ -1,6 +1,6 @@
 # deepscroll: public API and workspace proposal
 
-Status: approved for implementation. Atlas rail is selected. This document records the agreed API direction; README.md tracks the implemented surface and verification, including the subsequent dynamic-height extension.
+Status: implemented surface and API direction. README.md tracks current verification and limitations, including measured heights, exploration, full-page scrolling, and append-only updates.
 
 ## Design decisions
 
@@ -10,6 +10,8 @@ Status: approved for implementation. Atlas rail is selected. This document recor
 - Keep the dataset position independent of browser scroll height. Neither the engine nor the React viewport creates a dataset-height spacer.
 - Keep the library independent of the demo's signal, timestamps, worker, and artificial latency.
 - Give every address an explicit convention: API indices are zero-based, user-visible row numbers are one-based, and ranges are half-open `[start, end)`.
+
+The current styling/composition contract is documented in [STYLING.md](./STYLING.md): optional skin, structural-only CSS, per-part classes/styles, replaceable toolbar/footer/rail, and a CSS-free headless hook. This supersedes the initial proposal’s styling surface.
 
 ## Ready-to-use component
 
@@ -86,6 +88,24 @@ interface DeepScrollProps<Row> {
   initialIndex?: number;
   initialView?: View;
   theme?: 'system' | 'light' | 'dark';
+  unstyled?: boolean;
+  classNames?: Partial<Record<DeepScrollPart, string>>;
+  styles?: Partial<Record<DeepScrollPart, React.CSSProperties>>;
+  atlas?: AtlasRailOptions;
+  layout?: 'embedded' | 'page'; // one page-mode explorer per document
+  scrollMode?: 'embedded' | 'window'; // hook/custom layout; page implies window
+  selection?: RowRange | null;
+  initialSelection?: RowRange | null;
+  onSelectionChange?(range: RowRange | null): void;
+  exploration?: boolean; // true; range tools, comparison, bookmarks
+  bookmarkStorageKey?: string; // opt-in localStorage persistence
+  fullPageUrl?(view: SavedView): string; // host route, opened in a separate tab
+  stickyChapters?: boolean; // false
+  showStats?: boolean; // false
+  followOutput?: boolean; // omitted = immutable snapshot; false = append without following
+  renderToolbar?(scroll: DeepScrollState<Row>): React.ReactNode;
+  renderFooter?(scroll: DeepScrollState<Row>): React.ReactNode;
+  renderRail?(scroll: DeepScrollState<Row>): React.ReactNode;
   reducedMotion?: 'system' | boolean;
   features?: Partial<Features>;
   cache?: CacheOptions<Row>;
@@ -97,6 +117,8 @@ interface DeepScrollProps<Row> {
 ```
 
 `initialIndex` and `initialView` are initialization values, not controlled props. Live external navigation goes through the hook/controller described below; avoid competing position state in the host and engine. Theme overrides also use documented CSS custom properties. The default rail remains visible in every view.
+
+`AtlasRailOptions` configures presentation independently of navigation: `variant: 'profile' | 'markers'`, `axis: 'chapters' | 'rows'`, `axisLabel`, `title`, `showRange`, `showTracks`, `markerLabels: 'label' | 'number' | 'none'`, `layout: 'auto' | 'expanded' | 'compact'`, and `formatValue(value)`. Defaults are profile, chapters (falling back to rows), no range band, named events, and automatic compact layout below 650px. The map uses row order vertically and provider values horizontally; its position handle does not represent visible range. See [STYLING.md](./STYLING.md#configure-the-dataset-map) for semantics, scale, widths, and a complete example. The standalone `AtlasRail` accepts the configuration through `options`.
 
 `initialLocation` takes precedence over `initialIndex`/`initialView`. The component's `controllerRef` and hook's `controller` expose `scrollToIndex(index, { align })`, `getLocation()`, `restore(location)`, and `resetMeasurements()`. Alignment supports `start`, `center`, `end`, and `auto` (default); it is immediate, enters Rows view, and follows new measurements until subsequent navigation. `goTo(index)` retains animated travel. Locations serialize address/view/scale, not cached data or measured heights, and must be scoped to a provider revision by the host.
 
@@ -118,10 +140,19 @@ interface DataProvider<Row> {
 
   fetchRows(start: number, count: number, signal: AbortSignal): Promise<Row[]>;
   fetchOverview?(buckets: number, signal: AbortSignal): Promise<Bucket[]>;
+  fetchOverviewTracks?(buckets: number, signal: AbortSignal): Promise<OverviewTrack[]>;
   fetchAggregates?(range: AggregateRequest, signal: AbortSignal): Promise<Bucket[]>;
   fetchMarkers?(signal: AbortSignal): Promise<Marker[]>;
   fetchChapters?(signal: AbortSignal): Promise<Chapter[]>;
   search?(query: ProviderQuery, context: SearchContext): Promise<SearchResult>;
+}
+
+interface RowRange { start: number; end: number } // zero-based, half-open
+interface OverviewTrack {
+  id: string;
+  label: string;
+  buckets: Bucket[];
+  metric?: DataProvider<unknown>['metric'];
 }
 
 interface AggregateRequest {
@@ -161,7 +192,7 @@ interface Chapter {
 Provider rules:
 
 - `rowCount` is a known, nonnegative safe integer. A dataset with zero rows has an explicit empty state and no active row. Unknown-length streams are outside the initial release.
-- `id` identifies a dataset; `revision` identifies its stable ordered snapshot. Sorting, filtering, or changing source contents requires a new revision. A revision change clears source-dependent cache, history, trail, and searches and resets to the initial address, clamped to the new count.
+- `id` identifies a dataset; `revision` identifies its stable ordered snapshot. Sorting, filtering, or changing existing rows requires a new revision. With `followOutput` explicitly set, append-only increases to a known row count keep the same revision and preserve all prior addresses; decreasing counts are rejected. A revision change clears source-dependent cache, history, trail, and searches and resets to the initial address, clamped to the new count.
 - Page requests contain integer indices and at most the remaining row count. Return exactly the requested rows, in order, or reject. A short page inside an immutable snapshot is an error, not an implicit end of data.
 - Buckets cover the requested range in order without overlap or gaps. Use explicit unavailable buckets for missing aggregate coverage. For zero valid values, count is zero and metric values are `null`. Unavailable coverage uses `null` for count and metrics. An estimated count shares the bucket's estimated accuracy; it is never the number of sampled rows.
 - `buckets` is the maximum requested resolution; never return more buckets than requested or create empty index intervals. Every bucket refers to actual row-index boundaries.
@@ -207,9 +238,10 @@ Partial results remain navigable and are labeled. A fulfilled empty, incomplete 
 
 ```tsx
 import { AtlasRail, useDeepScroll } from 'deepscroll';
+import 'deepscroll/base.css';
 
 function CustomExplorer({ provider }: { provider: DataProvider<Reading> }) {
-  const scroll = useDeepScroll({ provider, rowHeight: 36 });
+  const scroll = useDeepScroll({ provider, rowHeight: 36, features: { flight: false, automaticAggregation: false } });
 
   return (
     <section>
@@ -234,7 +266,7 @@ function CustomExplorer({ provider }: { provider: DataProvider<Reading> }) {
 }
 ```
 
-The host supplies a bounded-height layout in the headless example. `getViewportProps` attaches the measured viewport ref, focus semantics, and input bindings; `getRowProps` supplies row position, dimensions, and absolute indices. Callers pass overrides through these getters so event handlers and refs can be composed safely. The announcement props own a visually hidden, polite live region.
+The host supplies a bounded-height layout in the headless example. `getViewportProps` attaches the measured viewport ref, focus semantics, and input bindings; `getRowProps` supplies row position, dimensions, and absolute indices. Callers pass classes, styles, and handlers through these getters. Spread the returned props to retain the internal viewport and measurement refs. The announcement props own a visually hidden, polite live region.
 
 The hook exposes a stable controller, immutable navigation snapshot, bounded visible row slots, and data statistics. Slots are discriminated unions: ready slots contain `row`; loading and error slots contain optional aggregate estimates, and error slots have retry information. Placeholder estimates never masquerade as `Row` objects.
 
@@ -256,6 +288,8 @@ interface NavigationSnapshot extends NavigationLocation {
   canGoBack: boolean;
   canGoForward: boolean;
   moving: boolean;
+  targetIndex: number | null; // destination while an animated jump is in progress
+  backLocation: NavigationLocation | null;
 }
 
 interface NavigationController {
@@ -272,6 +306,7 @@ interface NavigationController {
   nextChapter(): void;
   previousChapter(): void;
   cancel(): void;
+  appendRows(rowCount: number, follow?: boolean): void;
 }
 
 interface NavigationEvent {
@@ -289,21 +324,48 @@ Browser adapters convert wheel/touch/keyboard events and drive `step` with reque
 
 Only the data layer fetches or caches. Only the visual layer draws. Rows, Lens, and Zoom share the same position/history state and independently tested invertible mappings.
 
+## Saved views, ranges, and layout
+
+```ts
+interface SavedView {
+  version: 1;
+  dataset: string;
+  revision: string;
+  location: NavigationLocation;
+  selection: RowRange | null;
+}
+interface Bookmark extends SavedView { id: string; name: string }
+encodeView(view: SavedView): string;
+decodeView(text: string, provider: { id: string; revision: string; rowCount: number }): SavedView | null;
+rangeProvider<Row>(provider: DataProvider<Row>, range: RowRange): DataProvider<Row>;
+```
+
+Saved views contain no row payloads. `decodeView` rejects malformed, oversized, out-of-range, or mismatched dataset/revision input. Use `initialLocation` and `initialSelection` to restore. The library does not install a router or rewrite host URLs. `fullPageUrl` renders a normal new-tab link; the demo's full-page route also updates its hash for reload/share. The host chooses that persistence policy.
+
+`layout="page"` fixes the component to the viewport and maps native window scrolling to global dataset progress, matching Atlas. The document scroll range is capped at one million CSS pixels; dragging its scrollbar or calling `window.scrollTo`/`scrollBy` navigates that compressed global range. Wheel input, touch panning over rows, and keyboard steps pan the engine in local pixels and synchronize the native position without rounding the engine's row address. Native dragging is approximate for large datasets; Go to and the controller APIs provide exact addresses. Mount only one such explorer in a document, outside transformed ancestors. Cleanup removes the spacer/listeners and restores the prior scroll-restoration setting. The headless `scrollMode: 'window'` expects the host to provide equivalent fixed viewport geometry.
+
+Range controls use one-based inclusive fields but emit half-open zero-based indices. The hook exposes `selection`, `setSelection`, `selectionMode`, and `setSelectionMode`. Range summaries request one aggregate bucket and disclose provider accuracy. Comparison wraps the provider with `rangeProvider` and uses independently bounded virtual panes; linked scrolling synchronizes relative progress. It does not align by time or join records. `bookmarkStorageKey` enables local storage (40 bookmarks maximum); failures fall back to the current session.
+
+`followOutput` opts into append-only provider updates: `true` follows only from the end of List view; `false` retains position. Complete cached pages and sparse measurements survive growth, while a partial final page is refreshed. `unseenRows` reports appends while away from the end; the default component provides Jump to latest. Unknown lengths, prepends, edits and reordering require another contract/revision.
+
+`fetchOverviewTracks` returns up to four uniquely identified profiles of at most 160 contiguous buckets each, on the same row coordinate system. `atlas.showTracks` displays them; each can define its own metric/domain. Markers remain capped at 4,096 metadata entries and are grouped into 28-pixel screen bins; clicking a group opens a searchable list of 40 events per page.
+
 ## Features, cache, and diagnostics
 
-`Features` has optional switches for overview, chapters, markers, magnetism, magnifier, precision, preview, trail, inertia, edge elasticity, automatic aggregation, flight, transitions, progressive estimates, prefetch, and hints. All implemented features default on, subject to provider capabilities and reduced motion. The demo Playground controls those same switches; it does not maintain a separate behavior implementation. Unimplemented features are not advertised as available during earlier phases.
+`Features` has optional switches for overview, chapters, markers, magnetism, magnifier, precision, preview, trail, inertia, edge elasticity, automatic aggregation, flight, transitions, progressive estimates, prefetch, and hints. Features default on except `automaticAggregation`, which is opt-in, subject to provider capabilities and reduced motion. The demo Developer tools controls those same switches; it does not maintain a separate behavior implementation. Unimplemented features are not advertised as available during earlier phases.
 
 ```ts
 interface CacheOptions<Row> {
   maxBytes?: number;                     // default: 32 MiB
   pageSize?: number;                     // default: 256 rows
+  requestTimeoutMs?: number;             // default: 15,000 ms; row-request deadline
   estimateRowBytes?(row: Row): number;    // fallback: documented heuristic
 }
 ```
 
 Cache statistics distinguish estimated bytes from exact heap measurements. The byte budget includes cached pages and cached aggregate/marker/chapter metadata; snapshots reference existing entries rather than duplicating them. Temporary request buffers and caller-owned row objects are reported as outside the enforceable cache budget. Visible pages may temporarily exceed it, and the excess is exposed explicitly.
 
-The hook reports cached rows, estimated cached bytes, budget overage, active row/metadata/search requests, and aborted requests. The demo measures frame rate during motion separately. Bound row requests to four concurrent calls initially; visible rows outrank previews and predicted-stop prefetch. Coalesce desired ranges before dispatch and drop stale queued work. Cancellation of one preview consumer must not abort a shared page still needed by visible rows.
+The hook reports cached rows, estimated cached bytes, budget overage, active row/metadata/search requests, and aborted requests. The demo measures frame rate during motion separately. At most four useful row requests run concurrently; visible rows outrank previews and predicted-stop prefetch. Aborted requests immediately release a useful slot, but remain counted until the provider settles them. A hard cap of eight physical unsettled row requests prevents unlimited transport growth when cancellation is ignored. Reaching it exposes a retry error; a deadline also aborts and exposes a retry state. Late results are discarded. Providers must propagate `AbortSignal` into their transport. Coalesce desired ranges before dispatch and drop stale queued work. Cancellation of one preview consumer must not abort a shared page still needed by visible rows.
 
 Default page size, memory budget, concurrency, animation durations, and precision thresholds are starting values to verify during implementation, not published performance guarantees.
 
@@ -384,7 +446,9 @@ Root scripts:
 | `npm run test:e2e` | Run the browser acceptance and interaction checks. |
 | `npm run test:perf` | Run explicit performance scenarios and report measurements. |
 
-Public package entries are `deepscroll`, `deepscroll/core`, `deepscroll/data`, and `deepscroll/styles.css`. ESM and `.d.ts` files are built with TypeScript; generated module specifiers must resolve without the demo's alias. CSS is copied to the distributable and declared as a side effect. Internal source paths are not package exports.
+Public package entries are `deepscroll`, `deepscroll/core`, `deepscroll/data`, `deepscroll/tools`, `deepscroll/base.css`, and `deepscroll/styles.css`. ESM and `.d.ts` files are built with TypeScript; generated module specifiers must resolve without the demo's alias. CSS is copied to the distributable and declared as a side effect. Internal source paths are not package exports.
+
+`deepscroll/tools` exports `createTableTools({ provider, columns?, getController?, timeoutMs? })`, `tableToolLimits`, and their types. The returned `definitions` describe model-independent JSON Schema tools; `execute(name, args, { signal }?)` validates and dispatches one call. Read operations delegate to provider capabilities with bounded results. Navigation uses the optional mounted controller. The host supplies model integration and total agent/query budgets. See [AI-callable table tools](./README.md#ai-callable-table-tools) for supported tools, limits, snapshot scope, and result envelopes.
 
 React and React DOM are peer dependencies. The implementation plan requires no additional runtime dependencies. Proposed development tools are TypeScript, Vite with its React plugin, Vitest, and Playwright. No grid library, animation framework, charting package, or DuckDB-WASM is needed for this scope. Package-name availability and publication remain separate from creating this local workspace.
 

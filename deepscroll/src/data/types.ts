@@ -57,15 +57,31 @@ export interface DataProvider<Row> {
   };
   fetchRows(start: number, count: number, signal: AbortSignal): Promise<Row[]>;
   fetchOverview?(buckets: number, signal: AbortSignal): Promise<Bucket[]>;
+  /** Up to four additional, bounded profiles sharing this provider's row addresses. */
+  fetchOverviewTracks?(buckets: number, signal: AbortSignal): Promise<OverviewTrack[]>;
   fetchAggregates?(range: AggregateRequest, signal: AbortSignal): Promise<Bucket[]>;
   fetchMarkers?(signal: AbortSignal): Promise<Marker[]>;
   fetchChapters?(signal: AbortSignal): Promise<Chapter[]>;
   search?(query: ProviderQuery, context: SearchContext): Promise<SearchResult>;
 }
+export interface OverviewTrack {
+  id: string;
+  label: string;
+  buckets: Bucket[];
+  metric?: DataProvider<unknown>['metric'];
+}
 export interface CacheOptions<Row> {
   maxBytes?: number;
   pageSize?: number;
   estimateRowBytes?(row: Row): number;
+  /** Deadline for row requests. Default 15 seconds. Providers must honor AbortSignal. */
+  requestTimeoutMs?: number;
+}
+
+/** Half-open, zero-based range within one ordered dataset revision. */
+export interface RowRange {
+  start: number;
+  end: number;
 }
 export interface PendingRowSlot {
   index: number;

@@ -20,6 +20,15 @@ export class PageCache<Row> {
   has(page: number) {
     return this.pages.has(page);
   }
+  hasRow(index: number) {
+    const entry = this.pages.get(Math.floor(index / this.pageSize));
+    return (
+      Number.isSafeInteger(index) &&
+      index >= 0 &&
+      !!entry &&
+      index % this.pageSize < entry.rows.length
+    );
+  }
   read(index: number) {
     const page = Math.floor(index / this.pageSize);
     const entry = this.pages.get(page);
@@ -53,5 +62,12 @@ export class PageCache<Row> {
   clear() {
     this.pages.clear();
     this.bytes = 0;
+  }
+  delete(page: number) {
+    const entry = this.pages.get(page);
+    if (entry) {
+      this.bytes -= entry.bytes;
+      this.pages.delete(page);
+    }
   }
 }

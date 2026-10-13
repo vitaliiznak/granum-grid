@@ -12,7 +12,7 @@ export class RowSizes {
   private sums: number[] = [0];
 
   constructor(
-    readonly rowCount: number,
+    public rowCount: number,
     readonly estimate: number,
     readonly maxMeasurements = 4096,
   ) {

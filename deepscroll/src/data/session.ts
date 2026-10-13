@@ -6,11 +6,13 @@ import type {
   Chapter,
   DataProvider,
   Marker,
+  OverviewTrack,
 } from './types.js';
 type Owner = 'visible' | 'preview' | 'prefetch';
 export class DataSession<Row> {
   readonly cache: PageCache<Row>;
   overview: Bucket[] = [];
+  tracks: OverviewTrack[] = [];
   aggregates: Bucket[] = [];
   markers: Marker[] = [];
   chapters: Chapter[] = [];
@@ -19,6 +21,10 @@ export class DataSession<Row> {
   private version = 0;
   private owners = new Map<Owner, Set<number>>();
   private active = new Map<number, AbortController>();
+  private pending = new Set<AbortController>();
+  private deadlines = new Map<AbortController, ReturnType<typeof setTimeout>>();
+  private requestTimeoutMs: number;
+  private knownRowCount: number;
   private errors = new Map<number, string>();
   private metadata = new Set<AbortController>();
   private region?: AbortController;
@@ -29,10 +35,44 @@ export class DataSession<Row> {
   aborted = 0;
   fetched = 0;
   constructor(
-    readonly provider: DataProvider<Row>,
+    public provider: DataProvider<Row>,
     options: CacheOptions<Row> = {},
   ) {
     this.cache = new PageCache(options);
+    this.knownRowCount = provider.rowCount;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? 15_000;
+    if (!Number.isFinite(this.requestTimeoutMs) || this.requestTimeoutMs < 1)
+      throw new RangeError('requestTimeoutMs must be positive');
+  }
+  updateAppendProvider(provider: DataProvider<Row>) {
+    if (
+      provider.id !== this.provider.id ||
+      provider.revision !== this.provider.revision ||
+      provider.rowCount < this.knownRowCount
+    )
+      throw new Error(
+        'Append updates must preserve identity, revision, and all previous row addresses',
+      );
+    const oldCount = this.knownRowCount;
+    this.provider = provider;
+    this.knownRowCount = provider.rowCount;
+    if (oldCount === provider.rowCount) return;
+    if (oldCount % this.cache.pageSize) {
+      const page = Math.floor(oldCount / this.cache.pageSize);
+      this.cache.delete(page);
+      this.active.get(page)?.abort();
+      this.active.delete(page);
+      this.errors.delete(page);
+    }
+    this.metadata.forEach((c) => c.abort());
+    this.region?.abort();
+    this.regionKey = '';
+    this.overview = [];
+    this.aggregates = [];
+    this.tracks = [];
+    this.started = false;
+    this.start();
+    this.emit();
   }
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
@@ -48,6 +88,7 @@ export class DataSession<Row> {
   private metadataBytes() {
     return (
       this.overview.length * 96 +
+      this.tracks.reduce((sum, track) => sum + track.buckets.length * 96 + 160, 0) +
       this.aggregates.length * 96 +
       this.markers.length * 160 +
       this.chapters.length * 160
@@ -59,7 +100,8 @@ export class DataSession<Row> {
       cachedRows: this.cache.rowCount,
       cachedBytes: bytes,
       budgetOverage: Math.max(0, bytes - this.cache.maxBytes),
-      activeRequests: this.active.size + this.metadata.size,
+      activeRequests: this.pending.size + this.metadata.size,
+      staleRequests: this.pending.size - this.active.size,
       abortedRequests: this.aborted,
       completedFetches: this.fetched,
     };
@@ -69,6 +111,27 @@ export class DataSession<Row> {
     if (this.started) return;
     this.started = true;
     const { provider } = this;
+    if (provider.fetchOverviewTracks)
+      this.loadMeta(
+        'tracks',
+        (signal) => provider.fetchOverviewTracks!(160, signal),
+        (result) => {
+          if (
+            !Array.isArray(result) ||
+            result.length > 4 ||
+            new Set(result.map((t) => t.id)).size !== result.length
+          )
+            throw new Error('Invalid overview tracks');
+          this.tracks = result.map((track) => ({
+            ...track,
+            buckets: this.validateBuckets(track.buckets, {
+              start: 0,
+              end: provider.rowCount,
+              buckets: 160,
+            }),
+          }));
+        },
+      );
     if (provider.fetchOverview)
       this.loadMeta(
         'overview',
@@ -203,6 +266,7 @@ export class DataSession<Row> {
     for (const [page, controller] of this.active)
       if (!wanted.has(page) && !controller.signal.aborted) {
         controller.abort();
+        this.active.delete(page);
         this.aborted++;
       }
     for (const page of this.errors.keys()) if (!wanted.has(page)) this.errors.delete(page);
@@ -224,6 +288,16 @@ export class DataSession<Row> {
     for (const page of this.wanted()) {
       if (this.active.size >= 4) break;
       if (this.cache.has(page) || this.active.has(page) || this.errors.has(page)) continue;
+      // Four useful requests plus at most four canceled transports still settling.
+      // Never open unlimited underlying requests when a provider ignores cancellation.
+      if (this.pending.size >= 8) {
+        this.errors.set(
+          page,
+          'Waiting for canceled requests. The provider must honor AbortSignal. Retry after they settle.',
+        );
+        this.emit();
+        continue;
+      }
       const speculative = !this.pinned().has(page);
       if (
         speculative &&
@@ -232,11 +306,28 @@ export class DataSession<Row> {
         continue;
       const controller = new AbortController();
       this.active.set(page, controller);
+      this.pending.add(controller);
+      this.deadlines.set(
+        controller,
+        setTimeout(() => {
+          this.deadlines.delete(controller);
+          if (this.active.get(page) !== controller || this.stopped) return;
+          controller.abort();
+          this.aborted++;
+          this.active.delete(page);
+          this.errors.set(page, 'Row request timed out. Retry to load this page.');
+          this.emit();
+          this.pump();
+        }, this.requestTimeoutMs),
+      );
       const start = page * this.cache.pageSize;
       const count = Math.min(this.cache.pageSize, this.provider.rowCount - start);
       this.emit();
       Promise.resolve()
-        .then(() => this.provider.fetchRows(start, count, controller.signal))
+        .then(() => {
+          controller.signal.throwIfAborted();
+          return this.provider.fetchRows(start, count, controller.signal);
+        })
         .then((rows) => {
           if (controller.signal.aborted || this.stopped) return;
           if (rows.length !== count)
@@ -250,15 +341,20 @@ export class DataSession<Row> {
           if (!controller.signal.aborted && !this.stopped) this.errors.set(page, String(error));
         })
         .finally(() => {
-          this.active.delete(page);
-          if (!this.pinned().has(page)) this.owners.get('prefetch')?.delete(page);
+          clearTimeout(this.deadlines.get(controller));
+          this.deadlines.delete(controller);
+          this.pending.delete(controller);
+          if (this.active.get(page) === controller) {
+            this.active.delete(page);
+            if (!this.pinned().has(page)) this.owners.get('prefetch')?.delete(page);
+          }
           this.emit();
           this.pump();
         });
     }
   }
   has(index: number) {
-    return this.cache.has(Math.floor(index / this.cache.pageSize));
+    return this.cache.hasRow(index);
   }
   read(index: number) {
     return this.cache.read(index);
@@ -282,7 +378,10 @@ export class DataSession<Row> {
   stop() {
     this.stopped = true;
     this.started = false;
-    this.active.forEach((controller) => controller.abort());
+    this.pending.forEach((controller) => controller.abort());
+    this.active.clear();
+    this.deadlines.forEach(clearTimeout);
+    this.deadlines.clear();
     this.metadata.forEach((controller) => controller.abort());
     this.region?.abort();
     this.regionKey = '';

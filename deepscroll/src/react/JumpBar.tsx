@@ -1,8 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { parseJump } from '../core/navigation.js';
 import type { Marker } from '../data/types.js';
 import type { DeepScrollState } from './useDeepScroll.js';
-export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
+export function JumpBar<Row>({
+  scroll,
+  className,
+  style,
+}: {
+  scroll: DeepScrollState<Row>;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const dialog = useRef<HTMLDialogElement>(null),
     input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(''),
@@ -35,7 +43,7 @@ export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
     scroll.setSearchMarkers([]);
     setBusy(false);
     if (!query.trim()) {
-      setMatches(scroll.session.markers);
+      setMatches(scroll.session.markers.slice(0, 40));
       setMessage('Jump to a row, a date, or an event.');
       return;
     }
@@ -46,7 +54,15 @@ export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
       scroll.session.markers,
     );
     if (parsed.kind === 'error') {
-      setMessage(parsed.message);
+      const found = scroll.session.markers.filter((m) =>
+        m.label.toLowerCase().includes(query.toLowerCase()),
+      );
+      setMatches(found.slice(0, 40));
+      setMessage(
+        found.length
+          ? `${found.length} events${found.length > 40 ? ' · showing first 40; narrow your search' : ''}`
+          : parsed.message,
+      );
       return;
     }
     if (parsed.kind === 'index') {
@@ -113,7 +129,9 @@ export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
   return (
     <dialog
       ref={dialog}
-      className="ds-jump"
+      className={`ds-jump ${className ?? ''}`}
+      style={style}
+      data-ds-part="jump"
       aria-label="Jump to a location"
       onCancel={() => scroll.setJumpOpen(false)}
       onClick={(event) => {
@@ -122,15 +140,20 @@ export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
     >
       <div className="ds-jump-inner">
         <div className="ds-jump-heading">
-          <span>GO SOMEWHERE</span>
-          <button aria-label="Close jump bar" onClick={() => scroll.setJumpOpen(false)}>
+          <span>Jump to a location</span>
+          <button
+            className="ds-button"
+            aria-label="Close jump bar"
+            onClick={() => scroll.setJumpOpen(false)}
+          >
             Esc
           </button>
         </div>
         <input
+          className="ds-input"
           ref={input}
-          aria-label="Row, date, or expression"
-          placeholder="73,500,000 · 50% · 2017-03"
+          aria-label="Go to row, date, or event"
+          placeholder="Row number, date, or event name…"
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -153,7 +176,7 @@ export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
                   label: parsed.label,
                   kind: 'search',
                 });
-              } else if (matches[selected] && !busy && parsed.kind !== 'error') {
+              } else if (matches[selected] && !busy) {
                 choose(matches[selected]);
               }
             }
@@ -173,7 +196,7 @@ export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
           {matches.map((marker, i) => (
             <button
               key={`${marker.id}-${i}`}
-              className={selected === i ? 'selected' : ''}
+              className={`ds-button ${selected === i ? 'selected' : ''}`}
               onClick={() => choose(marker)}
               onMouseEnter={() => setSelected(i)}
             >
@@ -183,8 +206,13 @@ export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
           ))}
         </div>
         <div className="ds-jump-examples">
-          {['50%', '2017-03', 'next spike', 'value > 120'].map((example) => (
+          {[
+            '50%',
+            ...(scroll.provider.search ? ['2017-03'] : []),
+            ...(scroll.session.markers.length ? [scroll.session.markers[0].label] : []),
+          ].map((example) => (
             <button
+              className="ds-button"
               key={example}
               onClick={() => {
                 setQuery(example);

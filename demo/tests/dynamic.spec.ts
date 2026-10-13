@@ -98,7 +98,9 @@ test('wrapping responds to width and measured detail works in Lens and Zoom', as
     .toBeGreaterThan(desktopHeight);
   await assertAdjacent(page);
   for (const view of ['Lens', 'Zoom', 'Rows']) {
-    await page.getByRole('button', { name: view, exact: true }).click();
+    await page
+      .getByRole('combobox', { name: 'View', exact: true })
+      .selectOption(view.toLowerCase());
     await expect(target).toHaveAttribute('data-status', 'ready');
     await assertAdjacent(page);
     await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');

@@ -38,9 +38,11 @@ export function Playground({
     <details className="playground">
       <summary>
         <span>
-          ⚙ Playground <small>Tune the experience</small>
+          Developer tools <small>Behavior, latency & performance</small>
         </span>
-        <span>+</span>
+        <span className="details-indicator" aria-hidden="true">
+          +
+        </span>
       </summary>
       <div className="playground-inner">
         <div className="playground-controls">

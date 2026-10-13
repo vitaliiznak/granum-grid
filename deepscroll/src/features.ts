@@ -9,7 +9,7 @@ export const defaultFeatures = {
   trail: true,
   inertia: true,
   edgeElasticity: true,
-  automaticAggregation: true,
+  automaticAggregation: false,
   flight: true,
   transitions: true,
   progressiveEstimates: true,

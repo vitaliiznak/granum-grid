@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { DeepScrollState } from './useDeepScroll.js';
-export function ContextHints<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
+export function ContextHints<Row>({
+  scroll,
+  className,
+  style,
+}: {
+  scroll: DeepScrollState<Row>;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const [hint, setHint] = useState<number | null>(null);
   const seen = useRef(new Set<number>());
   const [enabled, setEnabled] = useState(false);
@@ -31,15 +39,16 @@ export function ContextHints<Row>({ scroll }: { scroll: DeepScrollState<Row> }) 
   }, [enabled, scroll.features.hints, scroll.snapshot.canGoBack, scroll.snapshot.view]);
   if (hint === null) return null;
   const messages = [
-    'The shape of all 100M rows lives here. The diamonds mark spikes.',
+    'Drag the overview to move through the dataset. Markers highlight events.',
     'Press / in the explorer to jump to a row, date, or event.',
     'Back returns to your previous location. Explore freely.',
     'Your row address stays the same when you switch views.',
   ];
   return (
-    <div className={`ds-hint ds-hint-${hint}`}>
+    <div className={`ds-hint ds-hint-${hint} ${className ?? ''}`} style={style} data-ds-part="hint">
       <span>{messages[hint]}</span>
       <button
+        className="ds-button"
         aria-label="Dismiss hints"
         onClick={() => {
           setEnabled(false);
