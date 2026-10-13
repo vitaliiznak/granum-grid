@@ -1,5 +1,7 @@
 # deepscroll
 
+[Live demo on GitHub Pages](https://vitaliiznak.github.io/deepsearch/)
+
 A React + TypeScript library for exploring large indexed datasets: inspect individual rows, navigate a map of the whole dataset, and move between detail and overview without losing your place.
 
 ![deepscroll showing a live table near row 73,500,000 and a map of 100 million synthetic readings](media/images/hero.png)
@@ -272,7 +274,7 @@ npm run media:build
 
 Unit tests cover mappings, navigation, cache behavior, measurement, and application-owned tool contracts. Browser cases cover navigation, dataset switching, dynamic rows, comparisons, saved views, full-page layouts, and append behavior. Media exports additionally exercise their own real UI flows and fail on browser console errors.
 
-The existing GitHub Actions workflow and Pages setup are documented in [Frontend CI/CD](docs/GUIDE.md#frontend-cicd). Remote deployment activation and the first hosted run remain separate from local verification.
+The GitHub Actions workflow and Pages setup are documented in [Frontend CI/CD](docs/GUIDE.md#frontend-cicd). Successful default-branch checks deploy the demo to [GitHub Pages](https://vitaliiznak.github.io/deepsearch/). Hosted workflow results remain separate from local verification.
 
 The [integration guide](docs/GUIDE.md#local-verification-snapshot--13-october-2026) preserves the earlier local verification snapshot and benchmark context. Those machine-specific measurements are not a cross-device performance guarantee. Human usability acceptance, native Safari, and real remote-provider performance need their own verification.
 

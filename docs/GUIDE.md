@@ -245,29 +245,40 @@ The optional DuckDB-WASM/local CSV or Parquet import is not included. Unknown-le
 
 [Frontend CI/CD](../.github/workflows/frontend.yml) uses GitHub Actions and deploys the static demo to GitHub Pages. Node.js 22 is selected through [`.nvmrc`](../.nvmrc); dependencies are installed with `npm ci` from the committed lockfile.
 
-Every branch push and pull request runs unit tests, TypeScript checks, the library/demo production build, package/consumer checks, and the existing Chromium, Firefox, and WebKit tests. In CI, Playwright serves `demo/dist` with Vite preview, rejects `test.only`, retries failures twice, and uploads the browser report and failure traces for 14 days. It closes its browser fixtures and preview server when finished.
+Every branch push and pull request runs source/test type checks, unit tests, library/demo/media builds, isolated React 18/19 package consumers, and the Chromium, Firefox, and WebKit tests. In CI, Playwright serves `demo/dist` with Vite preview, rejects `test.only`, retries failures twice, and uploads the browser report and failure traces for 14 days. A separate Chromium Pages check serves the production artifact under a repository-style subdirectory and checks worker data, exact navigation, full-page reloads, and the home link. Both checks close their browsers and servers when finished.
 
 Only a successful run on the repository's default branch deploys. The deploy job publishes the same `demo/dist` artifact that passed verification, with Pages/OIDC write permissions confined to that job. Pull requests and other branches never deploy. Relative asset and home links support both project paths (for example `/vit-scroll-lib/`) and domain-root hosting; the demo's query/hash URLs need no server-side routing fallback.
 
 ### Enable deployment
 
-1. Push this workspace, including the workflow and lockfile, to a GitHub repository. This checkout currently has no Git remote configured.
+1. Push the release commits, including the workflow and lockfile, to [`vitaliiznak/deepsearch`](https://github.com/vitaliiznak/deepsearch).
 2. In **Settings → Pages → Build and deployment**, choose **GitHub Actions** as the source. See [GitHub's Pages setup instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
 3. In **Settings → Environments → github-pages**, allow deployments from the default branch. For protected merges, require the **Verify frontend** status check in the default branch's ruleset.
 4. Push to the default branch or run **Actions → Frontend CI/CD → Run workflow** with that branch selected. The deployment URL appears in the workflow's `github-pages` environment.
 
-No deploy token or other repository secret is required. For a failed deployment, inspect the deploy log and verify the Pages source and environment branch rules. To roll back, revert the unwanted commit on the default branch; the same checks run before publishing the replacement. Hosting activation and the first remote workflow run remain to be verified after connecting a repository.
+No deploy token or other repository secret is required. For a failed deployment, inspect the deploy log and verify the Pages source and environment branch rules. To roll back, revert the unwanted commit on the default branch; the same checks run before publishing the replacement. The expected site URL is `https://vitaliiznak.github.io/deepsearch/`; confirm the actual deployment URL and run result in Actions.
 
 To reproduce the CI checks locally (use `nvm use` first if you use nvm):
 
 ```sh
 npm ci
-npm test
+npm run check
 npm run build
+npm run media:build
 npm run test:package
 npx playwright install chromium firefox webkit
 CI=1 PLAYWRIGHT_PORT=5188 npm run test:e2e
+npm run test:pages
 ```
+
+After deploying, run the same Pages check against the public site:
+
+```sh
+PAGES_URL=https://vitaliiznak.github.io/deepsearch/ npm run test:pages
+```
+
+The Pages check saves a screenshot under `output/playwright/pages-smoke/` and a
+trace on failure. A local pass does not establish a successful hosted deployment.
 
 Use an unused `PLAYWRIGHT_PORT` when a development server is already running. `npm run test:e2e` without `CI` retains the normal development-server workflow. To inspect the production frontend manually, run `npm run preview -w demo -- --port 5188 --strictPort` after building.
 

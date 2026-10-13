@@ -60,6 +60,9 @@ jobs:
       - name: Test production frontend in all browsers
         run: npm run test:e2e
 
+      - name: Verify Pages project paths and navigation
+        run: npm run test:pages
+
       - name: Upload browser report and failure traces
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -68,6 +71,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            output/playwright/pages-smoke/
           retention-days: 14
           if-no-files-found: ignore
 
