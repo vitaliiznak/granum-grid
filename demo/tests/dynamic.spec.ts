@@ -30,12 +30,17 @@ test('dynamic rows resize, remain adjacent, and keep the viewport anchor', async
   const first = grid.locator('[aria-rowindex="1"]');
   await assertAdjacent(page);
   const before = await first.boundingBox();
+  const viewportBefore = await grid.boundingBox();
   await page.getByRole('button', { name: 'Expand row 1', exact: true }).click();
   await expect
     .poll(async () => (await first.boundingBox())!.height)
     .toBeGreaterThan(before!.height + 30);
   await assertAdjacent(page);
-  expect((await first.boundingBox())!.y).toBeCloseTo(before!.y, 0);
+  // Clicking the expansion button can scroll the outer document into view.
+  // The row's anchor belongs to the explorer viewport, not the browser window.
+  const after = await first.boundingBox();
+  const viewportAfter = await grid.boundingBox();
+  expect(after!.y - viewportAfter!.y).toBeCloseTo(before!.y - viewportBefore!.y, 0);
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
   // Content may resize after rendering (for example, a loaded image).
   await first.locator('.expanded-note').evaluate((element) => {
