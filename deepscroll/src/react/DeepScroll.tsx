@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useImperativeHandle, type CSSProperties, type ReactNode, type Ref, type Key } from 'react';
+import type { DeepScrollEngine } from '../core/engine.js';
 import { useDeepScroll, type UseDeepScrollOptions } from './useDeepScroll.js';
 import { ContextHints } from './ContextHints.js';
 import { ViewLayer } from './ViewLayer.js';
@@ -20,9 +21,13 @@ export interface DeepScrollProps<Row> extends UseDeepScrollOptions<Row> {
   className?: string;
   style?: CSSProperties;
   theme?: 'system' | 'dark' | 'light';
+  controllerRef?: Ref<DeepScrollEngine>;
+  getRowKey?(row: Row, index: number): Key;
+  emptyContent?: ReactNode;
 }
 export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
   const scroll = useDeepScroll(props);
+  useImperativeHandle(props.controllerRef, () => scroll.controller, [scroll.controller]);
   const { snapshot } = scroll;
   const renderLoaded = (context: RowRenderContext<Row>) => {
     const content = props.renderRow(context);
@@ -170,7 +175,13 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
               )}
               {scroll.rows.map((slot) => (
                 <div
-                  key={slot.index}
+                  key={
+                    slot.status === 'ready'
+                      ? props.getRowKey
+                        ? `row:${props.getRowKey(slot.row, slot.index)}`
+                        : `index:${slot.index}`
+                      : `index:${slot.index}`
+                  }
                   {...scroll.getRowProps(slot)}
                   data-status={slot.status}
                   data-focused={slot.index === snapshot.activeIndex || undefined}
@@ -205,7 +216,9 @@ export function DeepScroll<Row>(props: DeepScrollProps<Row>) {
               ))}
             </ViewLayer>
           </div>
-          {!snapshot.rowCount && <div className="ds-empty">No rows in this dataset.</div>}
+          {!snapshot.rowCount && (
+            <div className="ds-empty">{props.emptyContent ?? 'No rows in this dataset.'}</div>
+          )}
         </div>
         <AtlasRail scroll={scroll} />
       </div>

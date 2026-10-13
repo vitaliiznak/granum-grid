@@ -12,10 +12,13 @@ import {
   createEngine,
   createLensMapping,
   createZoomMapping,
+  createMeasuredLensMapping,
   clamp,
   type NavigationEvent,
   type View,
+  type NavigationLocation,
 } from '../core/index.js';
+import { useRowMeasurements } from './useRowMeasurements.js';
 import { bindInputs } from './input.js';
 import { useFrameRate } from './useFrameRate.js';
 import { DataSession } from '../data/session.js';
@@ -29,10 +32,17 @@ export interface ScrollStats {
   abortedRequests: number;
   completedFetches: number;
   fps: number | null;
+  measuredRows: number;
 }
 export interface UseDeepScrollOptions<Row> {
   provider: DataProvider<Row>;
   rowHeight?: number;
+  /** Automatically measure loaded row content; rowHeight becomes the estimate. */
+  dynamicRowHeight?: boolean;
+  maxMeasuredRows?: number;
+  /** Extra rows on each side in Rows/detail Zoom views. Default: 2. */
+  overscan?: number;
+  initialLocation?: NavigationLocation;
   initialIndex?: number;
   initialView?: View;
   cache?: CacheOptions<Row>;
@@ -44,6 +54,10 @@ export interface UseDeepScrollOptions<Row> {
 export function useDeepScroll<Row>({
   provider,
   rowHeight = 32,
+  dynamicRowHeight = false,
+  maxMeasuredRows = 4096,
+  overscan = 2,
+  initialLocation,
   initialIndex = 0,
   initialView = 'rows',
   cache,
@@ -52,6 +66,8 @@ export function useDeepScroll<Row>({
   onNavigate,
   onStats,
 }: UseDeepScrollOptions<Row>) {
+  if (!Number.isSafeInteger(overscan) || overscan < 0 || overscan > 1000)
+    throw new RangeError('overscan must be an integer from 0 to 1000');
   const features = { ...defaultFeatures, ...overrides };
   const id = useId();
   const [speedSpan, setSpeedSpan] = useState(0);
@@ -71,10 +87,31 @@ export function useDeepScroll<Row>({
     return () => media.removeEventListener('change', change);
   }, []);
   const engine = useMemo(
-    () => createEngine({ rowCount: provider.rowCount, rowHeight, initialIndex, initialView }),
-    [provider.id, provider.revision, provider.rowCount, rowHeight],
+    () =>
+      createEngine({
+        rowCount: provider.rowCount,
+        rowHeight,
+        initialIndex,
+        initialView,
+        dynamicRowHeight,
+        maxMeasuredRows,
+        initialLocation,
+      }),
+    [
+      provider.id,
+      provider.revision,
+      provider.rowCount,
+      rowHeight,
+      dynamicRowHeight,
+      maxMeasuredRows,
+    ],
   );
+  const measurements = useRowMeasurements(engine);
+  const sizes = engine.rowSizes;
   const snapshot = useSyncExternalStore(engine.subscribe, engine.getSnapshot, engine.getSnapshot);
+  useEffect(() => {
+    if (dynamicRowHeight && snapshot.measuredRows === 0) measurements.measure();
+  }, [dynamicRowHeight, measurements, snapshot.layoutVersion, snapshot.measuredRows]);
   const fps = useFrameRate(snapshot.position);
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
   const session = useMemo(
@@ -134,8 +171,24 @@ export function useDeepScroll<Row>({
         snapshot.height,
         Math.max(1 / rowHeight, temporarySpan / snapshot.height),
       );
+    if (snapshot.view === 'lens' && dynamicRowHeight)
+      return createMeasuredLensMapping(
+        snapshot.position,
+        snapshot.rowCount,
+        snapshot.height,
+        rowHeight,
+        sizes,
+      );
     if (snapshot.view === 'lens')
       return createLensMapping(snapshot.position, snapshot.rowCount, snapshot.height, rowHeight);
+    if (dynamicRowHeight && !aggregateMode) {
+      const origin = snapshot.position + (snapshot.view === 'zoom' ? 0.5 : 0);
+      const offset = snapshot.view === 'zoom' ? snapshot.height / 2 : 0;
+      return {
+        toPixel: (row: number) => offset + sizes.distance(origin, row),
+        toRow: (pixel: number) => sizes.advance(origin, pixel - offset),
+      };
+    }
     if (snapshot.view === 'zoom')
       return createZoomMapping(snapshot.position, snapshot.height, snapshot.rowsPerPixel);
     return {
@@ -150,13 +203,29 @@ export function useDeepScroll<Row>({
     temporarySpan,
     snapshot.rowCount,
     rowHeight,
+    dynamicRowHeight,
+    aggregateMode,
+    sizes,
+    snapshot.layoutVersion,
   ]);
   const lensRadius = Math.min(3, snapshot.height / rowHeight / 4);
+  const lensStart = dynamicRowHeight
+    ? Math.min(
+        Math.floor(snapshot.position),
+        Math.ceil(sizes.advance(snapshot.position + 0.5, -lensRadius * rowHeight)),
+      )
+    : Math.ceil(snapshot.position - lensRadius + 0.5);
+  const lensEnd = dynamicRowHeight
+    ? Math.max(
+        Math.floor(snapshot.position) + 1,
+        Math.floor(sizes.advance(snapshot.position + 0.5, lensRadius * rowHeight)),
+      )
+    : Math.floor(snapshot.position + lensRadius - 0.5) + 1;
   const start = aggregateMode
     ? Math.floor(snapshot.position)
     : snapshot.view === 'lens'
-      ? Math.max(0, Math.ceil(snapshot.position - lensRadius + 0.5))
-      : Math.max(0, Math.floor(mapping.toRow(0)));
+      ? Math.max(0, lensStart)
+      : Math.max(0, Math.floor(mapping.toRow(0)) - overscan);
   const count = aggregateMode
     ? 0
     : Math.max(
@@ -164,8 +233,8 @@ export function useDeepScroll<Row>({
         Math.min(
           provider.rowCount - start,
           snapshot.view === 'lens'
-            ? Math.floor(snapshot.position + lensRadius - 0.5) + 1 - start
-            : Math.ceil(mapping.toRow(snapshot.height)) - start + 2,
+            ? lensEnd - start
+            : Math.ceil(mapping.toRow(snapshot.height)) - start + overscan,
         ),
       );
   const aggregateStart = Math.max(0, Math.floor(mapping.toRow(0)));
@@ -190,7 +259,15 @@ export function useDeepScroll<Row>({
   }, [session, aggregateStart, aggregateEnd, aggregateMode, snapshot.view, snapshot.moving]);
   useEffect(() => {
     if (!viewport) return;
-    const observer = new ResizeObserver(() => engine.setViewport(viewport.clientHeight));
+    let width = viewport.clientWidth;
+    const observer = new ResizeObserver(() => {
+      engine.setViewport(viewport.clientHeight);
+      if (dynamicRowHeight && viewport.clientWidth !== width) {
+        width = viewport.clientWidth;
+        engine.resetMeasurements();
+        measurements.measure();
+      }
+    });
     observer.observe(viewport);
     const unbind = bindInputs(viewport, engine, {
       reducedMotion: reduceMotion,
@@ -215,6 +292,8 @@ export function useDeepScroll<Row>({
     features.inertia,
     features.edgeElasticity,
     features.automaticAggregation,
+    dynamicRowHeight,
+    measurements,
   ]);
   useEffect(() => {
     session.setRange('visible', start, count || (snapshot.rowCount ? 1 : 0));
@@ -241,6 +320,7 @@ export function useDeepScroll<Row>({
     ...session.getStats(),
     activeRequests: session.getStats().activeRequests + (searchBusy ? 1 : 0),
     fps,
+    measuredRows: snapshot.measuredRows,
   };
   useEffect(() => {
     onStats?.(stats);
@@ -253,13 +333,21 @@ export function useDeepScroll<Row>({
     stats.abortedRequests,
     stats.completedFetches,
     fps,
+    stats.measuredRows,
   ]);
   const rows: RowSlot<Row>[] = Array.from({ length: count }, (_, offset) => {
     const index = start + offset;
     const common = {
       index,
-      y: mapping.toPixel(index) - (snapshot.view === 'lens' ? rowHeight / 2 : 0),
-      height: snapshot.view === 'zoom' ? 1 / snapshot.rowsPerPixel : rowHeight,
+      y:
+        dynamicRowHeight && snapshot.view === 'lens'
+          ? snapshot.height / 2 + sizes.distance(snapshot.position + 0.5, index)
+          : mapping.toPixel(index) - (snapshot.view === 'lens' ? rowHeight / 2 : 0),
+      height: dynamicRowHeight
+        ? sizes.size(index)
+        : snapshot.view === 'zoom'
+          ? 1 / snapshot.rowsPerPixel
+          : rowHeight,
     };
     const row = session.read(index);
     const error = session.error(index);
@@ -282,8 +370,19 @@ export function useDeepScroll<Row>({
     className: `ds-viewport ${props.className ?? ''}`,
     onClick: (event: React.MouseEvent<HTMLDivElement>) => {
       props.onClick?.(event);
-      if (event.defaultPrevented || (event.target as HTMLElement).closest('button,a,input')) return;
+      if (
+        event.defaultPrevented ||
+        (event.target as HTMLElement).closest(
+          'button,a,input,textarea,select,[contenteditable=true]',
+        )
+      )
+        return;
       if (snapshot.view === 'lens' || aggregateMode) {
+        const clickedRow = (event.target as HTMLElement).closest('[role=row]');
+        if (clickedRow && !aggregateMode) {
+          engine.goTo(Number(clickedRow.getAttribute('aria-rowindex')) - 1, { reason: 'lens' });
+          return;
+        }
         const index = Math.round(
           clamp(
             mapping.toRow(event.clientY - event.currentTarget.getBoundingClientRect().top),
@@ -375,11 +474,16 @@ export function useDeepScroll<Row>({
     setSearchBusy,
     getViewportProps,
     getRowProps: (slot: RowSlot<Row>) => ({
+      ref: dynamicRowHeight && slot.status === 'ready' ? measurements.ref(slot.index) : undefined,
       role: 'row',
       'aria-rowindex': slot.index + 1,
       id: `${id}-row-${slot.index}`,
-      className: 'ds-row',
-      style: { height: slot.height, transform: `translateY(${slot.y}px)` } as CSSProperties,
+      className: `ds-row${dynamicRowHeight ? ' ds-row-dynamic' : ''}`,
+      style: {
+        height: dynamicRowHeight && slot.status === 'ready' ? 'auto' : slot.height,
+        minHeight: dynamicRowHeight ? 1 : undefined,
+        transform: `translateY(${slot.y}px)`,
+      } as CSSProperties,
     }),
     getAnnouncementProps: () => ({
       className: 'ds-sr',

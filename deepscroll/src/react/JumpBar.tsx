@@ -137,9 +137,25 @@ export function JumpBar<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
             setMatches([]);
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && matches[selected] && !busy) {
+            if (event.key === 'Enter') {
               event.preventDefault();
-              choose(matches[selected]);
+              // Direct addresses need not wait for the results effect to render.
+              const parsed = parseJump(
+                event.currentTarget.value,
+                scroll.snapshot.rowCount,
+                scroll.snapshot.position,
+                scroll.session.markers,
+              );
+              if (parsed.kind === 'index') {
+                choose({
+                  id: 'jump-target',
+                  index: parsed.index,
+                  label: parsed.label,
+                  kind: 'search',
+                });
+              } else if (matches[selected] && !busy && parsed.kind !== 'error') {
+                choose(matches[selected]);
+              }
             }
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
               event.preventDefault();

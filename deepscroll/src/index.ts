@@ -9,6 +9,10 @@ export type {
   NavigationEvent,
   NavigationLocation,
   NavigationSnapshot,
+  DeepScrollEngine,
+  ScrollAlignment,
+  ScrollToOptions,
+  GoToOptions,
 } from './core/engine.js';
 export { defaultFeatures } from './features.js';
 export type { Features } from './features.js';

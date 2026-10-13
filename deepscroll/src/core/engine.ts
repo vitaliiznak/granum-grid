@@ -1,5 +1,6 @@
-import { clamp, rowToProgress } from './mappings.js';
+import { clamp, rowToProgress, createLensMapping, createMeasuredLensMapping } from './mappings.js';
 import type { Chapter, Marker } from '../data/types.js';
+import { RowSizes, type RowMeasurement } from './rowSizes.js';
 export type View = 'rows' | 'lens' | 'zoom';
 export interface NavigationLocation {
   position: number;
@@ -22,12 +23,26 @@ export interface NavigationSnapshot extends NavigationLocation {
   rowHeight: number;
   flightSpan: number;
   trail: readonly number[];
+  layoutVersion: number;
+  measuredRows: number;
+}
+export type ScrollAlignment = 'start' | 'center' | 'end' | 'auto';
+export interface ScrollToOptions {
+  align?: ScrollAlignment;
+  history?: 'record' | 'skip';
+  reason?: NavigationEvent['reason'];
+}
+export interface GoToOptions extends ScrollToOptions {
+  motion?: 'auto' | 'instant';
 }
 export interface EngineOptions {
   rowCount: number;
   rowHeight?: number;
   initialIndex?: number;
   initialView?: View;
+  initialLocation?: NavigationLocation;
+  dynamicRowHeight?: boolean;
+  maxMeasuredRows?: number;
 }
 export function createEngine(options: EngineOptions) {
   if (!Number.isSafeInteger(options.rowCount) || options.rowCount < 0)
@@ -35,6 +50,8 @@ export function createEngine(options: EngineOptions) {
   const rowHeight = options.rowHeight ?? 32;
   if (!Number.isFinite(rowHeight) || rowHeight < 1)
     throw new RangeError('rowHeight must be positive');
+  const rowSizes = new RowSizes(options.rowCount, rowHeight, options.maxMeasuredRows);
+  let alignment: { index: number; align: Exclude<ScrollAlignment, 'auto'> } | undefined;
   const listeners = new Set<() => void>(),
     navigationListeners = new Set<(event: NavigationEvent) => void>();
   const backStack: NavigationLocation[] = [],
@@ -66,6 +83,8 @@ export function createEngine(options: EngineOptions) {
     rowHeight,
     flightSpan: 0,
     trail: [],
+    layoutVersion: 0,
+    measuredRows: 0,
   };
   const location = (): NavigationLocation => ({
     position: snapshot.position,
@@ -79,7 +98,12 @@ export function createEngine(options: EngineOptions) {
       canGoBack: backStack.length > 0,
       canGoForward: forwardStack.length > 0,
     };
-    next.position = clamp(next.position, 0, Math.max(0, next.rowCount - 1));
+    const last = Math.max(0, next.rowCount - 1);
+    const maxPosition =
+      options.dynamicRowHeight && next.view === 'rows'
+        ? last + Math.max(0, 1 - next.height / rowSizes.size(last))
+        : last;
+    next.position = clamp(next.position, 0, maxPosition);
     next.activeIndex = next.rowCount ? Math.floor(next.position) : null;
     next.progress = rowToProgress(next.position, next.rowCount);
     if (
@@ -111,6 +135,29 @@ export function createEngine(options: EngineOptions) {
     flight = undefined;
     update({ moving: false, flightSpan: 0 });
   }
+  function alignedPosition(index: number, align: Exclude<ScrollAlignment, 'auto'>) {
+    const height = rowSizes.size(index);
+    const offset =
+      align === 'start'
+        ? 0
+        : align === 'center'
+          ? Math.max(0, (snapshot.height - height) / 2)
+          : Math.max(0, snapshot.height - height);
+    return clamp(rowSizes.advance(index, -offset), 0, Math.max(0, options.rowCount - 1));
+  }
+  function changeMeasurements(change: () => boolean) {
+    const index = Math.floor(snapshot.position);
+    const offset = (snapshot.position - index) * rowSizes.size(index);
+    if (!change()) return;
+    update({
+      position: alignment
+        ? alignedPosition(alignment.index, alignment.align)
+        : index +
+          Math.min(offset / rowSizes.size(index), 1 - Number.EPSILON * Math.max(1, index) * 2),
+      layoutVersion: snapshot.layoutVersion + 1,
+      measuredRows: rowSizes.measuredCount,
+    });
+  }
   function travel(to: NavigationLocation, reason: NavigationEvent['reason'], motion = true) {
     interrupt();
     const from = location();
@@ -131,16 +178,11 @@ export function createEngine(options: EngineOptions) {
     if (backStack.length > 100) backStack.shift();
     forwardStack.length = 0;
   }
-  function goTo(
-    index: number,
-    config: {
-      motion?: 'auto' | 'instant';
-      history?: 'record' | 'skip';
-      reason?: NavigationEvent['reason'];
-    } = {},
-  ) {
+  function goTo(index: number, config: GoToOptions = {}) {
+    if (config.align) return engine.scrollToIndex(index, config);
     if (!Number.isSafeInteger(index)) throw new RangeError('index must be a safe integer');
     interrupt();
+    alignment = undefined;
     index = clamp(index, 0, Math.max(0, options.rowCount - 1));
     if (index === snapshot.position) return;
     if (config.history !== 'skip') record(location());
@@ -151,6 +193,8 @@ export function createEngine(options: EngineOptions) {
     );
   }
   const engine = {
+    rowSizes,
+    getLocation: location,
     getSnapshot: () => snapshot,
     subscribe: (listener: () => void) => {
       listeners.add(listener);
@@ -165,7 +209,10 @@ export function createEngine(options: EngineOptions) {
       };
     },
     setViewport: (height: number) => {
-      if (Number.isFinite(height) && height > 0) update({ height });
+      if (Number.isFinite(height) && height > 0) {
+        update({ height });
+        if (alignment) update({ position: alignedPosition(alignment.index, alignment.align) });
+      }
     },
     setMotion: (enabled: boolean) => {
       animate = enabled;
@@ -181,22 +228,86 @@ export function createEngine(options: EngineOptions) {
       chapters = nextChapters;
     },
     goTo,
+    /** Align a row in the Rows view; new measurements keep the target aligned until input. */
+    scrollToIndex: (index: number, config: ScrollToOptions = {}) => {
+      if (!Number.isSafeInteger(index)) throw new RangeError('index must be a safe integer');
+      index = clamp(index, 0, Math.max(0, options.rowCount - 1));
+      let align = config.align ?? 'auto';
+      if (align === 'auto') {
+        const top = rowSizes.distance(snapshot.position, index);
+        const bottom = top + rowSizes.size(index);
+        if (
+          snapshot.view === 'rows' &&
+          ((top >= 0 && bottom <= snapshot.height) || (top <= 0 && bottom >= snapshot.height))
+        )
+          return;
+        align = top < 0 || rowSizes.size(index) > snapshot.height ? 'start' : 'end';
+      }
+      interrupt();
+      const from = location();
+      alignment = { index, align };
+      const position = alignedPosition(index, align);
+      if (config.history !== 'skip' && (position !== from.position || from.view !== 'rows'))
+        record(from);
+      // Measurements can change the target during travel, so aligned navigation is immediate.
+      update({ position, view: 'rows' });
+      notify(from, config.reason ?? 'jump');
+    },
+    restore: (to: NavigationLocation) => {
+      if (
+        !Number.isFinite(to.position) ||
+        !Number.isFinite(to.rowsPerPixel) ||
+        to.rowsPerPixel <= 0 ||
+        !(['rows', 'lens', 'zoom'] as const).includes(to.view)
+      )
+        throw new RangeError('Invalid navigation location');
+      interrupt();
+      alignment = undefined;
+      update({
+        position: to.position,
+        view: to.view,
+        rowsPerPixel: clamp(
+          to.rowsPerPixel,
+          1 / rowHeight,
+          Math.max(1 / rowHeight, options.rowCount / snapshot.height),
+        ),
+      });
+    },
+    measureRows: (rows: readonly RowMeasurement[], retained: readonly number[] = []) => {
+      if (options.dynamicRowHeight)
+        changeMeasurements(() => rowSizes.measure(rows, snapshot.position, retained));
+    },
+    resetMeasurements: () => changeMeasurements(() => rowSizes.clear()),
     pan: (pixels: number) => {
       if (!Number.isFinite(pixels)) return;
       interrupt();
+      alignment = undefined;
+      const from = snapshot.position;
+      const measured =
+        options.dynamicRowHeight && (snapshot.view !== 'zoom' || snapshot.rowsPerPixel <= 1 / 22);
+      const scale = snapshot.view === 'zoom' ? snapshot.rowsPerPixel : 1 / rowHeight;
+      const origin = from + (measured && snapshot.view !== 'rows' ? 0.5 : 0);
       update({
-        position:
-          snapshot.position +
-          pixels * (snapshot.view === 'zoom' ? snapshot.rowsPerPixel : 1 / rowHeight),
+        position: measured
+          ? rowSizes.advance(origin, pixels) - (origin - from)
+          : from + pixels * scale,
       });
+      return (
+        pixels -
+        (measured
+          ? rowSizes.distance(origin, snapshot.position + (origin - from))
+          : (snapshot.position - from) / scale)
+      );
     },
     beginScrub: () => {
       interrupt();
+      alignment = undefined;
       scrubOrigin = location();
     },
     scrub: (position: number) => {
       if (Number.isFinite(position)) {
         interrupt();
+        alignment = undefined;
         update({ position });
       }
     },
@@ -213,11 +324,13 @@ export function createEngine(options: EngineOptions) {
     },
     setView: (view: View) => {
       interrupt();
+      alignment = undefined;
       update({ view });
     },
     setZoom: (rowsPerPixel: number, anchorY = snapshot.height / 2) => {
       if (!Number.isFinite(rowsPerPixel) || rowsPerPixel <= 0) return;
       interrupt();
+      alignment = undefined;
       const next = clamp(
         rowsPerPixel,
         1 / rowHeight,
@@ -225,9 +338,29 @@ export function createEngine(options: EngineOptions) {
       );
       const old = snapshot.view === 'zoom' ? snapshot.rowsPerPixel : 1 / rowHeight;
       const anchorOffset = anchorY - (snapshot.view === 'rows' ? 0 : snapshot.height / 2);
-      const anchorRow = snapshot.position + anchorOffset * old;
+      let anchorRow = snapshot.position + anchorOffset * old;
+      if (snapshot.view === 'lens') {
+        anchorRow = (
+          options.dynamicRowHeight
+            ? createMeasuredLensMapping(
+                snapshot.position,
+                snapshot.rowCount,
+                snapshot.height,
+                rowHeight,
+                rowSizes,
+              )
+            : createLensMapping(snapshot.position, snapshot.rowCount, snapshot.height, rowHeight)
+        ).toRow(anchorY);
+      } else if (options.dynamicRowHeight && (snapshot.view === 'rows' || old <= 1 / 22)) {
+        const origin = snapshot.position + (snapshot.view === 'rows' ? 0 : 0.5);
+        anchorRow = rowSizes.advance(origin, anchorOffset) - 0.5;
+      }
+      const position =
+        options.dynamicRowHeight && next <= 1 / 22
+          ? rowSizes.advance(anchorRow + 0.5, -(anchorY - snapshot.height / 2)) - 0.5
+          : anchorRow - (anchorY - snapshot.height / 2) * next;
       update({
-        position: anchorRow - (anchorY - snapshot.height / 2) * next,
+        position,
         rowsPerPixel: next,
         view: 'zoom',
       });
@@ -251,12 +384,14 @@ export function createEngine(options: EngineOptions) {
       if (chapter) goTo(chapter.start, { reason: 'chapter' });
     },
     back: () => {
+      alignment = undefined;
       const to = backStack.pop();
       if (!to) return;
       forwardStack.push(location());
       travel(to, 'history');
     },
     forward: () => {
+      alignment = undefined;
       const to = forwardStack.pop();
       if (!to) return;
       backStack.push(location());
@@ -301,6 +436,7 @@ export function createEngine(options: EngineOptions) {
     },
   };
   engine.goTo(options.initialIndex ?? 0, { history: 'skip' });
+  if (options.initialLocation) engine.restore(options.initialLocation);
   return engine;
 }
 export type DeepScrollEngine = ReturnType<typeof createEngine>;

@@ -14,6 +14,49 @@ export interface CoordinateMapping {
   toPixel(row: number): number;
   toRow(pixel: number): number;
 }
+/** Compress pixel distances, leaving a full-size focus with sparse measured row heights. */
+export function createMeasuredLensMapping(
+  position: number,
+  count: number,
+  height: number,
+  rowHeight: number,
+  sizes: {
+    distance(from: number, to: number): number;
+    advance(from: number, pixels: number): number;
+  },
+): CoordinateMapping {
+  const center = height / 2,
+    focus = Math.min(3 * rowHeight, height / 4);
+  const origin = position + 0.5;
+  function tail(extent: number) {
+    if (extent <= center) return { to: (d: number) => d, from: (d: number) => d };
+    let lo = 1e-12,
+      hi = extent;
+    for (let i = 0; i < 80; i++) {
+      const mid = (lo + hi) / 2;
+      if (mid * Math.log1p((extent - focus) / mid) > center - focus) hi = mid;
+      else lo = mid;
+    }
+    const scale = (lo + hi) / 2;
+    return {
+      to: (d: number) => (d <= focus ? d : focus + scale * Math.log1p((d - focus) / scale)),
+      from: (d: number) => (d <= focus ? d : focus + scale * Math.expm1((d - focus) / scale)),
+    };
+  }
+  const left = tail(sizes.distance(0, origin)),
+    right = tail(sizes.distance(origin, count));
+  return {
+    toPixel: (row) => {
+      const distance = sizes.distance(origin, row + 0.5);
+      return center + (distance < 0 ? -left.to(-distance) : right.to(distance));
+    },
+    toRow: (pixel) =>
+      sizes.advance(
+        origin,
+        pixel < center ? -left.from(center - pixel) : right.from(pixel - center),
+      ) - 0.5,
+  };
+}
 export function createLensMapping(
   position: number,
   count: number,

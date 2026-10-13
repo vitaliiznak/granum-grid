@@ -22,10 +22,7 @@ export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
       for (let y = 0; y < height; y += 5) {
         const row = mapping.toRow(y);
         if (row < 0 || row >= snapshot.rowCount) continue;
-        if (
-          !aggregateMode &&
-          Math.abs(row - snapshot.position) < Math.min(3, height / snapshot.rowHeight / 4)
-        )
+        if (!aggregateMode && scroll.rows.some((slot) => y >= slot.y && y < slot.y + slot.height))
           continue;
         const bucket =
           buckets.find((b) => row >= b.start && row < b.end) ??
@@ -83,7 +80,15 @@ export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
       theme.disconnect();
       media.removeEventListener('change', draw);
     };
-  }, [mapping, snapshot, session.overview, session.aggregates, aggregateMode, scroll.provider]);
+  }, [
+    mapping,
+    snapshot,
+    session.overview,
+    session.aggregates,
+    aggregateMode,
+    scroll.provider,
+    scroll.rows,
+  ]);
   if (!aggregateMode && snapshot.view !== 'lens') return null;
   return <canvas ref={canvas} className="ds-view-canvas" aria-hidden="true" />;
 }
