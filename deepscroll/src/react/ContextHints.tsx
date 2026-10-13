@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { DeepScrollState } from './useDeepScroll.js';
-export function ContextHints<Row>({
-  scroll,
+import { memo, useEffect, useRef, useState, type CSSProperties } from 'react';
+import type { View } from '../core/engine.js';
+/** Receives only what selects a hint, so scrolling does not re-render it. */
+export const ContextHints = memo(function ContextHints({
+  hints,
+  canGoBack,
+  view,
   className,
   style,
 }: {
-  scroll: DeepScrollState<Row>;
+  hints: boolean;
+  canGoBack: boolean;
+  view: View;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -20,26 +25,20 @@ export function ContextHints<Row>({
     }
   }, []);
   useEffect(() => {
-    if (!enabled || !scroll.features.hints) {
+    if (!enabled || !hints) {
       setHint(null);
       return;
     }
-    const next = scroll.snapshot.canGoBack
-      ? 2
-      : scroll.snapshot.view !== 'rows'
-        ? 3
-        : !seen.current.has(0)
-          ? 0
-          : 1;
+    const next = canGoBack ? 2 : view !== 'rows' ? 3 : !seen.current.has(0) ? 0 : 1;
     if (seen.current.has(next)) return;
     seen.current.add(next);
     setHint(next);
     const timer = setTimeout(() => setHint(null), 5000);
     return () => clearTimeout(timer);
-  }, [enabled, scroll.features.hints, scroll.snapshot.canGoBack, scroll.snapshot.view]);
+  }, [enabled, hints, canGoBack, view]);
   if (hint === null) return null;
   const messages = [
-    'Drag the overview to move through the dataset. Markers highlight events.',
+    'Drag the dataset map to move through the dataset. Markers highlight events.',
     'Press / in the explorer to jump to a row, date, or event.',
     'Back returns to your previous location. Explore freely.',
     'Your row address stays the same when you switch views.',
@@ -64,4 +63,4 @@ export function ContextHints<Row>({
       </button>
     </div>
   );
-}
+});

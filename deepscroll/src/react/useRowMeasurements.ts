@@ -1,5 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { DeepScrollEngine } from '../core/engine.js';
+import type { RowMeasurement } from '../core/rowSizes.js';
+import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 
 /** One observer and one batched layout update, regardless of how many rows are mounted. */
 export function useRowMeasurements(engine: DeepScrollEngine) {
@@ -8,6 +10,8 @@ export function useRowMeasurements(engine: DeepScrollEngine) {
     const indices = new WeakMap<Element, number>();
     const refs = new Map<number, (element: HTMLDivElement | null) => void>();
     const pending = new Map<number, number>();
+    /** Rows attached by the current commit and not yet measured. */
+    const attached = new Set<number>();
     let observer: ResizeObserver | undefined;
     let frame = 0;
     const schedule = (index: number, height: number) => {
@@ -34,17 +38,30 @@ export function useRowMeasurements(engine: DeepScrollEngine) {
             if (element) {
               elements.set(index, element);
               indices.set(element, index);
+              attached.add(index);
               refs.set(index, ref!);
               observer?.observe(element, { box: 'border-box' });
             } else {
               elements.delete(index);
               refs.delete(index);
               pending.delete(index);
+              attached.delete(index);
             }
           };
           refs.set(index, ref);
         }
         return ref;
+      },
+      /** Measure newly attached rows before paint so they never show at estimated positions. */
+      flush() {
+        if (!attached.size) return;
+        const rows: RowMeasurement[] = [];
+        for (const index of attached) {
+          const element = elements.get(index);
+          if (element) rows.push({ index, height: element.getBoundingClientRect().height });
+        }
+        attached.clear();
+        engine.measureRows(rows, [...elements.keys()]);
       },
       measure() {
         for (const [index, element] of elements)
@@ -76,5 +93,7 @@ export function useRowMeasurements(engine: DeepScrollEngine) {
     measurement.start();
     return () => measurement.stop();
   }, [measurement]);
+  // Row refs attach before their owner's layout effects, so this sees the whole commit.
+  useClientLayoutEffect(() => measurement.flush());
   return measurement;
 }

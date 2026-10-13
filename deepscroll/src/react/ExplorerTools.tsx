@@ -1,15 +1,30 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   readBookmarks,
-  validRange,
   writeBookmarks,
   type Bookmark,
   type SavedView,
 } from '../core/exploration.js';
 import type { Bucket, DataProvider, RowRange } from '../data/types.js';
 import type { DeepScrollState } from './useDeepScroll.js';
+import { formatDecimal } from '../visuals/format.js';
+import { RangePicker, rangeAddress, rangeCount } from './RangePicker.js';
 
-export function savedView<Row>(scroll: DeepScrollState<Row>): SavedView {
+/** The explorer state these tools use. Per-frame position is excluded so scrolling skips them. */
+export type ExplorerScroll<Row> = Pick<
+  DeepScrollState<Row>,
+  | 'provider'
+  | 'controller'
+  | 'selection'
+  | 'setSelection'
+  | 'selectionMode'
+  | 'setSelectionMode'
+  | 'getVisibleRange'
+>;
+
+export function savedView<Row>(
+  scroll: Pick<DeepScrollState<Row>, 'provider' | 'controller' | 'selection'>,
+): SavedView {
   return {
     version: 1,
     dataset: scroll.provider.id,
@@ -79,52 +94,89 @@ function useSummary<Row>(provider: DataProvider<Row>, range: RowRange | null) {
 export function RangeSummary<Row>({
   provider,
   range,
+  showRange = true,
 }: {
   provider: DataProvider<Row>;
   range: RowRange;
+  showRange?: boolean;
 }) {
   const { bucket, message } = useSummary(provider, range);
-  const format = (v: number | null | undefined) =>
-    v == null ? 'Unavailable' : v.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const single = range.end - range.start === 1;
+  const format = (value: number | null | undefined) =>
+    value == null
+      ? 'Unavailable'
+      : `${formatDecimal(value, 2)}${provider.metric?.unit ? ` ${provider.metric.unit}` : ''}`;
   return (
     <div className="ds-range-summary">
-      <p>
-        {(range.end - range.start).toLocaleString()} selected rows ·{' '}
-        {(range.start + 1).toLocaleString()}–{range.end.toLocaleString()}
-      </p>
-      <p role="status">{message}</p>
+      {showRange && (
+        <p>
+          {rangeAddress(range)} · {rangeCount(range)}
+        </p>
+      )}
+      <div className="ds-summary-heading">
+        <strong>{provider.metric?.label ?? 'Range statistics'}</strong>
+        <span className="ds-summary-quality" role="status">
+          {message}
+        </span>
+      </div>
       {bucket && bucket.accuracy !== 'unavailable' && (
         <dl>
           <div>
-            <dt>Mean {provider.metric?.unit}</dt>
+            <dt>{single ? 'Value' : 'Average'}</dt>
             <dd>{format(bucket.avg)}</dd>
           </div>
-          <div>
-            <dt>Minimum</dt>
-            <dd>{format(bucket.min)}</dd>
-          </div>
-          <div>
-            <dt>Maximum</dt>
-            <dd>{format(bucket.max)}</dd>
-          </div>
+          {!single && (
+            <>
+              <div>
+                <dt>Lowest</dt>
+                <dd>{format(bucket.min)}</dd>
+              </div>
+              <div>
+                <dt>Highest</dt>
+                <dd>{format(bucket.max)}</dd>
+              </div>
+            </>
+          )}
         </dl>
+      )}
+      {bucket?.accuracy === 'estimated' && (
+        <p className="ds-summary-note">Based on a sample of the selected rows.</p>
       )}
     </div>
   );
 }
 
-export function ExplorerTools<Row>({
+function SelectionDetails<Row>({
+  provider,
+  range,
+}: {
+  provider: DataProvider<Row>;
+  range: RowRange;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <details
+      className="ds-selection-details"
+      onToggle={(event) => setExpanded(event.currentTarget.open)}
+    >
+      <summary>Show summary</summary>
+      {expanded && <RangeSummary provider={provider} range={range} showRange={false} />}
+    </details>
+  );
+}
+
+function ExplorerToolsView<Row>({
   scroll,
   storageKey,
+  formatRange,
   renderComparison,
 }: {
-  scroll: DeepScrollState<Row>;
+  scroll: ExplorerScroll<Row>;
   storageKey?: string;
+  formatRange?(range: RowRange): string;
   renderComparison(a: RowRange, b: RowRange, close: () => void): ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
-  const [start, setStart] = useState('1'),
-    [end, setEnd] = useState('1');
+  const [panel, setPanel] = useState<'select' | 'bookmark' | 'saved' | null>(null);
   const [name, setName] = useState('');
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [message, setMessage] = useState('');
@@ -134,11 +186,58 @@ export function ExplorerTools<Row>({
   const identity = `${provider.id}:${provider.revision}`;
   const previousIdentity = useRef(identity);
   const bookmarkInput = useRef<HTMLInputElement>(null);
+  const selectionButton = useRef<HTMLButtonElement>(null);
+  const selectionAction = useRef<HTMLButtonElement>(null);
+  const comparisonSetup = useRef<HTMLElement>(null);
+  const comparisonButton = useRef<HTMLButtonElement>(null);
+  const cancelMapButton = useRef<HTMLButtonElement>(null);
+  const secondRange =
+    selection && pinned && (selection.start !== pinned.start || selection.end !== pinned.end)
+      ? selection
+      : null;
+  const describeRange = (range: RowRange) => formatRange?.(range) ?? rangeAddress(range);
+  const rangeDetails = (range: RowRange) =>
+    `${formatRange ? `${rangeAddress(range)} · ` : ''}${rangeCount(range)}`;
+  const returnFocus = () =>
+    requestAnimationFrame(() => {
+      if (pinned) comparisonSetup.current?.focus();
+      else selectionButton.current?.focus();
+    });
+  const closePanel = () => {
+    setPanel(null);
+    returnFocus();
+  };
+  const chooseRange = (range: RowRange) => {
+    scroll.setSelection(range);
+    scroll.setSelectionMode(false);
+    setPanel(null);
+    setMessage('');
+    requestAnimationFrame(() => {
+      if (pinned) comparisonButton.current?.focus();
+      else selectionAction.current?.focus();
+    });
+  };
+  const startComparison = () => {
+    if (!selection) return;
+    setPinned({ ...selection });
+    setMessage('');
+    setPanel(null);
+    scroll.setSelectionMode(false);
+    requestAnimationFrame(() => comparisonSetup.current?.focus());
+  };
+  const saveView = () => {
+    setPanel('bookmark');
+    setName('');
+    setMessage('');
+    requestAnimationFrame(() => bookmarkInput.current?.focus());
+  };
   useEffect(() => {
     if (previousIdentity.current !== identity) {
       setPinned(null);
       setCompare(false);
-      setOpen(false);
+      setPanel(null);
+      setMessage('');
+      setName('');
       previousIdentity.current = identity;
     }
     setBookmarks([]);
@@ -146,15 +245,9 @@ export function ExplorerTools<Row>({
     try {
       setBookmarks(readBookmarks(localStorage.getItem(storageKey), provider));
     } catch {
-      setMessage('Browser storage is unavailable. Bookmarks will last for this session.');
+      setMessage('Browser storage is unavailable. Saved views will last for this session.');
     }
   }, [identity, storageKey]);
-  useEffect(() => {
-    if (selection) {
-      setStart(String(selection.start + 1));
-      setEnd(String(selection.end));
-    }
-  }, [selection?.start, selection?.end]);
   const saveBookmarks = (next: Bookmark[]) => {
     setBookmarks(next);
     if (storageKey)
@@ -167,142 +260,184 @@ export function ExplorerTools<Row>({
         setMessage('Saved for this session; browser storage is unavailable.');
       }
   };
-  const selectVisible = () => {
-    if (!provider.rowCount) return;
-    const first = Math.max(0, Math.floor(scroll.mapping.toRow(0)));
-    scroll.setSelection({
-      start: Math.min(first, provider.rowCount - 1),
-      end: Math.min(
-        provider.rowCount,
-        Math.max(first + 1, Math.ceil(scroll.mapping.toRow(scroll.snapshot.height))),
-      ),
-    });
-  };
+  const picker = (
+    <RangePicker
+      rowCount={provider.rowCount}
+      initialRange={selection}
+      excludedRange={pinned}
+      getVisibleRange={scroll.getVisibleRange}
+      title={
+        pinned
+          ? 'Choose the second range'
+          : selection
+            ? 'Change your selection'
+            : 'Choose rows to explore'
+      }
+      onSelect={chooseRange}
+      onMap={() => {
+        setPanel(null);
+        scroll.setSelectionMode(true);
+        requestAnimationFrame(() => {
+          cancelMapButton.current?.focus();
+          cancelMapButton.current
+            ?.closest('[data-ds-root]')
+            ?.querySelector('.ds-track')
+            ?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        });
+      }}
+      onCancel={closePanel}
+    />
+  );
   return (
     <>
-      <div className="ds-explore-toggle">
-        <button className="ds-button" aria-expanded={open} onClick={() => setOpen(!open)}>
-          Explore{selection ? ' · range selected' : ''}{' '}
-          <span aria-hidden="true">{open ? '−' : '+'}</span>
-        </button>
-        {pinned && <span>Comparison A saved</span>}
-        {selection && !scroll.selectionMode && <div className="ds-selection-actions" role="group" aria-label="Selected range actions">
-          <span>{(selection.end - selection.start).toLocaleString()} rows selected</span>
-          <button className="ds-button" onClick={() => scroll.controller.scrollToIndex(selection.start, { align: 'start' })}>Inspect</button>
-          <button className="ds-button" onClick={() => { if (pinned) setCompare(true); else setPinned({ ...selection }); }}>{pinned ? 'Compare with A' : 'Compare'}</button>
-          <button className="ds-button" onClick={() => { setOpen(true); requestAnimationFrame(() => bookmarkInput.current?.focus()); }}>Bookmark</button>
-          <button className="ds-button" aria-label="Clear selected range" onClick={() => scroll.setSelection(null)}>×</button>
-        </div>}
-      </div>
-      {open && (
-        <div className="ds-explorer-panel" data-ds-native-scroll>
-          <div className="ds-panel-actions">
-            <button className="ds-button" disabled={!provider.rowCount} onClick={selectVisible}>
-              Select visible rows
-            </button>
-            <button
-              className="ds-button"
-              disabled={!provider.rowCount}
-              aria-pressed={scroll.selectionMode}
-              onClick={() => {
-                scroll.setSelectionMode(!scroll.selectionMode);
-                if (!scroll.selectionMode) setOpen(false);
-              }}
-            >
-              {scroll.selectionMode ? 'Cancel map selection' : 'Select on map'}
-            </button>
-            <button
-              className="ds-button"
-              disabled={!selection}
-              onClick={() => {
-                scroll.setSelection(null);
-                scroll.setSelectionMode(false);
-              }}
-            >
-              Clear selection
-            </button>
-          </div>
-          <form
-            className="ds-range-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const range = {
-                start: Number(start.replaceAll(',', '')) - 1,
-                end: Number(end.replaceAll(',', '')),
-              };
-              if (!validRange(range, provider.rowCount)) {
-                setMessage('Enter a valid first and last row within this dataset.');
-                return;
-              }
+      {!pinned && !scroll.selectionMode && (
+        <div className="ds-explore-toggle">
+          <button
+            ref={selectionButton}
+            className="ds-button"
+            aria-expanded={panel === 'select'}
+            disabled={!provider.rowCount}
+            onClick={() => {
+              setPanel(panel === 'select' ? null : 'select');
               setMessage('');
-              scroll.setSelection(range);
             }}
           >
-            <label>
-              First row
-              <input
-                className="ds-input"
-                inputMode="numeric"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-              />
-            </label>
-            <label>
-              Last row
-              <input
-                className="ds-input"
-                inputMode="numeric"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-              />
-            </label>
-            <button className="ds-button" type="submit" disabled={!provider.rowCount}>
-              Select range
+            {selection ? 'Change selection' : 'Select rows'}
+          </button>
+          {!selection && <span>Choose a part of the dataset to explore.</span>}
+          <button
+            className="ds-button ds-saved-views-trigger"
+            aria-expanded={panel === 'saved'}
+            onClick={() => {
+              setPanel(panel === 'saved' ? null : 'saved');
+              setMessage('');
+            }}
+          >
+            Saved views{bookmarks.length ? ` (${bookmarks.length})` : ''}
+          </button>
+        </div>
+      )}
+      {scroll.selectionMode ? (
+        <div
+          className="ds-map-prompt"
+          role="region"
+          aria-label="Select on map"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              scroll.setSelectionMode(false);
+              returnFocus();
+            }
+          }}
+        >
+          <div>
+            <strong>{pinned ? 'Draw your second range' : 'Draw a selection'}</strong>
+            <p>Drag from start to end on the dataset map. Escape cancels.</p>
+          </div>
+          <button
+            ref={cancelMapButton}
+            className="ds-button"
+            onClick={() => {
+              scroll.setSelectionMode(false);
+              returnFocus();
+            }}
+          >
+            Cancel map selection
+          </button>
+        </div>
+      ) : pinned ? (
+        <section
+          ref={comparisonSetup}
+          className="ds-comparison-setup"
+          data-ds-native-scroll
+          aria-label="Range comparison"
+          tabIndex={-1}
+        >
+          <div className="ds-flow-heading">
+            <div>
+              <strong>Compare two ranges</strong>
+              <p role="status">
+                {secondRange
+                  ? 'Both ranges are ready. Open them side by side.'
+                  : 'Your first range is saved. Now choose another part of the dataset.'}
+              </p>
+            </div>
+            <button
+              className="ds-button"
+              onClick={() => {
+                setPinned(null);
+                setPanel(null);
+                scroll.setSelectionMode(false);
+                requestAnimationFrame(() => selectionButton.current?.focus());
+              }}
+            >
+              Cancel comparison
             </button>
-          </form>
-          {selection && (
-            <>
-              <RangeSummary provider={provider} range={selection} />
-              <div className="ds-panel-actions">
-                <button
-                  className="ds-button"
-                  onClick={() =>
-                    scroll.controller.scrollToIndex(selection.start, { align: 'start' })
-                  }
-                >
-                  Inspect first row
+          </div>
+          <div className="ds-comparison-ranges">
+            <div className="ds-comparison-range" role="group" aria-label="First range">
+              <span className="ds-comparison-step">1 · First range</span>
+              <strong>{describeRange(pinned)}</strong>
+              <span>{rangeDetails(pinned)}</span>
+            </div>
+            <div
+              className="ds-comparison-range"
+              data-empty={!secondRange || undefined}
+              role="group"
+              aria-label="Second range"
+            >
+              <span className="ds-comparison-step">2 · Second range</span>
+              <strong>
+                {secondRange ? describeRange(secondRange) : 'Choose what to compare it with'}
+              </strong>
+              {secondRange && <span>{rangeDetails(secondRange)}</span>}
+              {panel !== 'select' && (
+                <button className="ds-button" onClick={() => setPanel('select')}>
+                  {secondRange ? 'Change second range' : 'Choose second range'}
                 </button>
-                <button
-                  className="ds-button"
-                  onClick={() => {
-                    scroll.controller.zoomToRange(selection);
-                  }}
-                >
-                  Fit selected range
-                </button>
-                <button className="ds-button" onClick={() => setPinned({ ...selection })}>
-                  Use as comparison A
-                </button>
-                {pinned && (
-                  <button
-                    className="ds-button"
-                    onClick={(event) => {
-                      event.currentTarget.focus();
-                      setCompare(true);
-                    }}
-                  >
-                    Compare A with selection
-                  </button>
-                )}
-              </div>
-            </>
+              )}
+            </div>
+          </div>
+          {panel === 'select' ? (
+            picker
+          ) : (
+            <div className="ds-comparison-actions">
+              <button
+                ref={comparisonButton}
+                className="ds-button ds-flow-primary ds-comparison-primary"
+                disabled={!secondRange}
+                onClick={(event) => {
+                  event.currentTarget.focus();
+                  setCompare(true);
+                }}
+              >
+                Show comparison
+              </button>
+            </div>
           )}
+        </section>
+      ) : panel === 'select' ? (
+        <div className="ds-explorer-panel" data-ds-native-scroll>
+          {picker}
+        </div>
+      ) : panel === 'bookmark' ? (
+        <section className="ds-explorer-panel" data-ds-native-scroll aria-label="Save a view">
+          <div className="ds-flow-heading">
+            <div>
+              <strong>Save this place</strong>
+              <p>
+                {selection
+                  ? `${rangeAddress(selection)} and your current view`
+                  : 'Your current position, view, and zoom'}
+              </p>
+            </div>
+          </div>
           <form
             className="ds-bookmark-form"
-            onSubmit={(e) => {
-              e.preventDefault();
+            onSubmit={(event) => {
+              event.preventDefault();
               if (!name.trim()) {
-                setMessage('Give this bookmark a name.');
+                setMessage('Give this view a name.');
                 return;
               }
               const item = {
@@ -310,42 +445,70 @@ export function ExplorerTools<Row>({
                 id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
                 name: name.trim(),
               };
+              setMessage(`Saved “${item.name}”. Find it in Saved views.`);
               saveBookmarks([item, ...bookmarks].slice(0, 40));
-              setName('');
+              setPanel(null);
+              requestAnimationFrame(() => selectionButton.current?.focus());
             }}
           >
             <label>
-              Bookmark name
+              View name
               <input
+                ref={bookmarkInput}
                 className="ds-input"
                 maxLength={80}
-                ref={bookmarkInput}
                 placeholder="e.g. Unusual spike"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(event) => setName(event.target.value)}
               />
             </label>
-            <button className="ds-button" disabled={!provider.rowCount}>
-              Save bookmark
+            <button className="ds-button ds-flow-primary" disabled={!provider.rowCount}>
+              Save view
+            </button>
+            <button className="ds-button" type="button" onClick={closePanel}>
+              Cancel
             </button>
           </form>
+        </section>
+      ) : panel === 'saved' ? (
+        <section className="ds-explorer-panel" data-ds-native-scroll aria-label="Saved views">
+          <div className="ds-flow-heading">
+            <div>
+              <strong>Saved views</strong>
+              <p>
+                {bookmarks.length
+                  ? 'Return to a selection or a place you saved.'
+                  : 'Save a place to return to it later.'}
+              </p>
+            </div>
+            <button className="ds-button" onClick={closePanel}>
+              Close saved views
+            </button>
+          </div>
           {!!bookmarks.length && (
             <ul className="ds-bookmarks" aria-label="Saved places">
               {bookmarks.map((bookmark) => (
                 <li key={bookmark.id}>
                   <button
-                    className="ds-button"
+                    className="ds-button ds-saved-view"
                     onClick={() => {
                       scroll.controller.restore(bookmark.location);
-                      scroll.setSelection(bookmark.selection);
+                      chooseRangeOrView(bookmark);
                     }}
                   >
-                    {bookmark.name}
+                    <strong>{bookmark.name}</strong>
+                    <span>
+                      {bookmark.selection
+                        ? rangeAddress(bookmark.selection)
+                        : `Row ${Math.floor(bookmark.location.position + 1).toLocaleString()}`}
+                    </span>
                   </button>
                   <button
                     className="ds-button"
-                    aria-label={`Remove bookmark ${bookmark.name}`}
-                    onClick={() => saveBookmarks(bookmarks.filter((b) => b.id !== bookmark.id))}
+                    aria-label={`Remove saved view ${bookmark.name}`}
+                    onClick={() =>
+                      saveBookmarks(bookmarks.filter((item) => item.id !== bookmark.id))
+                    }
                   >
                     ×
                   </button>
@@ -353,15 +516,75 @@ export function ExplorerTools<Row>({
               ))}
             </ul>
           )}
-          <p className="ds-tool-message" role="status">
-            {message}
-          </p>
-        </div>
+          <button className="ds-button" disabled={!provider.rowCount} onClick={saveView}>
+            Save current view
+          </button>
+        </section>
+      ) : selection ? (
+        <section className="ds-selection-card" data-ds-native-scroll aria-label="Your selection">
+          <div className="ds-selection-overview">
+            <div className="ds-selection-description">
+              <span className="ds-selection-kicker">{rangeCount(selection)} selected</span>
+              <strong>{describeRange(selection)}</strong>
+              {formatRange && <span>{rangeAddress(selection)}</span>}
+            </div>
+            <div className="ds-panel-actions">
+              <button
+                ref={selectionAction}
+                className="ds-button ds-flow-primary"
+                onClick={() => {
+                  if (selection.end - selection.start === 1)
+                    scroll.controller.scrollToIndex(selection.start, { align: 'start' });
+                  else scroll.controller.zoomToRange(selection);
+                }}
+              >
+                {selection.end - selection.start === 1 ? 'Open row' : 'View selection'}
+              </button>
+              <button className="ds-button" onClick={startComparison}>
+                Compare ranges
+              </button>
+              <button className="ds-button" onClick={saveView}>
+                Save view
+              </button>
+              <button
+                className="ds-button ds-clear-selection"
+                aria-label="Clear selection"
+                title="Clear selection"
+                onClick={() => {
+                  scroll.setSelection(null);
+                  setMessage('');
+                  requestAnimationFrame(() => selectionButton.current?.focus());
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <SelectionDetails
+            key={`${identity}:${selection.start}:${selection.end}`}
+            provider={provider}
+            range={selection}
+          />
+        </section>
+      ) : null}
+      {message && (
+        <p className="ds-tool-message ds-flow-message" role="status">
+          {message}
+        </p>
       )}
       {compare &&
         pinned &&
-        selection &&
-        renderComparison(pinned, selection, () => setCompare(false))}
+        secondRange &&
+        renderComparison(pinned, secondRange, () => setCompare(false))}
     </>
   );
+  function chooseRangeOrView(bookmark: Bookmark) {
+    if (bookmark.selection) chooseRange(bookmark.selection);
+    else {
+      scroll.setSelection(null);
+      setPanel(null);
+      returnFocus();
+    }
+  }
 }
+export const ExplorerTools = memo(ExplorerToolsView) as typeof ExplorerToolsView;

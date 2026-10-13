@@ -10,8 +10,9 @@ import {
   type DeepScrollApi,
   type NavigationLocation,
   type ScrollAlignment,
+  type RowRenderContext,
 } from 'deepscroll';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LiveExample } from './LiveExample';
 import { StylingExamples } from './StylingExamples';
 import { ToolsDemo } from './ai/ToolsDemo';
@@ -22,6 +23,9 @@ import { DatasetGallery, DatasetIntro, FeatureTour, ShortcutStrip } from './Show
 import { findDataset } from './datasets';
 import { stopWorker } from './data/worker-client';
 import { DEFAULT_LATENCY, setLatency } from './data/provider';
+import { TraceImport } from './TraceImport';
+import { performance as bundledPerformance } from './datasets/performance';
+import type { DemoDataset } from './datasets';
 
 const pageUrl = (dataset: string, hash: string) =>
   `${location.pathname}?page=1${dataset === 'logs' ? '' : `&dataset=${dataset}`}#view=${hash}`;
@@ -33,6 +37,8 @@ export default function App() {
     findDataset(new URLSearchParams(window.location.search).get('dataset')),
   );
   const provider = dataset.provider;
+  const [recordingDataset, setRecordingDataset] = useState(bundledPerformance);
+  const isImported = dataset.id === 'performance' && provider.revision.startsWith('local-');
   const [shared] = useState(() =>
     decodeView(window.location.hash.replace(/^#view=/, ''), provider),
   );
@@ -59,11 +65,29 @@ export default function App() {
   const selectionRef = useRef<RowRange | null>(shared?.selection ?? null);
   /** Each dataset keeps its own place while you visit the others. */
   const locations = useRef(new Map<string, NavigationLocation>());
-  const mounted = useRef(dataset.id);
+  const providerKey = `${provider.id}:${provider.revision}`;
+  const mounted = useRef(providerKey);
   useEffect(() => {
-    mounted.current = dataset.id;
-  }, [dataset.id]);
+    mounted.current = providerKey;
+  }, [providerKey]);
   const isSignal = dataset.id === 'signal';
+  // Stable row rendering: onStats updates this component often, and rows only re-render
+  // when their own data or these row options change.
+  const toggleExpanded = useCallback(
+    (index: number) =>
+      setExpanded((current) => {
+        const next = new Set(current);
+        if (next.has(index)) next.delete(index);
+        else next.add(index);
+        return next;
+      }),
+    [],
+  );
+  const renderRow = useCallback(
+    (context: RowRenderContext<unknown>) =>
+      dataset.renderRow(context, { dynamic, expanded, toggle: toggleExpanded }),
+    [dataset, dynamic, expanded, toggleExpanded],
+  );
   const atlasSettings = datasetMapSettings[dataset.id] ?? {};
   const changeMapSettings = (patch: AtlasRailOptions) =>
     setDatasetMapSettings((current) => ({
@@ -79,7 +103,7 @@ export default function App() {
     if (id === dataset.id) return;
     const current = controller.current?.getLocation();
     if (current) locations.current.set(dataset.id, current);
-    const next = findDataset(id);
+    const next = id === 'performance' ? recordingDataset : findDataset(id);
     setDataset(next);
     setStats(null);
     setDynamic(false);
@@ -89,6 +113,14 @@ export default function App() {
     else params.set('dataset', id);
     const query = params.toString();
     history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}`);
+  };
+  const loadRecording = (next: DemoDataset) => {
+    setRecordingDataset(next);
+    setDataset(next);
+    setStats(null);
+    selectionRef.current = null;
+    locations.current.delete('performance');
+    history.replaceState(null, '', `${location.pathname}?dataset=performance`);
   };
   useEffect(() => {
     if (!pageMode || !controller.current) return;
@@ -155,8 +187,11 @@ export default function App() {
     });
   };
   const initialLocation =
-    mounted.current === dataset.id
-      ? (controller.current?.getLocation() ?? shared?.location)
+    mounted.current === providerKey
+      ? (controller.current?.getLocation() ??
+        (shared?.dataset === provider.id && shared.revision === provider.revision
+          ? shared.location
+          : undefined))
       : locations.current.get(dataset.id);
   return (
     <main className={pageMode ? 'app app-page' : 'app'}>
@@ -210,20 +245,16 @@ export default function App() {
               </button>
             </div>
           </header>
-          <DatasetGallery value={dataset.id} onChange={chooseDataset} />
+          <DatasetGallery value={dataset.id} current={dataset} onChange={chooseDataset} />
           <DatasetIntro dataset={dataset} stats={stats} />
+          {dataset.id === 'performance' && (
+            <TraceImport imported={isImported} onLoad={loadRecording} />
+          )}
           <FeatureTour
             dataset={dataset}
             controller={controller}
             explorer={() => document.querySelector('.demo-explorer')}
           >
-            <MapSettings
-              value={atlas}
-              onChange={changeMapSettings}
-              onReset={() => setDatasetMapSettings((current) => ({ ...current, [dataset.id]: {} }))}
-              labels={dataset.map}
-              chapters={dataset.map.chapters}
-            />
             {isSignal && (
               <>
                 <button
@@ -293,7 +324,7 @@ export default function App() {
         </div>
       )}
       <DeepScroll
-        key={dataset.id}
+        key={`${provider.id}:${provider.revision}`}
         layout={pageMode ? 'page' : 'embedded'}
         initialSelection={shared?.dataset === provider.id ? shared.selection : null}
         onSelectionChange={(range) => {
@@ -314,9 +345,13 @@ export default function App() {
               ),
             );
         }}
-        bookmarkStorageKey={`deepscroll-demo:${provider.id}:${provider.revision}`}
+        bookmarkStorageKey={
+          isImported ? undefined : `deepscroll-demo:${provider.id}:${provider.revision}`
+        }
         stickyChapters
-        fullPageUrl={pageMode ? undefined : (view) => pageUrl(dataset.id, encodeView(view))}
+        fullPageUrl={
+          pageMode || isImported ? undefined : (view) => pageUrl(dataset.id, encodeView(view))
+        }
         toolbarActions={
           <>
             {pageMode && (
@@ -324,13 +359,27 @@ export default function App() {
                 <span aria-hidden="true">↙ </span>Back to normal view
               </button>
             )}
-            <DebugTools latency={latency} onLatency={changeLatency} stats={stats} />
+            {dataset.id !== 'performance' && (
+              <DebugTools latency={latency} onLatency={changeLatency} stats={stats} />
+            )}
           </>
         }
         provider={provider}
         atlas={atlas}
+        railActions={
+          <MapSettings
+            value={atlas}
+            onChange={changeMapSettings}
+            onReset={() => setDatasetMapSettings((current) => ({ ...current, [dataset.id]: {} }))}
+            labels={dataset.map}
+            chapters={dataset.map.chapters}
+          />
+        }
         ariaLabel={dataset.ariaLabel}
         header={dataset.header}
+        formatRange={dataset.formatRange}
+        renderAggregate={dataset.renderAggregate}
+        aggregateRowHeight={dataset.id === 'performance' ? 156 : 120}
         rowHeight={dataset.rowHeight}
         dynamicRowHeight={isSignal && dynamic}
         initialIndex={dataset.initialIndex}
@@ -343,19 +392,7 @@ export default function App() {
         onStats={setStats}
         className={`demo-explorer dataset-${dataset.id}`}
         classNames={{ row: isSignal ? 'signal-row' : `demo-row ${dataset.id}-row` }}
-        renderRow={(context) =>
-          dataset.renderRow(context, {
-            dynamic,
-            expanded,
-            toggle: (index) =>
-              setExpanded((current) => {
-                const next = new Set(current);
-                if (next.has(index)) next.delete(index);
-                else next.add(index);
-                return next;
-              }),
-          })
-        }
+        renderRow={renderRow}
       />
       {!pageMode && (
         <>
@@ -373,7 +410,9 @@ export default function App() {
           <StylingExamples />
           <ToolsDemo key={dataset.id} datasetId={dataset.id} provider={provider} apiRef={api} />
           <footer className="site-footer">
-            <span>Rows generated on demand. Overview uses sampled values.</span>
+            <span>
+              {dataset.sourceNote ?? 'Rows generated on demand. Overview uses sampled values.'}
+            </span>
             <span>deepscroll 0.1</span>
           </footer>
         </>

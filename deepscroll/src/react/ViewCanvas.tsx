@@ -1,28 +1,59 @@
-import { useEffect, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
-import { prepareCanvas } from '../visuals/atlas.js';
+import { observeCanvas, prepareCanvas } from '../visuals/atlas.js';
+import { formatCompact } from '../visuals/format.js';
 import type { DeepScrollState } from './useDeepScroll.js';
+/** Size and theme change rarely; reading them every frame forces layout and style work. */
+interface Surface {
+  size?: { width: number; height: number };
+  colors?: { accent: string; muted: string; font: string };
+}
 export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const { mapping, snapshot, session, aggregateMode } = scroll;
   const visible = aggregateMode || snapshot.view === 'lens';
-  const drawRef = useRef<() => void>(() => {});
-  const scheduleRef = useRef<() => void>(() => {});
-  useClientLayoutEffect(() => {
-    drawRef.current = () => {
-      if (!canvas.current) return;
-      const target = prepareCanvas(canvas.current!);
-      if (!target) return;
-      const { context: ctx, width, height } = target;
-      const styles = getComputedStyle(canvas.current!),
-        accent = styles.getPropertyValue('--ds-accent').trim() || styles.color,
-        muted = styles.getPropertyValue('--ds-muted').trim() || styles.color;
-      const domain = scroll.provider.metric?.domain ?? [
+  const surface = useRef<Surface>({});
+  const metricDomain = scroll.provider.metric?.domain;
+  const domain = useMemo(
+    () =>
+      metricDomain ?? [
         Math.min(0, ...session.overview.map((b) => b.min ?? 0)),
         Math.max(1, ...session.overview.map((b) => b.max ?? 1)),
-      ];
+      ],
+    [metricDomain, session.overview],
+  );
+  const drawRef = useRef<() => void>(() => {});
+  // Declared before the drawing effect so a newly shown canvas starts from fresh measurements.
+  useClientLayoutEffect(() => {
+    const element = canvas.current;
+    surface.current = {};
+    if (!visible || !element) return;
+    return observeCanvas(element, ({ size, theme }) => {
+      if (size) surface.current.size = size;
+      if (theme) surface.current.colors = undefined;
+      drawRef.current();
+    });
+  }, [visible]);
+  useClientLayoutEffect(() => {
+    drawRef.current = () => {
+      const element = canvas.current;
+      if (!element) return;
+      const state = surface.current;
+      const target = prepareCanvas(element, state.size);
+      if (!target) return;
+      const { context: ctx, width, height } = target;
+      state.size ??= { width, height };
+      if (!state.colors) {
+        const styles = getComputedStyle(element);
+        state.colors = {
+          accent: styles.getPropertyValue('--ds-accent').trim() || styles.color,
+          muted: styles.getPropertyValue('--ds-muted').trim() || styles.color,
+          font: `11px ${styles.fontFamily}`,
+        };
+      }
+      const { accent, muted, font } = state.colors;
       const buckets = session.aggregates.length ? session.aggregates : session.overview;
-      ctx.font = `11px ${styles.fontFamily}`;
+      ctx.font = font;
       for (let y = 0; y < height; y += 5) {
         const row = mapping.toRow(y);
         if (row < 0 || row >= snapshot.rowCount) continue;
@@ -50,11 +81,7 @@ export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
             const row = snapshot.position + offset * sign;
             if (row >= 0 && row < snapshot.rowCount) {
               const y = mapping.toPixel(row);
-              ctx.fillText(
-                `${sign > 0 ? '+' : '−'}${Intl.NumberFormat('en', { notation: 'compact' }).format(offset)}`,
-                18,
-                y - 3,
-              );
+              ctx.fillText(`${sign > 0 ? '+' : '−'}${formatCompact(offset)}`, 18, y - 3);
             }
           }
       } else {
@@ -72,34 +99,9 @@ export function ViewCanvas<Row>({ scroll }: { scroll: DeepScrollState<Row> }) {
       ctx.stroke();
       ctx.globalAlpha = 1;
     };
-    scheduleRef.current();
+    // Draw before paint so the context stays aligned with the rows it surrounds.
+    if (visible) drawRef.current();
   });
-  useEffect(() => {
-    if (!visible || !canvas.current) return;
-    let frame = 0;
-    const draw = () => {
-      if (!frame)
-        frame = requestAnimationFrame(() => {
-          frame = 0;
-          drawRef.current();
-        });
-    };
-    scheduleRef.current = draw;
-    draw();
-    const observer = new ResizeObserver(draw);
-    observer.observe(canvas.current);
-    const theme = new MutationObserver(draw);
-    theme.observe(canvas.current.closest('.ds-root') ?? canvas.current, { attributes: true });
-    const media = matchMedia('(prefers-color-scheme: dark)');
-    media.addEventListener('change', draw);
-    return () => {
-      cancelAnimationFrame(frame);
-      scheduleRef.current = () => {};
-      observer.disconnect();
-      theme.disconnect();
-      media.removeEventListener('change', draw);
-    };
-  }, [visible]);
-  if (!aggregateMode && snapshot.view !== 'lens') return null;
+  if (!visible) return null;
   return <canvas ref={canvas} className="ds-view-canvas" aria-hidden="true" />;
 }

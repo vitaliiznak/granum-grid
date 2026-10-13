@@ -130,26 +130,27 @@ async function perform(page, scene, filming) {
     );
     await table.locator('.expanded-note').waitFor();
   } else if (scene.action === 'compare') {
-    await click(page, table.getByRole('button', { name: /^Explore/ }));
+    await click(page, table.getByRole('button', { name: 'Select rows', exact: true }));
     const select = async (first, last) => {
-      await page.getByLabel('First row', { exact: true }).fill(String(first));
-      await page.getByLabel('Last row', { exact: true }).fill(String(last));
-      await click(page, page.getByRole('button', { name: 'Select range', exact: true }));
-      await page.getByText('Estimated summary', { exact: true }).waitFor();
+      await click(page, page.getByRole('button', { name: /^Enter row numbers/ }));
+      await page.getByLabel('From row', { exact: true }).fill(String(first));
+      await page.getByLabel('To row', { exact: true }).fill(String(last));
+      await click(page, page.getByRole('button', { name: 'Use these rows', exact: true }));
     };
     await select(1_000_000, 1_000_100);
-    await click(page, page.getByRole('button', { name: 'Use as comparison A', exact: true }));
+    await click(page, page.getByRole('button', { name: 'Compare ranges', exact: true }));
+    await click(page, page.getByRole('button', { name: 'Choose second range', exact: true }));
     await select(61_700_000, 61_700_100);
     await hold(300);
-    await click(page, page.getByRole('button', { name: 'Compare A with selection', exact: true }));
+    await click(page, page.getByRole('button', { name: 'Show comparison', exact: true }));
     const dialog = page.getByRole('dialog', { name: 'Compare selected ranges' });
     await dialog
-      .getByRole('grid', { name: 'Range A rows' })
+      .getByRole('grid', { name: 'First range rows' })
       .locator('[data-status="ready"]')
       .first()
       .waitFor();
     await dialog
-      .getByRole('grid', { name: 'Range B rows' })
+      .getByRole('grid', { name: 'Second range rows' })
       .locator('[data-status="ready"]')
       .first()
       .waitFor();
@@ -161,7 +162,7 @@ async function perform(page, scene, filming) {
     );
     if (filming) {
       await hold(600);
-      await dialog.getByRole('grid', { name: 'Range A rows' }).hover();
+      await dialog.getByRole('grid', { name: 'First range rows' }).hover();
       await page.mouse.wheel(0, 160);
     }
   } else if (filming) {
@@ -215,6 +216,7 @@ const manifest = {
   viewport: size,
   synthetic: true,
   scenes: [],
+  sequence: [],
 };
 try {
   if (video) {
@@ -239,18 +241,76 @@ try {
   browser = await chromium.launch({ headless: true });
   const discovery = await browser.newPage();
   let scenes;
+  let titleCards;
+  let filmWindow;
   try {
     await discovery.goto(`${url}?capture=1`);
     await discovery.waitForFunction(() => window.__deepscrollMedia);
-    scenes = await discovery.evaluate(() => window.__deepscrollMedia.scenes);
+    ({ scenes, titleCards, filmWindow } = await discovery.evaluate(() => window.__deepscrollMedia));
   } finally {
     await discovery.close();
   }
   if (filter) scenes = scenes.filter((scene) => scene.id === filter);
   if (!scenes.length) throw new Error(`Unknown scene: ${filter}`);
 
+  async function artwork(id, card = false) {
+    const context = await browser.newContext({ viewport: size, deviceScaleFactor: 1 });
+    try {
+      const page = await context.newPage();
+      const errors = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      page.on('console', (message) => {
+        if (message.type() === 'error') errors.push(message.text());
+      });
+      await page.goto(`${url}?artwork=${card ? id : 'scene'}&scene=${id}&plate=1`);
+      await page.locator('.film-canvas').waitFor();
+      await page.evaluate(() => document.fonts.ready);
+      const file = path.join(scratch, `${id}-artwork.png`);
+      await page.screenshot({ path: file });
+      if (errors.length) throw new Error(`${id} artwork errors:\n${errors.join('\n')}`);
+      return file;
+    } finally {
+      await context.close();
+    }
+  }
+  async function titleCard(id) {
+    const card = titleCards.find((item) => item.id === id);
+    const image = await artwork(id, true);
+    await run(ffmpeg, [
+      '-y',
+      '-loglevel',
+      'error',
+      '-loop',
+      '1',
+      '-framerate',
+      '30',
+      '-i',
+      image,
+      '-vf',
+      `scale=3840:2160,zoompan=z='1+0.00006*on':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30,fade=t=in:st=0:d=0.25,fade=t=out:st=${card.seconds - 0.3}:d=0.3`,
+      '-t',
+      String(card.seconds),
+      '-c:v',
+      'libx264',
+      '-preset',
+      'fast',
+      '-crf',
+      '19',
+      '-pix_fmt',
+      'yuv420p',
+      '-an',
+      path.join(scratch, `${id}.mp4`),
+    ]);
+    manifest.sequence.push({ ...card, kind: 'title' });
+  }
+  if (video && !filter) {
+    console.log('Rendering opening card…');
+    await titleCard('intro');
+  }
+
   for (const scene of scenes) {
     console.log(`Capturing ${scene.id}…`);
+    const background = video ? await artwork(scene.id) : undefined;
     const context = await browser.newContext({
       viewport: size,
       deviceScaleFactor: 1,
@@ -319,18 +379,31 @@ try {
             `${timeline}\nfile '${frames.at(-1).name}'\n`,
           );
           const clip = path.join(scratch, `${scene.id}.mp4`);
+          const crop =
+            scene.action === 'compare'
+              ? ''
+              : `crop=${Math.round(camera.width)}:${Math.round(camera.height)}:${Math.round(camera.x)}:${Math.round(camera.y)},`;
+          const { x, y, width, height } = filmWindow;
           await run(ffmpeg, [
             '-y',
             '-loglevel',
             'error',
+            '-loop',
+            '1',
+            '-framerate',
+            '30',
+            '-i',
+            background,
             '-f',
             'concat',
             '-safe',
             '0',
             '-i',
             path.join(frameDir, 'frames.txt'),
-            '-vf',
-            `${scene.action === 'compare' ? '' : `crop=${Math.round(camera.width)}:${Math.round(camera.height)}:${Math.round(camera.x)}:${Math.round(camera.y)},`}scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=${scene.theme === 'dark' ? '0x15181c' : 'white'},fps=30`,
+            '-filter_complex',
+            `[1:v]${crop}scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=0x151c18,setsar=1[live];[0:v][live]overlay=${x}:${y}:shortest=1,fade=t=in:st=0:d=0.18,fps=30[film]`,
+            '-map',
+            '[film]',
             '-t',
             length.toFixed(3),
             '-c:v',
@@ -365,9 +438,17 @@ try {
       manifest.scenes.push({
         id: scene.id,
         title: scene.title.replace('\n', ' '),
+        headline: scene.headline,
         seconds: clip?.length,
         screenshot: screenshots ? `media/images/${scene.id}.png` : undefined,
       });
+      if (video)
+        manifest.sequence.push({
+          id: scene.id,
+          kind: 'demo',
+          title: `${scene.headline}\n${scene.title}`,
+          seconds: clip.length,
+        });
     } finally {
       recording = false;
       // Stop recording and close every context, including failed captures.
@@ -376,7 +457,11 @@ try {
     }
   }
   if (video) {
-    const list = manifest.scenes.map((scene) => `file '${scene.id}.mp4'`).join('\n');
+    if (!filter) {
+      console.log('Rendering closing card…');
+      await titleCard('outro');
+    }
+    const list = manifest.sequence.map((scene) => `file '${scene.id}.mp4'`).join('\n');
     await writeFile(path.join(scratch, 'clips.txt'), list);
     const filename = filter ? `deepscroll-${filter}.mp4` : 'deepscroll-launch.mp4';
     manifest.video = `media/output/${filename}`;
@@ -402,7 +487,7 @@ try {
       return `${String(Math.floor(ms / 3600000)).padStart(2, '0')}:${String(Math.floor(ms / 60000) % 60).padStart(2, '0')}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')},${String(ms % 1000).padStart(3, '0')}`;
     };
     let position = 0;
-    const captions = manifest.scenes
+    const captions = manifest.sequence
       .map((scene, i) => {
         const start = position;
         position += scene.seconds;

@@ -34,11 +34,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Run unit tests
-        run: npm test
+      - name: Type-check source and tests, then run unit tests
+        run: npm run check
 
       - name: Type-check and build library and frontend
         run: npm run build
+
+      - name: Build media studio
+        run: npm run media:build
 
       - name: Verify npm tarball with React 18.2 and React 19
         run: npm run test:package

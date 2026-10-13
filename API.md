@@ -6,7 +6,7 @@ Status: implemented surface and API direction. README.md tracks current verifica
 
 - Ship a ready-to-use React explorer and a hook for custom layouts, backed by a framework-independent engine.
 - Make row count, asynchronous row fetching, and a row renderer sufficient for useful navigation. Add overview, chapters, markers, regional aggregates, and search as optional provider capabilities.
-- Use fixed row height by default, with opt-in dynamic measurement. Keep rows as customizable DOM content and aggregate graphics on canvas.
+- Use fixed row height by default, with opt-in dynamic measurement. Keep rows and interactive summary bands as customizable DOM content; retain canvas for focus context and animated travel.
 - Keep the dataset position independent of browser scroll height. Neither the engine nor the React viewport creates a dataset-height spacer.
 - Keep the library independent of the demo's signal, timestamps, worker, and artificial latency.
 - Give every address an explicit convention: API indices are zero-based, user-visible row numbers are one-based, and ranges are half-open `[start, end)`.
@@ -81,6 +81,9 @@ interface DeepScrollProps<Row> {
   dynamicRowHeight?: boolean; // rowHeight becomes the estimate
   maxMeasuredRows?: number; // 4096; mounted rows may temporarily exceed the budget
   overscan?: number; // 2 per side in Rows/detail Zoom
+  aggregateRowHeight?: number; // target summary height: component 120px, hook 4px
+  renderAggregate?(context: AggregateRenderContext): React.ReactNode;
+  formatRange?(range: RowRange): string; // domain labels for half-open ranges
   initialLocation?: NavigationLocation;
   controllerRef?: React.Ref<DeepScrollEngine>;
   apiRef?: React.Ref<DeepScrollApi<Row>>; // mounted provider and controller for host integrations
@@ -467,3 +470,46 @@ The demo imports the library by name with explicit Vite source aliases for packa
 Each phase ends with an appropriate check and commit while leaving the demo runnable. Browser sessions are headless unless requested otherwise, named/reused per task, and explicitly closed. A browser launched in code is closed in `finally`.
 
 Approval of this proposal authorizes the six implementation phases. Further questions are reserved for material changes to the agreed design or dependencies, as requested in the brief.
+
+## Meaningful zoom and range inspection
+
+When a provider supplies `fetchAggregates`, the ready-made component displays bounded,
+interactive summary bands in Overview. Each band exposes **Zoom into range**, **Inspect
+these rows**, and **Select**. Accuracy remains visible even with a custom renderer. The
+library does not fetch all rows to construct these summaries. While a new range loads,
+stale summaries are replaced with a loading state. Providers without regional aggregates
+keep the canvas overview and the global Inspect rows action.
+
+```tsx
+<DeepScroll
+  provider={provider}
+  ariaLabel="Readings"
+  aggregateRowHeight={140}
+  formatRange={({ start, end }) => `Readings ${start + 1}–${end}`}
+  renderAggregate={({ bucket, visibleRange, rowsPerPixel }) => (
+    <p>{bucket.end - bucket.start} readings · peak {bucket.max ?? 'unavailable'}</p>
+  )}
+  renderRow={({ row }) => <span role="gridcell">{row.value}</span>}
+/>
+```
+
+`AggregateRenderContext` is exported from `deepscroll` and contains `bucket: Bucket`,
+`visibleRange: RowRange`, and `rowsPerPixel: number`. Hosts can choose different content
+at different scales, using the same provider summary contract. Keep renderers synchronous
+and cheap; expensive domain summaries belong in the provider. `formatRange` must handle
+any valid range in the current provider revision. It describes the range, not a claim
+that its row addresses form a uniform time axis.
+
+`controller.zoomToRange({ start, end })` validates a nonempty half-open range, enters
+Overview, fits it to the viewport, and records the previous location once. An active fit
+adapts when the viewport changes size; panning or another navigation releases that fit.
+`scrollToIndex(start, { align: 'start' })` inspects rows and also records the prior scale.
+Back and Forward therefore support drilling into a range and returning to its context.
+
+The headless hook also exposes `visibleRange` and `aggregateBuckets`. Its default
+aggregate resolution remains suitable for canvas rendering; set `aggregateRowHeight`
+when building larger custom summary bands. Requests remain capped at 160 buckets.
+
+Selected ranges expose a compact Inspect / Compare / Bookmark action bar. Compare pins
+the first range as A; selecting another range enables comparison with A. Detailed range
+entry, summaries, and saved bookmarks remain available under Explore.

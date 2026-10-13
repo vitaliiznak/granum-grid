@@ -58,6 +58,44 @@ describe('sparse measured row sizes', () => {
       expect(mapping.toRow(mapping.toPixel(row))).toBeCloseTo(row, 4);
   });
 
+  it('evicts exactly the farthest unpinned measurements, matching a sorted reference', () => {
+    const cap = 64;
+    const sizes = new RowSizes(1_000_000, 30, cap);
+    const reference = new Map<number, number>();
+    let seed = 7;
+    const random = (n: number) => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) % n) | 0;
+    for (let step = 0; step < 300; step++) {
+      // Fractional anchors avoid distance ties, whose order is unspecified.
+      const anchor = random(1_000_000) + 0.25;
+      const rows = Array.from({ length: 1 + random(12) }, () => ({
+        index: Math.max(0, Math.min(999_999, Math.floor(anchor) + random(400) - 200)),
+        height: 10 + random(90),
+      }));
+      const retained = rows.slice(0, random(4)).map((row) => row.index);
+      sizes.measure(rows, anchor, retained);
+      for (const { index, height } of rows) reference.set(index, height);
+      if (reference.size > cap) {
+        const pinned = new Set(retained);
+        const keep = cap - [...reference.keys()].filter((index) => pinned.has(index)).length;
+        [...reference.keys()]
+          .filter((index) => !pinned.has(index))
+          .sort((a, b) => Math.abs(a - anchor) - Math.abs(b - anchor))
+          .slice(Math.max(0, keep))
+          .forEach((index) => reference.delete(index));
+      }
+      expect(sizes.measuredCount).toBe(reference.size);
+      for (const index of reference.keys()) expect(sizes.size(index)).toBe(reference.get(index));
+      const from = random(1_000_000),
+        to = random(1_000_000);
+      const expected =
+        (to - from) * 30 +
+        [...reference]
+          .filter(([index]) => index >= Math.min(from, to) && index < Math.max(from, to))
+          .reduce((sum, [, height]) => sum + (height - 30) * Math.sign(to - from), 0);
+      expect(sizes.distance(from, to)).toBeCloseTo(expected, 6);
+    }
+  });
+
   it('retains mounted measurements with a tiny budget and releases them after navigation', () => {
     const sizes = new RowSizes(100_000_000, 36, 1);
     sizes.measure(

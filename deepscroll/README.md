@@ -55,7 +55,7 @@ Set `dynamicRowHeight` for automatic measurement of wrapped, expandable, or asyn
 - Light/dark/system themes, accessible DOM rows, and customizable content.
 - Dynamic row heights, configurable overscan, scroll alignment, and location restoration.
 
-`DeepScroll` is 600 px tall by default; customize its bounded height with `style` or `className`. Use `theme`, `reducedMotion`, and `features` to configure behavior. `header` supplies optional column-heading content. `onNavigate` reports committed jumps, and `onStats` reports request/cache statistics and sampled frame rate.
+`DeepScroll` is 600 px tall by default; customize its bounded height with `style` or `className`. Use `theme`, `reducedMotion`, and `features` to configure behavior. `header` supplies optional column-heading content. `onNavigate` reports committed jumps, and `onStats` reports request/cache statistics and sampled frame rate. Frame rate is sampled only with `onStats`, `showStats`, or `measureFrameRate`, because each sample re-renders the explorer. Loaded rows re-render only when their row, focus, or `renderRow` identity changes; if the host re-renders often (for example from `onStats`), keep `renderRow` stable with `useCallback`.
 
 `fetchOverview`, `fetchAggregates`, `fetchMarkers`, `fetchChapters`, and `search` are optional provider methods. Aggregates state their exact/estimated/unavailable accuracy. Search results state whether they are exhaustive. The library never scans the full dataset to synthesize unavailable search or aggregate capabilities.
 
@@ -65,7 +65,7 @@ Cache defaults: 256-row pages, 32 MiB estimated budget, four concurrent row fetc
 
 The default dataset map shows row order vertically, a group mean horizontally (density for density metrics), event diamonds, and a current-row line. Its fixed-size handle does not indicate visible range. The question-mark button explains the encoding; hovering shows the actual group range and summary. Chapter labels are supplied by the provider and fall back to row numbers.
 
-Configure it with `atlas`: choose `layout`, `maxAxisTicks`, `showMarkers`, `showTracks`, `showRange`, `showVisibleRange`, `showTrail`, and `showLegend`. Set `preview` to `'rows'`, `'summary'`, or `'none'`, choose `previewRows` (1–10), and toggle `showMagnifier` or `snapToMarkers`. Summary-only hover does not request exact rows. Global feature flags still take precedence, and changing map options preserves your current row.
+Configure it with `atlas`: choose `layout`, `maxAxisTicks`, `showMarkers`, `showTracks`, `showRange`, `showVisibleRange`, `showTrail`, and `showLegend`. Set `preview` to `'rows'`, `'summary'`, or `'none'`, choose `previewRows` (1–5), and toggle `showMagnifier` or `snapToMarkers`. Summary-only hover does not request exact rows. Global feature flags still take precedence, and changing map options preserves your current row.
 
 Configure it with `atlas={{ variant: 'profile', axis: 'chapters', axisLabel: 'Year', showRange: false, markerLabels: 'label', layout: 'auto' }}`. Alternatives are `variant: 'markers'`, `axis: 'rows'`, `markerLabels: 'number' | 'none'`, and `layout: 'expanded' | 'compact'`. Automatic layout becomes compact below 650 px. `showRange` enables min–max shading for value metrics. `title` and `formatValue(value)` customize labels. Set `axisLabel` to match your provider; dates are not inferred. `AtlasRail` accepts the same `AtlasRailOptions` as its `options` prop.
 
@@ -109,7 +109,7 @@ Not yet implemented: unknown-length streams, prepend anchoring, horizontal/colum
 
 ## Exploration and full-page use
 
-- The **View** menu offers List, Focus + context, and Overview. **Go to…** accepts addresses, provider searches, and loaded event names. Automatic speed aggregation defaults off.
+- The **View** menu offers Rows (individual records), Focused rows (readable nearby rows with compressed surroundings), and Range summaries (groups of rows). Choosing Range summaries opens at a summary scale around the current row. **Compare views** explains the layouts; **Fit dataset** shows the whole dataset and **Inspect rows** returns to records. **Go to…** accepts addresses, provider searches, and loaded event names. Automatic speed aggregation defaults off.
 - **Explore** selects a half-open `RowRange`, requests a provider summary, compares two ranges, and saves named bookmarks. `selection`/`onSelectionChange` support controlled use; `exploration={false}` hides the panel. Comparison links relative progress, not matching records.
 - `bookmarkStorageKey` opts into persistent browser bookmarks. `encodeView` and `decodeView` serialize location, zoom, selection, dataset ID and revision. Invalid or mismatched views are rejected.
 - `fullPageUrl(view)` adds **Open full page**, targeting a host route in a new tab. That route renders `layout="page"` with restored `initialLocation`/`initialSelection`. Page mode owns the viewport; its bounded native scrollbar and dataset map both represent global progress. Wheel, touch panning over rows, and keyboard steps retain local precision. Native scrollbar dragging is approximate; Go to selects exact rows. Mount one page-mode explorer per document.
@@ -128,3 +128,20 @@ Applications can use this interface for custom controls, automation, or AI-calla
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE).
+
+## Custom summary bands
+
+With `fetchAggregates`, Range summaries renders bounded interactive summary bands. Supply
+`renderAggregate({ bucket, visibleRange, rowsPerPixel })` to show domain content at each
+scale and `formatRange(range)` for readable range labels. `aggregateRowHeight` controls
+the target band height (120 px by default). Exact/estimated/unavailable accuracy and
+Zoom / Inspect / Select actions remain library-owned. Without regional summaries, the
+component keeps the canvas overview and Inspect rows action.
+
+Use `controller.zoomToRange({ start, end })` for a reversible range fit. Inspecting rows
+and returning with Back preserves the preceding scale. Active fits adapt to viewport
+resizes until another navigation. The hook exposes `visibleRange` and `aggregateBuckets`
+for custom layouts; its default aggregate row height remains 4 px for canvas consumers.
+
+The trace file parser and recording demo are outside this package. No new runtime
+dependencies are required.

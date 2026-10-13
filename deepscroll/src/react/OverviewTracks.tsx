@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef } from 'react';
 import type { OverviewTrack } from '../data/types.js';
-import { atlasDomain, drawAtlas } from '../visuals/atlas.js';
+import { atlasDomain, drawAtlas, observeCanvas } from '../visuals/atlas.js';
 
 export const OverviewTracks = memo(function OverviewTracks({
   tracks,
@@ -24,18 +24,8 @@ export const OverviewTracks = memo(function OverviewTracks({
           track.metric?.kind,
         );
       });
-    const resize = new ResizeObserver(draw);
-    resize.observe(element);
-    const theme = new MutationObserver(draw);
-    theme.observe(element.closest('.ds-root') ?? element, { attributes: true });
-    const media = matchMedia('(prefers-color-scheme: dark)');
-    media.addEventListener('change', draw);
     draw();
-    return () => {
-      resize.disconnect();
-      theme.disconnect();
-      media.removeEventListener('change', draw);
-    };
+    return observeCanvas(element, draw);
   }, [tracks, total]);
   return (
     <div className="ds-overview-tracks" ref={container}>

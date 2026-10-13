@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 /** Sample frame delivery only while navigation changes. No perpetual idle RAF. */
-export function useFrameRate(position: number) {
+export function useFrameRate(position: number, enabled = true) {
   const [fps, setFps] = useState<number | null>(null);
   const deadline = useRef(0),
     frame = useRef(0),
     start = useRef(0),
     count = useRef(0);
   useEffect(() => {
+    if (!enabled) return;
     deadline.current = performance.now() + 180;
     if (frame.current) return;
     start.current = performance.now();
@@ -26,7 +27,7 @@ export function useFrameRate(position: number) {
       frame.current = requestAnimationFrame(tick);
     };
     frame.current = requestAnimationFrame(tick);
-  }, [position]);
+  }, [position, enabled]);
   useEffect(
     () => () => {
       cancelAnimationFrame(frame.current);
@@ -34,5 +35,5 @@ export function useFrameRate(position: number) {
     },
     [],
   );
-  return fps;
+  return enabled ? fps : null;
 }

@@ -110,6 +110,12 @@ export const genome: DemoDataset<Locus> = {
   rowHeight: 40,
   initialIndex: 10_000,
   bytesPerRow: 64,
+  formatRange: ({ start, end }) => `${where(start)}–${where(end - 1)}`,
+  task: {
+    title: 'Explore chromosome boundaries, then zoom into the sequence.',
+    action: 'See whole genome',
+    run: (controller) => controller.zoomToRange({ start: 0, end: GENOME_LENGTH }),
+  },
   help: 'Every row is one base. Use the map to jump to a chromosome or gene.',
   atlas: { axisLabel: 'Chr', formatValue: (v) => `${v.toFixed(0)}%` },
   map: {
@@ -155,16 +161,16 @@ export const genome: DemoDataset<Locus> = {
       run: ({ controller }) => controller.nextChapter(),
     },
     {
-      feature: 'Lens',
+      feature: 'Focus',
       requiredView: 'lens',
-      label: 'Focus + context',
+      label: 'Focused rows',
       hint: 'Bases near the focus stay readable while the surrounding megabases compress.',
     },
     {
       feature: 'Zoom',
       requiredView: 'zoom',
       label: 'Whole genome at once',
-      hint: 'Overview zoom shows 3 billion bases in one view. Ctrl + wheel or pinch to dive back in.',
+      hint: 'Range summaries group 3 billion bases into bands. Ctrl + wheel or pinch to dive back in.',
       run: ({ fit }) => fit(),
     },
   ],

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { DeepScrollEngine } from '../core/engine.js';
+import { isControl, isWithin } from './dom.js';
 
 /** A bounded document scroll range representing the same global position as Atlas. */
 export function useWindowScroll(engine: DeepScrollEngine, enabled: boolean) {
@@ -15,22 +16,35 @@ export function useWindowScroll(engine: DeepScrollEngine, enabled: boolean) {
     const oldY = window.scrollY;
     let handling = false,
       expected: number | null = null;
-    let limit = 0;
+    // Engine updates arrive on every input frame. Track the document offset, viewport
+    // height, and spacer height here so each update avoids layout-forcing reads.
+    let limit = 0,
+      current = oldY,
+      viewportHeight = window.innerHeight,
+      spacerHeight = -1;
     const setScroll = (y: number) => {
       const top = Math.round(y);
-      if (Math.abs(window.scrollY - top) < 0.5) return;
+      if (Math.abs(current - top) < 0.5) return;
       window.scrollTo({ top, behavior: 'instant' });
       // Use the browser's actual offset, including its pixel rounding/clamping.
-      expected = window.scrollY;
+      current = expected = window.scrollY;
     };
     const sync = () => {
       const s = engine.getSnapshot();
       limit = Math.min(1_000_000, Math.max(0, s.rowCount - 1) * s.rowHeight);
-      spacer.style.height = `${limit + window.innerHeight}px`;
+      if (limit + viewportHeight !== spacerHeight) {
+        spacerHeight = limit + viewportHeight;
+        spacer.style.height = `${spacerHeight}px`;
+      }
       setScroll(s.progress * limit);
+    };
+    const resize = () => {
+      viewportHeight = window.innerHeight;
+      sync();
     };
     const scroll = () => {
       const y = window.scrollY;
+      current = y;
       if (expected !== null && Math.abs(y - expected) < 0.5) {
         expected = null;
         return;
@@ -51,9 +65,8 @@ export function useWindowScroll(engine: DeepScrollEngine, enabled: boolean) {
     const key = (event: KeyboardEvent) => {
       if (
         event.defaultPrevented ||
-        (event.target as HTMLElement).closest(
-          'input,textarea,select,button,a,[contenteditable=true],dialog,[data-ds-native-scroll]',
-        )
+        isControl(event.target) ||
+        isWithin(event.target, 'dialog,[data-ds-native-scroll]')
       )
         return;
       if (event.key === 'Home' || event.key === 'End') {
@@ -77,12 +90,12 @@ export function useWindowScroll(engine: DeepScrollEngine, enabled: boolean) {
     };
     window.addEventListener('keydown', key);
     window.addEventListener('scroll', scroll, { passive: true });
-    window.addEventListener('resize', sync);
+    window.addEventListener('resize', resize);
     sync();
     return () => {
       unsubscribe();
       window.removeEventListener('scroll', scroll);
-      window.removeEventListener('resize', sync);
+      window.removeEventListener('resize', resize);
       window.removeEventListener('keydown', key);
       spacer.remove();
       history.scrollRestoration = oldRestoration;

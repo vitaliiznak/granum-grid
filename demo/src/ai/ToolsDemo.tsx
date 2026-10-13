@@ -4,6 +4,7 @@ import { createTableTools } from './table-tools';
 import './tools-demo.css';
 
 const searches: Record<string, ProviderQuery> = {
+  performance: { kind: 'predicate', field: 'duration', operator: '>', value: 10 },
   signal: { kind: 'predicate', field: 'value', operator: '>', value: 120 },
   genome: { kind: 'predicate', field: 'gc', operator: '>', value: 52 },
   market: { kind: 'predicate', field: 'size', operator: '>', value: 5000 },

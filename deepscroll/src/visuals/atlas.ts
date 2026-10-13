@@ -1,4 +1,5 @@
 import type { Bucket, Chapter } from '../data/types.js';
+import { formatCompactTick } from './format.js';
 
 export function atlasDomain(
   buckets: Bucket[],
@@ -39,9 +40,7 @@ export function atlasTicks(
   ];
   return positions.map((index) => ({
     index,
-    label: Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(
-      index + 1,
-    ),
+    label: formatCompactTick(index + 1),
   }));
 }
 
@@ -56,8 +55,53 @@ export function profileValue(bucket: Bucket, kind: 'value' | 'density') {
   return value !== null && Number.isFinite(value) ? value : null;
 }
 
-export function prepareCanvas(canvas: HTMLCanvasElement) {
-  const rect = canvas.getBoundingClientRect();
+export type OverviewAccuracy = 'unavailable' | 'loading' | 'sampled' | 'exact';
+/** One overview status for every surface that labels it. */
+export function overviewAccuracy(
+  buckets: readonly Bucket[],
+  kind: 'value' | 'density',
+  { supported, failed }: { supported: boolean; failed: boolean },
+): OverviewAccuracy {
+  if (
+    !supported ||
+    failed ||
+    (buckets.length > 0 && buckets.every((bucket) => profileValue(bucket, kind) === null))
+  )
+    return 'unavailable';
+  if (!buckets.length) return 'loading';
+  return buckets.some((bucket) => bucket.accuracy === 'estimated') ? 'sampled' : 'exact';
+}
+
+export interface CanvasChange {
+  /** Content-box size reported by a resize, when known. */
+  size?: { width: number; height: number };
+  /** The explorer theme or system color scheme may have changed. */
+  theme?: boolean;
+}
+/** Redraw on resize and on explorer theme or color-scheme changes. Returns a cleanup. */
+export function observeCanvas(element: Element, redraw: (change: CanvasChange) => void) {
+  const resize = new ResizeObserver((entries) => {
+    const box = entries[entries.length - 1]?.contentRect;
+    redraw({ size: box && { width: box.width, height: box.height } });
+  });
+  resize.observe(element);
+  const onTheme = () => redraw({ theme: true });
+  const theme = new MutationObserver(onTheme);
+  theme.observe(element.closest('.ds-root') ?? element, { attributes: true });
+  const media = matchMedia('(prefers-color-scheme: dark)');
+  media.addEventListener('change', onTheme);
+  return () => {
+    resize.disconnect();
+    theme.disconnect();
+    media.removeEventListener('change', onTheme);
+  };
+}
+
+/** Pass a known CSS size to avoid reading layout on every frame. */
+export function prepareCanvas(
+  canvas: HTMLCanvasElement,
+  rect: { width: number; height: number } = canvas.getBoundingClientRect(),
+) {
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
   const width = Math.round(rect.width * ratio),
     height = Math.round(rect.height * ratio);

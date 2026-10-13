@@ -69,6 +69,13 @@ export const market: DemoDataset<Trade> = {
   ariaLabel: 'Synthetic trades',
   rowHeight: 38,
   bytesPerRow: 72,
+  formatRange: ({ start, end }) =>
+    `${tradeAt(start).time.slice(0, 16)}–${tradeAt(end - 1).time.slice(0, 16)} UTC`,
+  task: {
+    title: 'Find a sharp price change, then inspect the trades around it.',
+    action: 'See whole tape',
+    run: (controller) => controller.zoomToRange({ start: 0, end: TRADE_COUNT }),
+  },
   help: 'Every row is one trade. Use the map to find a crash or a year.',
   atlas: { axisLabel: 'Year', formatValue: (v) => `$${v.toFixed(0)}` },
   map: {
@@ -122,9 +129,9 @@ export const market: DemoDataset<Trade> = {
       run: ({ fit }) => fit(),
     },
     {
-      feature: 'Lens',
+      feature: 'Focus',
       requiredView: 'lens',
-      label: 'Focus + context',
+      label: 'Focused rows',
       hint: 'Read the trades around you while the rest of the decade compresses beside them.',
     },
   ],

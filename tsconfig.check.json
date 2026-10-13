@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "vite/client"],
+    "paths": {
+      "deepscroll": ["./deepscroll/src/index.ts"]
+    }
+  },
+  "include": [
+    "deepscroll/src",
+    "deepscroll/tests",
+    "demo/src",
+    "demo/unit",
+    "demo/tests",
+    "demo/vite.config.ts",
+    "media/src",
+    "media/vite.config.ts",
+    "playwright.config.ts"
+  ]
+}

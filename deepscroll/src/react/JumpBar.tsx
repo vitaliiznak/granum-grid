@@ -1,13 +1,35 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { parseJump } from '../core/navigation.js';
 import type { Marker } from '../data/types.js';
 import type { DeepScrollState } from './useDeepScroll.js';
+/** The dialog's inputs. Position is read from the controller when needed, not per frame. */
+type JumpScroll<Row> = Pick<
+  DeepScrollState<Row>,
+  'jumpOpen' | 'setJumpOpen' | 'setSearchBusy' | 'setSearchMarkers' | 'provider' | 'controller'
+> & { markers: Marker[] };
 export function JumpBar<Row>({
   scroll,
   className,
   style,
 }: {
   scroll: DeepScrollState<Row>;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const { jumpOpen, setJumpOpen, setSearchBusy, setSearchMarkers, provider, controller } = scroll;
+  const markers = scroll.session.markers;
+  const jump = useMemo(
+    () => ({ jumpOpen, setJumpOpen, setSearchBusy, setSearchMarkers, provider, controller, markers }),
+    [jumpOpen, setJumpOpen, setSearchBusy, setSearchMarkers, provider, controller, markers],
+  );
+  return <JumpDialog scroll={jump} className={className} style={style} />;
+}
+const JumpDialog = memo(function JumpDialog<Row>({
+  scroll,
+  className,
+  style,
+}: {
+  scroll: JumpScroll<Row>;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -43,18 +65,18 @@ export function JumpBar<Row>({
     scroll.setSearchMarkers([]);
     setBusy(false);
     if (!query.trim()) {
-      setMatches(scroll.session.markers.slice(0, 40));
+      setMatches(scroll.markers.slice(0, 40));
       setMessage('Jump to a row, a date, or an event.');
       return;
     }
     const parsed = parseJump(
       query,
-      scroll.snapshot.rowCount,
-      scroll.snapshot.position,
-      scroll.session.markers,
+      scroll.controller.getSnapshot().rowCount,
+      scroll.controller.getSnapshot().position,
+      scroll.markers,
     );
     if (parsed.kind === 'error') {
-      const found = scroll.session.markers.filter((m) =>
+      const found = scroll.markers.filter((m) =>
         m.label.toLowerCase().includes(query.toLowerCase()),
       );
       setMatches(found.slice(0, 40));
@@ -84,7 +106,7 @@ export function JumpBar<Row>({
     setMessage('Searching…');
     const timer = setTimeout(() => {
       scroll.provider.search!(parsed.query, {
-        fromIndex: scroll.snapshot.position,
+        fromIndex: scroll.controller.getSnapshot().position,
         limit: 100,
         signal: controller.signal,
       })
@@ -96,7 +118,7 @@ export function JumpBar<Row>({
               (m) =>
                 !Number.isSafeInteger(m.index) ||
                 m.index < 0 ||
-                m.index >= scroll.snapshot.rowCount,
+                m.index >= scroll.controller.getSnapshot().rowCount,
             )
           )
             throw new Error('Provider returned invalid search addresses');
@@ -121,7 +143,7 @@ export function JumpBar<Row>({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, scroll.jumpOpen, scroll.provider, scroll.session.markers]);
+  }, [query, scroll.jumpOpen, scroll.provider, scroll.markers]);
   const choose = (marker: Marker) => {
     scroll.controller.goTo(marker.index);
     scroll.setJumpOpen(false);
@@ -165,9 +187,9 @@ export function JumpBar<Row>({
               // Direct addresses need not wait for the results effect to render.
               const parsed = parseJump(
                 event.currentTarget.value,
-                scroll.snapshot.rowCount,
-                scroll.snapshot.position,
-                scroll.session.markers,
+                scroll.controller.getSnapshot().rowCount,
+                scroll.controller.getSnapshot().position,
+                scroll.markers,
               );
               if (parsed.kind === 'index') {
                 choose({
@@ -209,7 +231,7 @@ export function JumpBar<Row>({
           {[
             '50%',
             ...(scroll.provider.search ? ['2017-03'] : []),
-            ...(scroll.session.markers.length ? [scroll.session.markers[0].label] : []),
+            ...(scroll.markers.length ? [scroll.markers[0].label] : []),
           ].map((example) => (
             <button
               className="ds-button"
@@ -226,4 +248,4 @@ export function JumpBar<Row>({
       </div>
     </dialog>
   );
-}
+});
