@@ -103,7 +103,7 @@ export function DebugTools({
   return (
     <>
       <button
-        className="ds-button debug-trigger"
+        className="gr-button debug-trigger"
         aria-haspopup="dialog"
         title="Developer tools: simulation, behavior, and performance"
         onClick={(event) => {
@@ -119,7 +119,7 @@ export function DebugTools({
           <h2>
             <BugIcon /> debug
           </h2>
-          <button className="ds-button" onClick={() => dialog.current?.close()}>
+          <button className="gr-button" onClick={() => dialog.current?.close()}>
             Close
           </button>
         </div>
@@ -195,7 +195,7 @@ export function DebugTools({
           </div>
           <p className="debug-help">Frame rate is measured during navigation on this device.</p>
         </section>
-        <button className="ds-button" onClick={onReset}>
+        <button className="gr-button" onClick={onReset}>
           Reset defaults
         </button>
       </dialog>

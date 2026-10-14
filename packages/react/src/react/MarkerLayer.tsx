@@ -65,7 +65,7 @@ export const MarkerLayer = memo(function MarkerLayer({
         return (
           <button
             key={`${marker.id}:${marker.index}`}
-            className="ds-button ds-marker"
+            className="gr-button gr-marker"
             data-group={clustered || undefined}
             data-kind={lead.kind}
             aria-label={name}
@@ -84,19 +84,19 @@ export const MarkerLayer = memo(function MarkerLayer({
               } else controller.goTo(marker.index, { reason: 'marker' });
             }}
           >
-            <span aria-hidden="true" className="ds-marker-symbol">
+            <span aria-hidden="true" className="gr-marker-symbol">
               {clustered ? '●' : lead.kind === 'bookmark' ? '★' : '◆'}
             </span>
-            <span className="ds-marker-label">{labels === 'number' ? number : lead.label}</span>
+            <span className="gr-marker-label">{labels === 'number' ? number : lead.label}</span>
             {clustered && labels !== 'number' && (
-              <span className="ds-marker-more">+{others.toLocaleString()}</span>
+              <span className="gr-marker-more">+{others.toLocaleString()}</span>
             )}
-            <span className="ds-marker-number">{number}</span>
+            <span className="gr-marker-number">{number}</span>
           </button>
         );
       })}
       <dialog
-        className="ds-jump"
+        className="gr-jump"
         ref={dialog}
         aria-label="Markers in this region"
         onCancel={() => setOpen(null)}
@@ -107,15 +107,15 @@ export const MarkerLayer = memo(function MarkerLayer({
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="ds-jump-inner">
-          <div className="ds-jump-heading">
+        <div className="gr-jump-inner">
+          <div className="gr-jump-heading">
             <strong>Markers in this region</strong>
-            <button className="ds-button" onClick={() => setOpen(null)}>
+            <button className="gr-button" onClick={() => setOpen(null)}>
               Close
             </button>
           </div>
           <input
-            className="ds-input"
+            className="gr-input"
             aria-label="Find a marker"
             placeholder="Find a marker…"
             value={query}
@@ -125,10 +125,10 @@ export const MarkerLayer = memo(function MarkerLayer({
             }}
           />
           <p role="status">{count(matches.length)}</p>
-          <div className="ds-jump-results">
+          <div className="gr-jump-results">
             {matches.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((m) => (
               <button
-                className="ds-button"
+                className="gr-button"
                 key={`${m.id}:${m.index}`}
                 onClick={() => {
                   controller.goTo(m.index, { reason: 'marker' });
@@ -140,12 +140,12 @@ export const MarkerLayer = memo(function MarkerLayer({
               </button>
             ))}
           </div>
-          <div className="ds-panel-actions">
-            <button className="ds-button" disabled={!page} onClick={() => setPage(page - 1)}>
+          <div className="gr-panel-actions">
+            <button className="gr-button" disabled={!page} onClick={() => setPage(page - 1)}>
               Previous markers
             </button>
             <button
-              className="ds-button"
+              className="gr-button"
               disabled={(page + 1) * PAGE_SIZE >= matches.length}
               onClick={() => setPage(page + 1)}
             >

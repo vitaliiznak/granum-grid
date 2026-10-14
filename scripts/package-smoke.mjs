@@ -78,9 +78,9 @@ const markup = renderWithoutWarnings(
 assert.ok(markup.includes('aria-rowcount="100000000"'));
 assert.ok(markup.includes('Loading row'));
 // Three props render rows and the map; the toolbar, heading row, and footer are opt-in.
-assert.ok(markup.includes('data-ds-part="rail"'));
+assert.ok(markup.includes('data-gr-part="rail"'));
 for (const part of ['toolbar', 'header', 'footer'])
-  assert.ok(!markup.includes(`data-ds-part="${part}"`), `${part} must be opt-in`);
+  assert.ok(!markup.includes(`data-gr-part="${part}"`), `${part} must be opt-in`);
 const chromeMarkup = renderWithoutWarnings(
   createElement(GranumGrid, {
     provider: { id: 'chrome', revision: '1', rowCount: 12, fetchRows: async () => [] },
@@ -92,7 +92,7 @@ const chromeMarkup = renderWithoutWarnings(
   }),
 );
 for (const part of ['toolbar', 'header', 'footer'])
-  assert.ok(chromeMarkup.includes(`data-ds-part="${part}"`), `${part} must render when set`);
+  assert.ok(chromeMarkup.includes(`data-gr-part="${part}"`), `${part} must render when set`);
 const customMarkup = renderWithoutWarnings(
   createElement(GranumGrid, {
     provider: { id: 'custom', revision: '1', rowCount: 12, fetchRows: async () => [] },
@@ -110,11 +110,11 @@ assert.match(customMarkup, /data-unstyled="true"/);
 assert.match(customMarkup, /<nav>12 records<\/nav>/);
 assert.match(customMarkup, /consumer-row/);
 assert.match(customMarkup, /consumer-viewport/);
-assert.match(customMarkup, /data-ds-part="row"/);
+assert.match(customMarkup, /data-gr-part="row"/);
 assert.match(customMarkup, /padding:12px/);
 assert.ok(!customMarkup.includes('translateY(999px)'), 'Row geometry must remain engine-owned');
-assert.ok(!customMarkup.includes('class="ds-rail'));
-assert.ok(!customMarkup.includes('class="ds-footer'));
+assert.ok(!customMarkup.includes('class="gr-rail'));
+assert.ok(!customMarkup.includes('class="gr-footer'));
 // The headless entry is the same hook, and its module graph stops before explorer components.
 assert.equal(useHeadlessGrid, useGranumGrid);
 const headlessModules = new Set();
@@ -140,7 +140,7 @@ function HeadlessRows() {
 assert.match(renderWithoutWarnings(createElement(HeadlessRows)), /aria-rowcount="1000"/);
 const baseCss = readFileSync(new URL(import.meta.resolve('@granum/react/base.css')), 'utf8');
 const themeCss = readFileSync(new URL(import.meta.resolve('@granum/react/styles.css')), 'utf8');
-assert.match(baseCss, /@layer granum-grid/);
+assert.match(baseCss, /@layer granum/);
 assert.match(themeCss, /@import ['"]\.\/base.css['"]/);
 assert.ok(!themeCss.includes('!important'));
 console.log('Built exports, navigation, SSR, composition hooks, and packaged styles verified.');

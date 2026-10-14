@@ -173,7 +173,8 @@ Choices a contributor needs before changing the library, with options decided ag
 
 - **No compatibility for names nobody uses yet.** Before the first npm release there are no
   users to protect, so the deepscroll-era storage keys and wiki manifest are gone, and the
-  `ds-*` style hooks are renamed once, together with the package names
+  `ds-*` style hooks became `gr-*` (classes, `data-gr-*` attributes, `--gr-*` variables) and
+  the cascade layer `granum`, together with the package names
   ([plan](docs/plans/library-family.md)). After a release, a rename needs a deprecation.
 
 - **Row identity and layout.** A data session belongs to the provider's data, not its
@@ -205,7 +206,7 @@ Choices a contributor needs before changing the library, with options decided ag
   row height, so the slider's step does not change with dynamic heights. `AtlasRail` is
   not fully memoized because it receives per-frame state.
 
-- **One cascade layer, ordered by source.** Each stylesheet is a single `granum-grid`
+- **One cascade layer, ordered by source.** Each stylesheet is a single `granum`
   layer of zero-specificity rules, so a later rule for the same part always wins; keep
   one rule per part and section instead of appending overrides.
 

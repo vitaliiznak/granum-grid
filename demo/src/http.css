@@ -20,25 +20,25 @@
   gap: 8px;
   margin: 16px 0;
 }
-.http-explorer .ds-legend {
+.http-explorer .gr-legend {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--ds-rail-width, 232px);
+  grid-template-columns: minmax(0, 1fr) var(--gr-rail-width, 232px);
   padding: 9px 0;
   gap: 0;
 }
-.http-explorer .ds-legend > span {
+.http-explorer .gr-legend > span {
   padding: 0 12px;
 }
-.http-explorer .ds-legend > span:first-child {
+.http-explorer .gr-legend > span:first-child {
   display: grid;
   grid-template-columns: minmax(0, 2fr) 1fr 1fr;
   gap: 12px;
 }
 @media (max-width: 650px) {
-  .http-explorer .ds-legend {
-    grid-template-columns: minmax(0, 1fr) var(--ds-rail-width-mobile, 72px);
+  .http-explorer .gr-legend {
+    grid-template-columns: minmax(0, 1fr) var(--gr-rail-width-mobile, 72px);
   }
-  .http-explorer .ds-legend > span:last-child {
+  .http-explorer .gr-legend > span:last-child {
     font-size: 8px;
   }
 }

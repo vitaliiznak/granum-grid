@@ -225,20 +225,20 @@ const JumpDialog = memo(function JumpDialog<Row>({
   return (
     <dialog
       ref={dialog}
-      className={`ds-jump ${className ?? ''}`}
+      className={`gr-jump ${className ?? ''}`}
       style={style}
-      data-ds-part="jump"
+      data-gr-part="jump"
       aria-label="Jump to a location"
       onCancel={() => setJumpOpen(false)}
       onClick={(event) => {
         if (event.target === event.currentTarget) setJumpOpen(false);
       }}
     >
-      <div className="ds-jump-inner">
-        <div className="ds-jump-heading">
+      <div className="gr-jump-inner">
+        <div className="gr-jump-heading">
           <span>Jump to a location</span>
           <button
-            className="ds-button"
+            className="gr-button"
             aria-label="Close jump bar"
             onClick={() => setJumpOpen(false)}
           >
@@ -246,7 +246,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
           </button>
         </div>
         <input
-          className="ds-input"
+          className="gr-input"
           ref={input}
           aria-label="Go to row, date, or event"
           placeholder={provider.searchHelp?.placeholder ?? 'Row number, percentage, or event name…'}
@@ -286,7 +286,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
           }}
         />
         <p role="status">{message}</p>
-        <div className="ds-jump-results" ref={results}>
+        <div className="gr-jump-results" ref={results}>
           {choices.map((marker, i) => (
             <Fragment key={`${marker.id}-${i}`}>
               {i === matches.length && namedMatches.length > 0 && (
@@ -298,7 +298,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
                 </p>
               )}
               <button
-                className={`ds-button ${selected === i ? 'selected' : ''}`}
+                className={`gr-button ${selected === i ? 'selected' : ''}`}
                 onClick={() => choose(marker)}
                 onPointerMove={(event) => {
                   // Scrolling the keyboard selection under a stationary pointer must not select another row.
@@ -311,7 +311,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
             </Fragment>
           ))}
         </div>
-        <div className="ds-jump-examples">
+        <div className="gr-jump-examples">
           {[
             ...new Set([
               '50%',
@@ -320,7 +320,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
             ]),
           ].map((example) => (
             <button
-              className="ds-button"
+              className="gr-button"
               key={example}
               onClick={() => {
                 setQuery(example);
@@ -332,7 +332,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
           ))}
         </div>
         {provider.search && provider.searchHelp?.fields && (
-          <details className="ds-search-help">
+          <details className="gr-search-help">
             <summary>Searchable fields</summary>
             <ul>
               {provider.searchHelp.fields.map((field) => (

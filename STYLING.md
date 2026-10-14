@@ -22,32 +22,32 @@ import './explorer.css';
 ```css
 .my-explorer {
   height: 480px;
-  --ds-bg: var(--surface);
-  --ds-panel: var(--surface-subtle);
-  --ds-text: var(--foreground);
-  --ds-muted: var(--foreground-muted);
-  --ds-line: var(--border);
-  --ds-accent: #536aa1;
-  --ds-hover: #edf0f7;
-  --ds-mark: #986421;
-  --ds-radius: 4px;
-  --ds-rail-width: 232px;
-  --ds-rail-width-mobile: 92px;
-  --ds-rail-width-compact: 92px;
+  --gr-bg: var(--surface);
+  --gr-panel: var(--surface-subtle);
+  --gr-text: var(--foreground);
+  --gr-muted: var(--foreground-muted);
+  --gr-line: var(--border);
+  --gr-accent: #536aa1;
+  --gr-hover: #edf0f7;
+  --gr-mark: #986421;
+  --gr-radius: 4px;
+  --gr-rail-width: 232px;
+  --gr-rail-width-mobile: 92px;
+  --gr-rail-width-compact: 92px;
 }
 ```
 
 Define the host variables used above, or replace them with colors. Typography inherits from the host. The component's `theme` accepts `light`, `dark`, and `system`; the default is `system`. Your overrides take precedence over the built-in light/dark palette.
 
-Both stylesheets use the `granum-grid` cascade layer and zero-specificity `:where()` selectors. Normal unlayered application CSS overrides them regardless of import order. For a framework that also uses cascade layers, declare the order before either stylesheet so its utilities come last; for example:
+Both stylesheets use the `granum` cascade layer and zero-specificity `:where()` selectors. Normal unlayered application CSS overrides them regardless of import order. For a framework that also uses cascade layers, declare the order before either stylesheet so its utilities come last; for example:
 
 ```css
-@layer granum-grid, theme, base, components, utilities;
+@layer granum, theme, base, components, utilities;
 @import '@granum/react/base.css';
 /* Import your framework and application styles after declaring the order. */
 ```
 
-No `!important` is needed. The default skin targets only library-owned `.ds-button` and `.ds-input` controls. It does not reset buttons, inputs, links, or selects rendered by your application.
+No `!important` is needed. The default skin targets only library-owned `.gr-button` and `.gr-input` controls. It does not reset buttons, inputs, links, or selects rendered by your application.
 
 ## Style individual parts
 
@@ -70,7 +70,7 @@ Use CSS Modules, utility class strings, ordinary classes, or inline styles:
 />
 ```
 
-`classNames` and `styles` accept `toolbar`, `header`, `body`, `viewport`, `row`, `rail`, `footer`, and `jump`. Types are exported as `GranumGridPart` and `GranumGridAppearance`. The corresponding elements have stable `data-ds-part` attributes. Rows expose `data-focused` and `data-status="ready|loading|error"`. The root exposes `data-theme`, `data-motion`, and `data-unstyled`.
+`classNames` and `styles` accept `toolbar`, `header`, `body`, `viewport`, `row`, `rail`, `footer`, and `jump`. Types are exported as `GranumGridPart` and `GranumGridAppearance`. The corresponding elements have stable `data-gr-part` attributes. Rows expose `data-focused` and `data-status="ready|loading|error"`. The root exposes `data-theme`, `data-motion`, and `data-unstyled`.
 
 The virtualizer owns row position, transform, height, minimum height, and border-box sizing. These are inline geometry styles; style the row's content instead of overriding them. Enable `dynamicRowHeight` for content-driven heights and put padding inside rows. Always give the explorer or headless viewport a bounded height.
 
@@ -136,7 +136,7 @@ Peak attraction uses the selected chart's existing overview groups, never a scan
 
 Expanded layout labels the chart, row-order axis, value direction, markers, and current-row handle. With `showTracks`, choose a metric using **Chart**; changing the chart updates its scale, accuracy, range shading, and hover summary without moving the current row or changing navigation history. Providers should return only additional metrics from `fetchOverviewTracks`, without repeating the primary metric. Short rails collapse explanatory text and the legend into the help button to preserve plot height.
 
-Compact layout shows numbers instead of marker names (a marker's place in row order; a group shows its named marker's place and a +N count), hides the chart selector, and keeps the selected chart and its explanation available through the question-mark button and hover details. The scrollbar column runs the full height of the table. Help and host controls sit in one compact group over the chart and leave the marker gutter and scroll column clear. The metric name stays in the legend and in the help note. Navigation targets retain their accessible names in every layout. Configure width with the three `--ds-rail-width*` tokens above. The axis and marker gutters can be adjusted with `--ds-map-axis-width` and `--ds-map-events-width` on the rail.
+Compact layout shows numbers instead of marker names (a marker's place in row order; a group shows its named marker's place and a +N count), hides the chart selector, and keeps the selected chart and its explanation available through the question-mark button and hover details. The scrollbar column runs the full height of the table. Help and host controls sit in one compact group over the chart and leave the marker gutter and scroll column clear. The metric name stays in the legend and in the help note. Navigation targets retain their accessible names in every layout. Configure width with the three `--gr-rail-width*` tokens above. The axis and marker gutters can be adjusted with `--gr-map-axis-width` and `--gr-map-events-width` on the rail.
 
 These options are the only switches for map layers; the hook's `features` cover motion and data, not the map. Hiding a layer does not disable provider metadata loading. The current-row handle and explicit range selection stay visible independently of these layer options.
 
@@ -266,4 +266,4 @@ function Explorer({ provider }: { provider: DataProvider<{ value: number }> }) {
 }
 ```
 
-`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](packages/react/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Place your rows inside `grid.getLayerProps()` within the viewport: the layer is kept at the scroll offset, so rows at `slot.y` scroll natively. When a dataset is shorter than the viewport, the built-in viewport marks the space below its last row as the end of the dataset.
+`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](packages/react/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.gr-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Place your rows inside `grid.getLayerProps()` within the viewport: the layer is kept at the scroll offset, so rows at `slot.y` scroll natively. When a dataset is shorter than the viewport, the built-in viewport marks the space below its last row as the end of the dataset.

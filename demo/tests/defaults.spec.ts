@@ -17,9 +17,9 @@ test('three props render rows and the map, and an embedded explorer stops at its
   const lesson = page.getByRole('region', { name: 'Sensor lesson' });
   const grid = lesson.getByRole('grid', { name: 'Sensor readings' });
   await expect(grid.locator('[data-status="ready"]').first()).toBeVisible();
-  await expect(lesson.locator('[data-ds-part="rail"]')).toBeVisible();
+  await expect(lesson.locator('[data-gr-part="rail"]')).toBeVisible();
   for (const part of ['toolbar', 'header', 'footer'])
-    await expect(lesson.locator(`[data-ds-part="${part}"]`)).toHaveCount(0);
+    await expect(lesson.locator(`[data-gr-part="${part}"]`)).toHaveCount(0);
   // The Go to dialog stays available from the keyboard without the toolbar.
   await grid.focus();
   await page.keyboard.press('ControlOrMeta+k');

@@ -339,9 +339,9 @@ export function AtlasRail<Row>({
   };
   return (
     <aside
-      className={`ds-rail ${className ?? ''}`}
+      className={`gr-rail ${className ?? ''}`}
       style={style}
-      data-ds-part="rail"
+      data-gr-part="rail"
       aria-label="Dataset scrollbar"
       data-layout={options.layout ?? 'auto'}
       data-variant={showProfile ? 'profile' : 'markers'}
@@ -353,14 +353,14 @@ export function AtlasRail<Row>({
         if (event.key === 'Escape') setHelpOpen(false);
       }}
     >
-      <div className="ds-rail-title">
+      <div className="gr-rail-title">
         <strong>
-          <span className="ds-map-title">{options.title ?? 'Scrollbar'}</span>
+          <span className="gr-map-title">{options.title ?? 'Scrollbar'}</span>
         </strong>
-        <div className="ds-rail-actions">
+        <div className="gr-rail-actions">
           <button
             type="button"
-            className="ds-button ds-map-help-button"
+            className="gr-button gr-map-help-button"
             aria-label="About dataset scrollbar"
             aria-expanded={helpOpen}
             aria-controls={helpId}
@@ -371,7 +371,7 @@ export function AtlasRail<Row>({
           {actions}
         </div>
       </div>
-      <div id={helpId} className="ds-map-help" hidden={!helpOpen} role="note" tabIndex={0}>
+      <div id={helpId} className="gr-map-help" hidden={!helpOpen} role="note" tabIndex={0}>
         <strong>
           {showProfile ? `How to read ${metricLabel.toLowerCase()}` : 'How to use this scrollbar'}
         </strong>
@@ -410,26 +410,26 @@ export function AtlasRail<Row>({
         )}
       </div>
       {selecting && (
-        <p className="ds-selection-hint" role="status">
+        <p className="gr-selection-hint" role="status">
           Drag on the scrollbar to select a range. Escape cancels.
         </p>
       )}
-      <p className="ds-map-guide">Whole dataset · click or drag to jump</p>
+      <p className="gr-map-guide">Whole dataset · click or drag to jump</p>
       {showProfile && (
         <div
-          className="ds-map-compact-caption"
+          className="gr-map-compact-caption"
           title={`${metricLabel} · higher values to the right`}
         >
           {metricLabel} <span aria-hidden="true">→</span>
         </div>
       )}
       {showProfile && (
-        <div className="ds-map-metric">
+        <div className="gr-map-metric">
           {options.showTracks && session.tracks.length > 0 ? (
             <label>
               Chart
               <select
-                className="ds-input"
+                className="gr-input"
                 aria-label="Scrollbar chart"
                 value={selectedTrack ? `track:${selectedTrack.id}` : 'primary'}
                 onChange={(event) => {
@@ -454,14 +454,14 @@ export function AtlasRail<Row>({
           )}
         </div>
       )}
-      <div className="ds-map-axis-heading">
+      <div className="gr-map-axis-heading">
         <span>{axisLabel} ↓</span>
         <span>{showProfile ? 'Higher →' : ''}</span>
-        {showMarkers && <span className="ds-map-events-heading">Markers</span>}
+        {showMarkers && <span className="gr-map-events-heading">Markers</span>}
       </div>
       {showProfile && (
         <div
-          className="ds-map-value-axis"
+          className="gr-map-value-axis"
           aria-label={`${metricLabel} scale: ${formatValue(domain[0])} to ${formatValue(domain[1])}`}
         >
           <span>{formatValue(domain[0])}</span>
@@ -470,7 +470,7 @@ export function AtlasRail<Row>({
       )}
       <div
         ref={track}
-        className="ds-track"
+        className="gr-track"
         role="group"
         aria-label="Dataset scrollbar navigation"
         tabIndex={-1}
@@ -604,21 +604,21 @@ export function AtlasRail<Row>({
           }
         }}
       >
-        <div className="ds-map-plot">
+        <div className="gr-map-plot">
           <canvas
             ref={canvas}
-            className="ds-overview-canvas"
+            className="gr-overview-canvas"
             aria-hidden="true"
             data-testid="overview"
           />
           {showProfile && accuracy === 'unavailable' && (
-            <span className="ds-map-unavailable">No profile</span>
+            <span className="gr-map-unavailable">No profile</span>
           )}
         </div>
         {ticks.map((tick) => (
           <div
             key={tick.index}
-            className="ds-map-tick"
+            className="gr-map-tick"
             style={{
               top: `clamp(0px, calc(${rowToProgress(tick.index, total) * 100}% - 8px), calc(100% - 16px))`,
             }}
@@ -638,14 +638,14 @@ export function AtlasRail<Row>({
         )}
         {options.showVisibleRange !== false && (
           <span
-            className="ds-visible-range"
+            className="gr-visible-range"
             aria-hidden="true"
             style={spanStyle(visibleStart, visibleEnd)}
           />
         )}
         {selection && (
           <span
-            className="ds-map-selection"
+            className="gr-map-selection"
             aria-hidden="true"
             style={spanStyle(selection.start, selection.end)}
           />
@@ -654,11 +654,11 @@ export function AtlasRail<Row>({
           snapshot.trail.map((position, i) => (
             <span
               key={i}
-              className="ds-trail"
+              className="gr-trail"
               style={{ top: `${rowToProgress(position, total) * 100}%` }}
             />
           ))}
-        <span className="ds-scrollbar-track" aria-hidden="true" />
+        <span className="gr-scrollbar-track" aria-hidden="true" />
         <span
           role="slider"
           tabIndex={0}
@@ -670,10 +670,10 @@ export function AtlasRail<Row>({
           aria-valuemax={total}
           aria-valuenow={total ? (snapshot.activeIndex ?? 0) + 1 : 0}
           aria-valuetext={`Row ${total ? (snapshot.activeIndex ?? 0) + 1 : 0} of ${total}${currentChapter ? `, ${currentChapter.label}` : ''}`}
-          className="ds-thumb"
+          className="gr-thumb"
           style={{ top: `clamp(0px, calc(${snapshot.progress * 100}% - 12px), calc(100% - 24px))` }}
         >
-          <span className="ds-thumb-direction" aria-hidden="true">
+          <span className="gr-thumb-direction" aria-hidden="true">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path
                 d="M7 12V2M3 6l4-4 4 4"
@@ -685,28 +685,28 @@ export function AtlasRail<Row>({
             </svg>
           </span>
         </span>
-        <span className="ds-track-line" style={{ top: `${snapshot.progress * 100}%` }} />
+        <span className="gr-track-line" style={{ top: `${snapshot.progress * 100}%` }} />
         {hover && !dragging && !selecting && (
           <span
-            className="ds-map-hover"
+            className="gr-map-hover"
             aria-hidden="true"
             data-attracted={hover.peak !== undefined}
             style={{ top: `${rowToProgress(hover.index, total) * 100}%` }}
           />
         )}
       </div>
-      <span className="ds-rail-end">{formatCompact(total)} rows</span>
+      <span className="gr-rail-end">{formatCompact(total)} rows</span>
       {options.showLegend !== false && (showProfile || showMarkers) && (
-        <div className="ds-map-legend">
+        <div className="gr-map-legend">
           {showProfile && (
             <span>
-              <i className="ds-map-mean-key" />
+              <i className="gr-map-mean-key" />
               {profileLabel}
               {showRange ? ' + min–max' : ''} · {accuracy}
             </span>
           )}
           <span>
-            <i className="ds-map-position-key" /> Current row
+            <i className="gr-map-position-key" /> Current row
           </span>
           {showMarkers && (
             <span>◆ Markers{hasBookmarks ? ' · ★ Bookmarks' : ''} · click to jump</span>
@@ -716,18 +716,18 @@ export function AtlasRail<Row>({
       {hover && previewVisible && (
         <div
           ref={previewElement}
-          className="ds-preview"
+          className="gr-preview"
           style={{ top: clamp(hover.y + 28, 8, Math.max(8, snapshot.height - previewHeight - 8)) }}
           role="note"
         >
           {/* Metric first, then the jump target; scale and provenance live in map help. */}
           {showProfile ? (
-            <div className="ds-map-bucket-summary">
-              <div className="ds-preview-kicker">
+            <div className="gr-map-bucket-summary">
+              <div className="gr-preview-kicker">
                 <strong>{metricLabel}</strong>
                 <span>{chapterAt(session.chapters, hover.index)?.label ?? ''}</span>
               </div>
-              <div className="ds-map-reading-value">
+              <div className="gr-map-reading-value">
                 {hoverValue === null ? '—' : formatValue(hoverValue)}
                 <span>
                   {hoverValue === null
@@ -743,15 +743,15 @@ export function AtlasRail<Row>({
               )}
             </div>
           ) : (
-            <div className="ds-preview-kicker">
+            <div className="gr-preview-kicker">
               {dragging ? 'Moving to row' : 'Jump to row'}{' '}
               <span>{chapterAt(session.chapters, hover.index)?.label ?? ''}</span>
             </div>
           )}
-          <div className="ds-preview-detail">
+          <div className="gr-preview-detail">
             <span>
               {showProfile && 'Row '}
-              <strong className="ds-preview-target">{(hover.index + 1).toLocaleString()}</strong>
+              <strong className="gr-preview-target">{(hover.index + 1).toLocaleString()}</strong>
             </span>
             {hover.peak !== undefined ? (
               <small>Snapped to peak</small>
@@ -766,7 +766,7 @@ export function AtlasRail<Row>({
             )}
           </div>
           {showMagnifier && (
-            <div className="ds-magnifier">
+            <div className="gr-magnifier">
               <canvas ref={magnifier} aria-label={`${metricLabel} near this row`} />
               <span>
                 <strong>{metricLabel}</strong>
@@ -776,12 +776,12 @@ export function AtlasRail<Row>({
             </div>
           )}
           {showPreviewRows && !dragging && previewIndex !== null && (
-            <div className="ds-preview-rows">
+            <div className="gr-preview-rows">
               {Array.from({ length: Math.min(previewRows, total - previewIndex) }, (_, offset) => {
                 const index = previewIndex + offset,
                   row = session.read(index);
                 return (
-                  <div key={index} className="ds-preview-row">
+                  <div key={index} className="gr-preview-row">
                     {row !== undefined ? (
                       (renderPreviewRow?.(row, index) ?? <span>{previewText(row)}</span>)
                     ) : (

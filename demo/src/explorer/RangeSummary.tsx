@@ -72,20 +72,20 @@ export function RangeSummary<Row>({
   const format = (value: number | null | undefined) =>
     value == null ? 'Unavailable' : formatMetric(value, 2, provider.metric?.unit);
   return (
-    <div className="ds-range-summary">
+    <div className="gr-range-summary">
       {showRange && (
         <p>
           {rangeAddress(range)} · {rangeCount(range)}
         </p>
       )}
-      <div className="ds-summary-heading">
+      <div className="gr-summary-heading">
         <strong>{provider.metric?.label ?? 'Range statistics'}</strong>
-        <span className="ds-summary-quality" role="status">
+        <span className="gr-summary-quality" role="status">
           {message}
         </span>
       </div>
       {retryable && (
-        <button className="ds-button" onClick={retry}>
+        <button className="gr-button" onClick={retry}>
           Retry summary
         </button>
       )}
@@ -110,7 +110,7 @@ export function RangeSummary<Row>({
         </dl>
       )}
       {bucket?.accuracy === 'estimated' && (
-        <p className="ds-summary-note">Based on a sample of the selected rows.</p>
+        <p className="gr-summary-note">Based on a sample of the selected rows.</p>
       )}
     </div>
   );

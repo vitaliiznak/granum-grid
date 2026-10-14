@@ -372,7 +372,7 @@ export default function App() {
                       });
                     }}
                   />
-                  <button className="ds-button" onClick={returnToNormal}>
+                  <button className="gr-button" onClick={returnToNormal}>
                     <span aria-hidden="true">↙ </span>Back to normal view
                   </button>
                   <DemoLimitations live={live} compact />

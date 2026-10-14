@@ -85,7 +85,7 @@ export function MapSettings({
             cx="6"
             cy="4.25"
             r="2.05"
-            fill="var(--ds-bg)"
+            fill="var(--gr-bg)"
             stroke="currentColor"
             strokeWidth="1.6"
           />
@@ -93,7 +93,7 @@ export function MapSettings({
             cx="10.25"
             cy="11.75"
             r="2.05"
-            fill="var(--ds-bg)"
+            fill="var(--gr-bg)"
             stroke="currentColor"
             strokeWidth="1.6"
           />

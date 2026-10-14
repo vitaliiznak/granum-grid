@@ -40,7 +40,7 @@ test('orientation is consistent and the final row is reachable without a dataset
       }),
     )
     .toBe(0);
-  await expect(grid.locator('.ds-dataset-end')).toHaveCount(0);
+  await expect(grid.locator('.gr-dataset-end')).toHaveCount(0);
   await expect(page.getByRole('slider', { name: 'Dataset position' })).toHaveAttribute(
     'aria-valuenow',
     '100000000',

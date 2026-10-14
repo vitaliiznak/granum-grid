@@ -21,7 +21,7 @@ test('a million-row sample opens in DuckDB with an exact map, revisions, and com
   await expect(grid.locator('[data-status="ready"]').first()).toBeVisible();
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 1,000,000');
   // DuckDB computes every group from every row, so the map says exact, not sampled.
-  await expect(page.locator('.ds-legend')).toContainText('exact overview');
+  await expect(page.locator('.gr-legend')).toContainText('exact overview');
 
   // A filter is a new revision with its own addresses.
   await page.getByLabel('Where').fill('status = 503');

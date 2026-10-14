@@ -1,18 +1,18 @@
 /* Selection tools, bookmarks, range comparison, and hints. These are playground features
    built on the public API, so their rules live here. They join the library's cascade layer
    to keep the same precedence as the library's own controls. Layout first, then the skin. */
-@layer granum-grid {
-  :where(.ds-explore-toggle, .ds-range-form, .ds-bookmark-form) {
+@layer granum {
+  :where(.gr-explore-toggle, .gr-range-form, .gr-bookmark-form) {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
   }
-  :where(.ds-explore-toggle) {
+  :where(.gr-explore-toggle) {
     flex-shrink: 0;
     padding: 6px 18px;
   }
-  :where(.ds-explorer-panel) {
+  :where(.gr-explorer-panel) {
     flex-shrink: 1;
     min-height: 0;
     max-height: min(340px, 48vh);
@@ -21,29 +21,29 @@
     overscroll-behavior: contain;
     padding: 12px 18px;
   }
-  :where(.ds-explorer-panel:has(.ds-bookmarks)) {
+  :where(.gr-explorer-panel:has(.gr-bookmarks)) {
     max-height: min(480px, 62vh);
     max-height: min(480px, 62dvh);
   }
-  :where(.ds-range-form, .ds-bookmark-form) {
+  :where(.gr-range-form, .gr-bookmark-form) {
     margin: 12px 0;
     align-items: end;
   }
-  :where(.ds-range-form label, .ds-bookmark-form label) {
+  :where(.gr-range-form label, .gr-bookmark-form label) {
     display: flex;
     flex-direction: column;
     gap: 4px;
     min-width: 0;
   }
-  :where(.ds-range-form .ds-input) {
+  :where(.gr-range-form .gr-input) {
     width: 140px;
     max-width: 100%;
   }
-  :where(.ds-bookmark-form .ds-input) {
+  :where(.gr-bookmark-form .gr-input) {
     width: 220px;
     max-width: 100%;
   }
-  :where(.ds-bookmarks) {
+  :where(.gr-bookmarks) {
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -52,115 +52,115 @@
     margin: 8px 0 0;
     padding: 0;
   }
-  :where(.ds-bookmarks li) {
+  :where(.gr-bookmarks li) {
     display: flex;
     align-items: stretch;
     gap: 6px;
   }
-  :where(.ds-bookmarks-heading) {
+  :where(.gr-bookmarks-heading) {
     margin: 12px 0 0;
   }
-  :where(.ds-range-summary dl) {
+  :where(.gr-range-summary dl) {
     display: flex;
     flex-wrap: wrap;
     gap: 24px;
     margin: 12px 0 6px;
   }
-  :where(.ds-range-summary dd) {
+  :where(.gr-range-summary dd) {
     margin: 0;
   }
-  :where(.ds-summary-heading) {
+  :where(.gr-summary-heading) {
     display: flex;
     align-items: baseline;
     gap: 10px;
   }
-  :where(.ds-summary-heading strong) {
+  :where(.gr-summary-heading strong) {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  :where(.ds-flow-heading, .ds-selection-overview, .ds-map-prompt) {
+  :where(.gr-flow-heading, .gr-selection-overview, .gr-map-prompt) {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
   }
-  :where(.ds-flow-heading > div, .ds-selection-description) {
+  :where(.gr-flow-heading > div, .gr-selection-description) {
     min-width: 0;
   }
-  :where(.ds-flow-heading > .ds-button) {
+  :where(.gr-flow-heading > .gr-button) {
     flex-shrink: 0;
   }
-  :where(.ds-flow-heading p, .ds-map-prompt p) {
+  :where(.gr-flow-heading p, .gr-map-prompt p) {
     margin: 3px 0 0;
   }
-  :where(.ds-selection-methods) {
+  :where(.gr-selection-methods) {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
     margin-top: 14px;
   }
-  :where(.ds-selection-method, .ds-saved-view, .ds-selection-description) {
+  :where(.gr-selection-method, .gr-saved-view, .gr-selection-description) {
     display: flex;
     flex-direction: column;
     align-items: start;
     gap: 4px;
     text-align: left;
   }
-  :where(.ds-bookmarks .ds-saved-view) {
+  :where(.gr-bookmarks .gr-saved-view) {
     flex: 1 1 auto;
     flex-direction: row;
     align-items: baseline;
     gap: 10px;
     min-width: 0;
   }
-  :where(.ds-bookmarks .ds-saved-view > strong) {
+  :where(.gr-bookmarks .gr-saved-view > strong) {
     flex: 1 1 auto;
     min-width: 0;
   }
-  :where(.ds-place-index) {
+  :where(.gr-place-index) {
     flex: none;
     width: 1.6em;
     text-align: right;
     font-variant-numeric: tabular-nums;
   }
-  :where(.ds-bookmarks .ds-saved-view > span:last-child) {
+  :where(.gr-bookmarks .gr-saved-view > span:last-child) {
     flex: none;
   }
-  :where(.ds-selection-description) {
+  :where(.gr-selection-description) {
     overflow-wrap: anywhere;
   }
-  :where(.ds-range-picker .ds-range-form) {
+  :where(.gr-range-picker .gr-range-form) {
     display: block;
     margin: 16px 0 0;
   }
-  :where(.ds-range-inputs, .ds-range-confirm) {
+  :where(.gr-range-inputs, .gr-range-confirm) {
     display: flex;
     align-items: end;
     gap: 12px;
   }
-  :where(.ds-range-inputs) {
+  :where(.gr-range-inputs) {
     max-width: 440px;
   }
-  :where(.ds-range-inputs label) {
+  :where(.gr-range-inputs label) {
     flex: 1;
   }
-  :where(.ds-range-inputs .ds-input) {
+  :where(.gr-range-inputs .gr-input) {
     width: 100%;
   }
-  :where(.ds-range-inputs > span) {
+  :where(.gr-range-inputs > span) {
     padding-bottom: 8px;
   }
-  :where(.ds-range-confirm) {
+  :where(.gr-range-confirm) {
     flex-wrap: wrap;
     align-items: center;
     margin-top: 14px;
   }
-  :where(.ds-saved-views-trigger) {
+  :where(.gr-saved-views-trigger) {
     margin-left: auto;
   }
-  :where(.ds-selection-card) {
+  :where(.gr-selection-card) {
     flex-shrink: 1;
     min-height: 0;
     max-height: 48vh;
@@ -169,32 +169,32 @@
     overscroll-behavior: contain;
     padding: 14px 18px 10px;
   }
-  :where(.ds-selection-details) {
+  :where(.gr-selection-details) {
     margin-top: 10px;
   }
-  :where(.ds-selection-details > summary) {
+  :where(.gr-selection-details > summary) {
     width: fit-content;
     cursor: pointer;
   }
-  :where(.ds-selection-details .ds-range-summary) {
+  :where(.gr-selection-details .gr-range-summary) {
     padding: 12px 0 2px;
     max-width: 520px;
   }
-  :where(.ds-comparison-range .ds-button) {
+  :where(.gr-comparison-range .gr-button) {
     align-self: start;
     margin-top: 5px;
   }
-  :where(.ds-flow-message) {
+  :where(.gr-flow-message) {
     flex-shrink: 0;
     margin: 0;
     padding: 8px 18px;
   }
-  :where(.ds-map-prompt) {
+  :where(.gr-map-prompt) {
     flex-shrink: 0;
     padding: 12px 18px;
     flex-wrap: wrap;
   }
-  :where(.ds-comparison-setup) {
+  :where(.gr-comparison-setup) {
     flex-shrink: 1;
     min-height: 0;
     max-height: 42vh;
@@ -203,22 +203,22 @@
     overscroll-behavior: contain;
     padding: 12px 18px;
   }
-  :where(.ds-comparison-actions) {
+  :where(.gr-comparison-actions) {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px 12px;
   }
-  :where(.ds-comparison-primary) {
+  :where(.gr-comparison-primary) {
     margin-left: auto;
   }
-  :where(.ds-comparison-ranges) {
+  :where(.gr-comparison-ranges) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     margin: 10px 0;
   }
-  :where(.ds-comparison-range) {
+  :where(.gr-comparison-range) {
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -226,63 +226,63 @@
     padding: 10px 12px;
     overflow-wrap: anywhere;
   }
-  :where(.ds-comparison-setup + .ds-explorer-panel) {
+  :where(.gr-comparison-setup + .gr-explorer-panel) {
     max-height: 22vh;
     max-height: 22dvh;
   }
   :where(
-    .ds-comparison-setup ~ .ds-body,
-    .ds-explorer-panel ~ .ds-body,
-    .ds-selection-card ~ .ds-body
+    .gr-comparison-setup ~ .gr-body,
+    .gr-explorer-panel ~ .gr-body,
+    .gr-selection-card ~ .gr-body
   ) {
     min-height: 100px;
   }
-  :where(.ds-compare) {
+  :where(.gr-compare) {
     width: min(1200px, calc(100vw - 24px));
     max-height: 92vh;
     max-height: 92dvh;
     overflow: auto;
     padding: 20px;
   }
-  :where(.ds-compare-panes) {
+  :where(.gr-compare-panes) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 20px;
   }
-  :where(.ds-tool-message:empty) {
+  :where(.gr-tool-message:empty) {
     display: none;
   }
   @media (max-width: 650px) {
-    :where(.ds-selection-methods) {
+    :where(.gr-selection-methods) {
       grid-template-columns: minmax(0, 1fr);
       gap: 6px;
     }
-    :where(.ds-selection-overview) {
+    :where(.gr-selection-overview) {
       align-items: start;
       flex-direction: column;
     }
-    :where(.ds-selection-card, .ds-explorer-panel) {
+    :where(.gr-selection-card, .gr-explorer-panel) {
       padding: 12px;
     }
-    :where(.ds-range-confirm > span) {
+    :where(.gr-range-confirm > span) {
       flex-basis: 100%;
     }
-    :where(.ds-explore-toggle > span) {
+    :where(.gr-explore-toggle > span) {
       display: none;
     }
-    :where(.ds-comparison-setup) {
+    :where(.gr-comparison-setup) {
       padding: 10px;
     }
-    :where(.ds-comparison-range) {
+    :where(.gr-comparison-range) {
       padding: 8px;
     }
-    :where(.ds-compare-panes) {
+    :where(.gr-compare-panes) {
       grid-template-columns: minmax(0, 1fr);
     }
   }
-  :where(.ds-hint) {
+  :where(.gr-hint) {
     position: absolute;
-    right: calc(var(--ds-rail-width, 232px) + 14px);
+    right: calc(var(--gr-rail-width, 232px) + 14px);
     top: 110px;
     max-width: 250px;
     display: flex;
@@ -290,184 +290,184 @@
     gap: 10px;
     z-index: 5;
   }
-  :where(.ds-hint-1, .ds-hint-2) {
+  :where(.gr-hint-1, .gr-hint-2) {
     top: 58px;
   }
-  :where(.ds-hint-2) {
+  :where(.gr-hint-2) {
     left: 18px;
     right: auto;
   }
   @media (max-width: 650px) {
-    :where(.ds-hint) {
+    :where(.gr-hint) {
       right: 72px;
       max-width: 210px;
     }
-    :where(.ds-hint-2) {
+    :where(.gr-hint-2) {
       left: 12px;
       right: auto;
     }
   }
 }
-/* Skin: palette and type, matching granum-grid/styles.css. */
-@layer granum-grid {
-  :where(.ds-root:not([data-unstyled]) .ds-hint) {
-    background: var(--ds-panel);
-    border: 1px solid var(--ds-line);
-    color: var(--ds-text);
+/* Skin: palette and type, matching @granum/react/styles.css. */
+@layer granum {
+  :where(.gr-root:not([data-unstyled]) .gr-hint) {
+    background: var(--gr-panel);
+    border: 1px solid var(--gr-line);
+    color: var(--gr-text);
     padding: 12px;
     border-radius: 6px;
     font-size: 12px;
     box-shadow: 0 5px 20px #0001;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-hint .ds-button) {
+  :where(.gr-root:not([data-unstyled]) .gr-hint .gr-button) {
     border: 0;
     padding: 0 3px;
     line-height: 1.2;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-explorer-panel .ds-input) {
-    border: 1px solid var(--ds-line);
+  :where(.gr-root:not([data-unstyled]) .gr-explorer-panel .gr-input) {
+    border: 1px solid var(--gr-line);
     border-radius: 5px;
     padding: 6px 8px;
-    background: var(--ds-bg);
+    background: var(--gr-bg);
   }
   :where(
-    .ds-root:not([data-unstyled]) .ds-explore-toggle,
-    .ds-root:not([data-unstyled]) .ds-explorer-panel
+    .gr-root:not([data-unstyled]) .gr-explore-toggle,
+    .gr-root:not([data-unstyled]) .gr-explorer-panel
   ) {
-    border-bottom: 1px solid var(--ds-line);
+    border-bottom: 1px solid var(--gr-line);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-explore-toggle) {
+  :where(.gr-root:not([data-unstyled]) .gr-explore-toggle) {
     font-size: 12px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-range-summary p) {
+  :where(.gr-root:not([data-unstyled]) .gr-range-summary p) {
     margin: 5px 0;
   }
   :where(
-    .ds-root:not([data-unstyled]) .ds-range-summary dt,
-    .ds-root:not([data-unstyled]) .ds-tool-message,
-    .ds-root:not([data-unstyled]) .ds-explore-toggle > span
+    .gr-root:not([data-unstyled]) .gr-range-summary dt,
+    .gr-root:not([data-unstyled]) .gr-tool-message,
+    .gr-root:not([data-unstyled]) .gr-explore-toggle > span
   ) {
-    color: var(--ds-muted);
+    color: var(--gr-muted);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-range-summary dd) {
+  :where(.gr-root:not([data-unstyled]) .gr-range-summary dd) {
     font-size: 17px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-heading strong) {
-    color: var(--ds-text);
+  :where(.gr-root:not([data-unstyled]) .gr-summary-heading strong) {
+    color: var(--gr-text);
     font-size: 13px;
     font-weight: 600;
   }
   :where(
-    .ds-root:not([data-unstyled]) .ds-selection-card,
-    .ds-root:not([data-unstyled]) .ds-map-prompt
+    .gr-root:not([data-unstyled]) .gr-selection-card,
+    .gr-root:not([data-unstyled]) .gr-map-prompt
   ) {
-    background: var(--ds-panel);
-    border-bottom: 1px solid var(--ds-line);
+    background: var(--gr-panel);
+    border-bottom: 1px solid var(--gr-line);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-flow-heading strong) {
+  :where(.gr-root:not([data-unstyled]) .gr-flow-heading strong) {
     font-size: 14px;
   }
   :where(
-    .ds-root:not([data-unstyled]) .ds-flow-heading p,
-    .ds-root:not([data-unstyled]) .ds-selection-method > span,
-    .ds-root:not([data-unstyled]) .ds-range-confirm > span,
-    .ds-root:not([data-unstyled]) .ds-selection-description > span,
-    .ds-root:not([data-unstyled]) .ds-summary-note,
-    .ds-root:not([data-unstyled]) .ds-map-prompt p,
-    .ds-root:not([data-unstyled]) .ds-saved-view > span,
-    .ds-root:not([data-unstyled]) .ds-bookmarks-heading
+    .gr-root:not([data-unstyled]) .gr-flow-heading p,
+    .gr-root:not([data-unstyled]) .gr-selection-method > span,
+    .gr-root:not([data-unstyled]) .gr-range-confirm > span,
+    .gr-root:not([data-unstyled]) .gr-selection-description > span,
+    .gr-root:not([data-unstyled]) .gr-summary-note,
+    .gr-root:not([data-unstyled]) .gr-map-prompt p,
+    .gr-root:not([data-unstyled]) .gr-saved-view > span,
+    .gr-root:not([data-unstyled]) .gr-bookmarks-heading
   ) {
-    color: var(--ds-muted);
+    color: var(--gr-muted);
     font-size: 12px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-saved-view > .ds-place-index) {
-    color: var(--ds-mark);
+  :where(.gr-root:not([data-unstyled]) .gr-saved-view > .gr-place-index) {
+    color: var(--gr-mark);
     font-weight: 600;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-selection-description .ds-selection-kicker) {
-    color: var(--ds-accent);
+  :where(.gr-root:not([data-unstyled]) .gr-selection-description .gr-selection-kicker) {
+    color: var(--gr-accent);
     font-weight: 600;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-selection-description > strong) {
+  :where(.gr-root:not([data-unstyled]) .gr-selection-description > strong) {
     font-size: 14px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-selection-method) {
+  :where(.gr-root:not([data-unstyled]) .gr-selection-method) {
     padding: 12px;
-    background: var(--ds-panel);
+    background: var(--gr-panel);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-selection-method:hover) {
-    border-color: var(--ds-accent);
+  :where(.gr-root:not([data-unstyled]) .gr-selection-method:hover) {
+    border-color: var(--gr-accent);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-selection-details > summary) {
-    color: var(--ds-muted);
+  :where(.gr-root:not([data-unstyled]) .gr-selection-details > summary) {
+    color: var(--gr-muted);
     font-size: 12px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-selection-details > summary:focus-visible) {
-    outline: 2px solid var(--ds-accent);
+  :where(.gr-root:not([data-unstyled]) .gr-selection-details > summary:focus-visible) {
+    outline: 2px solid var(--gr-accent);
     outline-offset: 2px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-quality) {
+  :where(.gr-root:not([data-unstyled]) .gr-summary-quality) {
     padding: 2px 7px;
-    border: 1px solid var(--ds-line);
+    border: 1px solid var(--gr-line);
     border-radius: 4px;
-    color: var(--ds-muted);
+    color: var(--gr-muted);
     font-size: 11px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-form-error) {
-    color: var(--ds-text);
-    border-left: 2px solid var(--ds-mark);
+  :where(.gr-root:not([data-unstyled]) .gr-form-error) {
+    color: var(--gr-text);
+    border-left: 2px solid var(--gr-mark);
     padding-left: 10px;
     margin: 12px 0 0;
   }
   :where(
-    .ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled),
-    .ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled)
+    .gr-root:not([data-unstyled]) .gr-flow-primary:not(:disabled),
+    .gr-root:not([data-unstyled]) .gr-comparison-primary:not(:disabled)
   ) {
-    background: var(--ds-accent);
-    border-color: var(--ds-accent);
-    color: var(--ds-bg);
+    background: var(--gr-accent);
+    border-color: var(--gr-accent);
+    color: var(--gr-bg);
   }
   :where(
-    .ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled):hover,
-    .ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled):hover
+    .gr-root:not([data-unstyled]) .gr-flow-primary:not(:disabled):hover,
+    .gr-root:not([data-unstyled]) .gr-comparison-primary:not(:disabled):hover
   ) {
-    background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
+    background: color-mix(in srgb, var(--gr-accent) 85%, var(--gr-text));
   }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-setup) {
-    background: var(--ds-panel);
-    border-bottom: 1px solid var(--ds-line);
+  :where(.gr-root:not([data-unstyled]) .gr-comparison-setup) {
+    background: var(--gr-panel);
+    border-bottom: 1px solid var(--gr-line);
     font-size: 12px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-setup:focus-visible) {
-    outline: 2px solid var(--ds-accent);
+  :where(.gr-root:not([data-unstyled]) .gr-comparison-setup:focus-visible) {
+    outline: 2px solid var(--gr-accent);
     outline-offset: -2px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-range) {
-    border: 1px solid var(--ds-line);
-    border-radius: var(--ds-radius);
-    background: var(--ds-bg);
+  :where(.gr-root:not([data-unstyled]) .gr-comparison-range) {
+    border: 1px solid var(--gr-line);
+    border-radius: var(--gr-radius);
+    background: var(--gr-bg);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-range[data-empty]) {
+  :where(.gr-root:not([data-unstyled]) .gr-comparison-range[data-empty]) {
     border-style: dashed;
     background: transparent;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-range > strong) {
+  :where(.gr-root:not([data-unstyled]) .gr-comparison-range > strong) {
     font-size: 13px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-range > span) {
-    color: var(--ds-muted);
+  :where(.gr-root:not([data-unstyled]) .gr-comparison-range > span) {
+    color: var(--gr-muted);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-range .ds-comparison-step) {
-    color: var(--ds-accent);
+  :where(.gr-root:not([data-unstyled]) .gr-comparison-range .gr-comparison-step) {
+    color: var(--gr-accent);
     font-weight: 600;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-compare) {
-    color: var(--ds-text);
-    background: var(--ds-bg);
-    border: 1px solid var(--ds-line);
+  :where(.gr-root:not([data-unstyled]) .gr-compare) {
+    color: var(--gr-text);
+    background: var(--gr-bg);
+    border: 1px solid var(--gr-line);
     border-radius: 8px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-compare::backdrop) {
+  :where(.gr-root:not([data-unstyled]) .gr-compare::backdrop) {
     background: #0006;
   }
 }

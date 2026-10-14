@@ -38,8 +38,8 @@ export default function Compose() {
       <output aria-label="Current row">
         Row {(snapshot.activeIndex ?? 0) + 1} of {snapshot.rowCount}
       </output>
-      <div className="ds-root" data-ds-root="" style={{ height: 480, marginTop: 16 }}>
-        <div className="ds-body">
+      <div className="gr-root" data-gr-root="" style={{ height: 480, marginTop: 16 }}>
+        <div className="gr-body">
           <div {...grid.getViewportProps({ 'aria-label': 'Composed inventory' })}>
             <div {...grid.getLayerProps()}>
               {grid.rows.map((slot) => (

@@ -12,10 +12,10 @@ export interface GranumGridAppearance {
 export function partProps(
   part: GranumGridPart,
   appearance: GranumGridAppearance,
-  baseClass = `ds-${part}`,
+  baseClass = `gr-${part}`,
 ) {
   return {
-    'data-ds-part': part,
+    'data-gr-part': part,
     className: [baseClass, appearance.classNames?.[part]].filter(Boolean).join(' '),
     style: appearance.styles?.[part],
   };

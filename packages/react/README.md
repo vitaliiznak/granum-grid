@@ -113,7 +113,7 @@ Widgets take the hook's result as `grid`: `<AtlasRail grid={grid} />` accepts th
 | `@granum/react/headless`                | `useGranumGrid`, and the hook, handle, provider, and navigation types; no components or CSS                                                        |
 | `@granum/core`, `/data`, `/dom`, `/map` | The framework-free layers; see [its README](https://github.com/vitaliiznak/granum-grid/tree/main/packages/core)                                    |
 | `@granum/react/base.css`                | Structural layout only                                                                                                                             |
-| `@granum/react/styles.css`              | Optional skin and `--ds-*` theme variables; includes base layout                                                                                   |
+| `@granum/react/styles.css`              | Optional skin and `--gr-*` theme variables; includes base layout                                                                                   |
 
 The package test pins the runtime exports of `@granum/react` and `@granum/react/headless`, so widening either is a deliberate change.
 

@@ -18,19 +18,19 @@ test('auth searches log rows separately from named markers and keyboard navigati
     'Partial results · 100 matching rows · 2 named markers',
   );
   await expect(dialog.getByRole('status')).toContainText('not an exhaustive search');
-  await expect(dialog.locator('.ds-jump-results button')).toHaveCount(102);
+  await expect(dialog.locator('.gr-jump-results button')).toHaveCount(102);
   await expect(dialog.getByText('Named markers · 2', { exact: true })).toBeAttached();
   await expect(page.getByTestId('position')).toHaveText(origin);
   await page.screenshot({ path: testInfo.outputPath('auth-search-desktop.png') });
-  await dialog.locator('.ds-jump-results button').first().hover();
+  await dialog.locator('.gr-jump-results button').first().hover();
   for (let i = 0; i < 12; i++) await input.press('ArrowDown');
-  const selected = dialog.locator('.ds-jump-results .selected');
+  const selected = dialog.locator('.gr-jump-results .selected');
   await expect(selected).toHaveCount(1);
-  await expect(dialog.locator('.ds-jump-results button').nth(12)).toHaveClass('ds-button selected');
+  await expect(dialog.locator('.gr-jump-results button').nth(12)).toHaveClass('gr-button selected');
   const target = await selected.locator('small').innerText();
   expect(
     await selected.evaluate((button) => {
-      const list = button.closest('.ds-jump-results')!.getBoundingClientRect();
+      const list = button.closest('.gr-jump-results')!.getBoundingClientRect();
       const rect = button.getBoundingClientRect();
       return rect.top >= list.top - 1 && rect.bottom <= list.bottom + 1;
     }),
@@ -40,7 +40,7 @@ test('auth searches log rows separately from named markers and keyboard navigati
   await expect(page.getByTestId('position')).toHaveText(
     `${target.replace(' ↵', '')} of 4,000,000,000`,
   );
-  await expect(page.locator('.ds-row[data-focused] .lg-service')).toHaveText('auth');
+  await expect(page.locator('.gr-row[data-focused] .lg-service')).toHaveText('auth');
   expect(await page.locator('[role="row"]').count()).toBeLessThan(150);
 });
 
@@ -54,12 +54,12 @@ test('query replacement, empty samples, malformed predicates, and dates retain h
   await expect(dialog.getByRole('status')).toHaveText('Searching…');
   await input.fill('service = "payments"');
   await expect(dialog.getByRole('status')).toContainText('100 matching rows');
-  await expect(dialog.locator('.ds-jump-results button')).toHaveCount(100);
-  for (const label of await dialog.locator('.ds-jump-results button span').allTextContents())
+  await expect(dialog.locator('.gr-jump-results button')).toHaveCount(100);
+  for (const label of await dialog.locator('.gr-jump-results button span').allTextContents())
     expect(label).toContain('service payments');
   await input.fill('there-is-no-such-service');
   await expect(dialog.getByRole('status')).toContainText('Partial results · 0 matching rows');
-  await expect(dialog.locator('.ds-jump-results button')).toHaveCount(0);
+  await expect(dialog.locator('.gr-jump-results button')).toHaveCount(0);
   await input.fill('service = auth');
   await expect(dialog.getByRole('status')).toContainText('Try a row number');
   await input.fill('latency > "slow"');
@@ -67,9 +67,9 @@ test('query replacement, empty samples, malformed predicates, and dates retain h
   await input.fill('2026-09-31');
   await expect(dialog.getByRole('status')).toContainText('Enter a valid date');
   await input.fill('2026-09-18');
-  await expect(dialog.locator('.ds-jump-results button')).toHaveCount(1);
+  await expect(dialog.locator('.gr-jump-results button')).toHaveCount(1);
   await input.press('Enter');
-  await expect(page.locator('.ds-row[data-focused]')).toContainText('09-18');
+  await expect(page.locator('.gr-row[data-focused]')).toContainText('09-18');
 });
 
 test('text search stays usable on mobile and closing a search prevents stale dataset results', async ({
@@ -106,7 +106,7 @@ test('named marker fallback discloses its scope for a provider without text sear
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('textbox').fill(' warm ');
   await expect(dialog.getByRole('status')).toContainText('Searching named markers only');
-  await expect(dialog.locator('.ds-jump-results button')).toHaveCount(1);
+  await expect(dialog.locator('.gr-jump-results button')).toHaveCount(1);
   await expect(dialog.getByText('Named markers · 1', { exact: true })).toBeVisible();
   await dialog.getByRole('textbox').press('Enter');
   await expect(dialog).not.toBeVisible();

@@ -166,8 +166,8 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
   const endGap = snapshot.height - contentEnd;
   return (
     <section
-      className={`ds-root ${props.className ?? ''}`}
-      data-ds-root=""
+      className={`gr-root ${props.className ?? ''}`}
+      data-gr-root=""
       data-layout={props.layout ?? 'embedded'}
       data-unstyled={props.unstyled || undefined}
       style={props.style}
@@ -199,7 +199,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
           )}
       {typeof props.panel === 'function' ? props.panel(grid) : props.panel}
       {props.header != null && (
-        <div {...partProps('header', props, 'ds-legend')}>
+        <div {...partProps('header', props, 'gr-legend')}>
           <span>{props.header}</span>
           <span>
             <i />
@@ -213,12 +213,12 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
         </div>
       )}
       {append && (
-        <div className="ds-live-status">
+        <div className="gr-live-status">
           <span>
             {grid.unseenRows ? `${grid.unseenRows.toLocaleString()} new rows` : 'Live · up to date'}
           </span>
           <button
-            className="ds-button"
+            className="gr-button"
             onClick={() => api.scrollToIndex(Math.max(0, snapshot.rowCount - 1), { align: 'end' })}
           >
             Jump to latest
@@ -226,7 +226,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
         </div>
       )}
       {props.stickyChapters && grid.chapter && (
-        <div className="ds-sticky-chapter">
+        <div className="gr-sticky-chapter">
           {chapterName(grid.chapter)} <span>{rangeAddress(grid.chapter)}</span>
         </div>
       )}
@@ -241,7 +241,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
           <div {...grid.getLayerProps()}>
             {endGap > 0.5 && (
               <div
-                className="ds-dataset-end"
+                className="gr-dataset-end"
                 data-compact={endGap < 28 ? '' : undefined}
                 style={{ top: contentEnd, height: endGap }}
                 aria-hidden="true"
@@ -278,7 +278,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
             ))}
           </div>
           {!snapshot.rowCount && (
-            <div className="ds-empty">{props.emptyContent ?? 'No rows in this dataset.'}</div>
+            <div className="gr-empty">{props.emptyContent ?? 'No rows in this dataset.'}</div>
           )}
         </div>
         {typeof props.rail === 'function'
@@ -286,9 +286,9 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
           : props.rail !== false && <AtlasRail {...rail} />}
       </div>
       {Object.keys(session.metadataErrors).length > 0 && (
-        <div className="ds-meta-error">
+        <div className="gr-meta-error">
           Some summaries are unavailable.{' '}
-          <button className="ds-button" onClick={() => api.retry()}>
+          <button className="gr-button" onClick={() => api.retry()}>
             Retry summaries
           </button>
         </div>

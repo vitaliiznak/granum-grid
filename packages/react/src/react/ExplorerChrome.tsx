@@ -33,10 +33,10 @@ export function Toolbar<Row>({
   };
   return (
     <div {...partProps('toolbar', appearance)}>
-      <div className="ds-toolbar-main">
-        <div className="ds-history">
+      <div className="gr-toolbar-main">
+        <div className="gr-history">
           <button
-            className="ds-button"
+            className="gr-button"
             aria-label="Back to previous location"
             title={
               snapshot.backLocation
@@ -49,7 +49,7 @@ export function Toolbar<Row>({
             ← Back
           </button>
           <button
-            className="ds-button"
+            className="gr-button"
             aria-label="Forward"
             disabled={!snapshot.canGoForward}
             onClick={() => api.forward()}
@@ -57,13 +57,13 @@ export function Toolbar<Row>({
             →
           </button>
         </div>
-        <span className="ds-context" data-testid="breadcrumb">
+        <span className="gr-context" data-testid="breadcrumb">
           {chapter ? chapterName(chapter) : 'Indexed dataset'}
         </span>
       </div>
-      <div className="ds-toolbar-actions">
+      <div className="gr-toolbar-actions">
         <button
-          className="ds-button ds-jump-trigger"
+          className="gr-button gr-jump-trigger"
           onClick={(event) => {
             event.currentTarget.focus();
             api.openSearch();
@@ -73,7 +73,7 @@ export function Toolbar<Row>({
         </button>
         {fullPageUrl && (
           <a
-            className="ds-button ds-open-page"
+            className="gr-button gr-open-page"
             href={fullPageHref}
             onPointerEnter={refreshFullPageHref}
             onPointerDown={refreshFullPageHref}
@@ -95,18 +95,18 @@ export function Toolbar<Row>({
 export function RowPlaceholder({ slot, retry }: { slot: PendingRowSlot; retry(): void }) {
   return (
     <>
-      <span role="gridcell" className="ds-row-id">
+      <span role="gridcell" className="gr-row-id">
         {(slot.index + 1).toLocaleString()}
       </span>
-      <span role="gridcell" className="ds-loading">
+      <span role="gridcell" className="gr-loading">
         {slot.error ? (
-          <button className="ds-button" onClick={retry}>
+          <button className="gr-button" onClick={retry}>
             Retry rows
           </button>
         ) : slot.estimate ? (
           <>
             ≈ {slot.estimate.avg == null ? '—' : formatDecimal(slot.estimate.avg, 1)} ·{' '}
-            {slot.estimate.label} <span className="ds-estimate">Approximate</span>
+            {slot.estimate.label} <span className="gr-estimate">Approximate</span>
           </>
         ) : (
           'Loading row…'

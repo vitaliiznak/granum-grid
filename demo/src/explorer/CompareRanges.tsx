@@ -76,7 +76,7 @@ export function CompareRanges<Row>({
   return (
     <dialog
       ref={dialog}
-      className="ds-compare"
+      className="gr-compare"
       aria-label="Compare selected ranges"
       onCancel={(event) => {
         event.preventDefault();
@@ -86,20 +86,20 @@ export function CompareRanges<Row>({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="ds-panel-actions">
+      <div className="gr-panel-actions">
         <strong>Compare ranges</strong>
         <label>
           <input type="checkbox" checked={linked} onChange={(e) => setLinked(e.target.checked)} />{' '}
           Scroll together
         </label>
-        <button className="ds-button" onClick={onClose}>
+        <button className="gr-button" onClick={onClose}>
           Close comparison
         </button>
       </div>
       <p>
         Linked scrolling matches progress through each range, not timestamps or matching records.
       </p>
-      <div className="ds-compare-panes">
+      <div className="gr-compare-panes">
         {[a, b].map((range, i) => (
           <section key={i}>
             <h3>{i === 0 ? 'First range' : 'Second range'}</h3>

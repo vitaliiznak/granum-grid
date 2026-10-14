@@ -47,10 +47,10 @@ export const ContextHints = memo(function ContextHints({
     'Back returns to your previous location. Explore freely.',
   ];
   return (
-    <div className={`ds-hint ds-hint-${hint} ${className ?? ''}`} style={style} data-ds-part="hint">
+    <div className={`gr-hint gr-hint-${hint} ${className ?? ''}`} style={style} data-gr-part="hint">
       <span>{messages[hint]}</span>
       <button
-        className="ds-button"
+        className="gr-button"
         aria-label="Dismiss hints"
         onClick={() => {
           setEnabled(false);

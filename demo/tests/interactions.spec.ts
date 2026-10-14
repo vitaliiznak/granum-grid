@@ -80,9 +80,9 @@ test('keyboard, reduced motion, and light mobile layout remain usable', async ({
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
   await page.setViewportSize(MOBILE);
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
-  await expect(page.locator('.ds-root')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('.gr-root')).toHaveAttribute('data-theme', 'dark');
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
-  await expect(page.locator('.ds-root')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('.gr-root')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('slider', { name: 'Dataset position' })).toBeVisible();
   expect(await fitsViewportWidth(page)).toBe(true);
   await page.getByRole('button', { name: 'Go to…' }).click();
@@ -96,7 +96,7 @@ test('no runtime or console errors on a fresh load and row navigation', async ({
 }) => {
   // Finish the initial worker bootstrap before reloading. Firefox's automation
   // worker reports NS_BINDING_ABORTED if navigation interrupts its module load.
-  await expect(page.locator('.ds-legend')).toContainText('sampled overview');
+  await expect(page.locator('.gr-legend')).toContainText('sampled overview');
   page.on('console', (message) => {
     if (message.type() === 'error') pageErrors.push(message.text());
   });

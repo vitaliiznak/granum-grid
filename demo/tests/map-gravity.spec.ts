@@ -8,7 +8,7 @@ const peak = 2_381_249_999;
 async function trackGeometry(page: Page) {
   // Firefox's protocol boundingBox rounds the height differently from the DOM.
   // At billions of rows, that tiny difference changes the exact expected index.
-  return page.locator('.ds-track').evaluate((element) => {
+  return page.locator('.gr-track').evaluate((element) => {
     const { top, height } = element.getBoundingClientRect();
     return { top, height };
   });
@@ -18,14 +18,14 @@ async function openMap(page: Page) {
   await page.setViewportSize(DESKTOP);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openDataset(page, '/?dataset=logs');
-  await expect(page.locator('.ds-legend')).toContainText('sampled overview');
+  await expect(page.locator('.gr-legend')).toContainText('sampled overview');
   await withMapSettings(page, async (panel) => {
     await panel.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
     await panel.getByRole('combobox', { name: 'Scrollbar hover details' }).selectOption('summary');
     await panel.getByRole('checkbox', { name: 'Snap to events while dragging' }).uncheck();
   });
   const track = await trackGeometry(page);
-  const plot = (await page.locator('.ds-map-plot').boundingBox())!;
+  const plot = (await page.locator('.gr-map-plot').boundingBox())!;
   return {
     x: plot.x + plot.width / 2,
     y: track.top + (peak / (total - 1)) * track.height,
@@ -41,14 +41,14 @@ test('hover attracts to a peak without navigating; click agrees and Shift bypass
   const { x, y, height, top } = await openMap(page);
   const position = page.getByTestId('position');
   const origin = await position.innerText();
-  const preview = page.locator('.ds-preview-target');
-  const hover = page.locator('.ds-map-hover');
+  const preview = page.locator('.gr-preview-target');
+  const hover = page.locator('.gr-map-hover');
   const nearY = Math.round(y + 2);
   await page.mouse.move(x, nearY);
   await expect(hover).toHaveAttribute('data-attracted', 'true');
   await expect(preview).toHaveText((peak + 1).toLocaleString('en-US'));
   await expect(position).toHaveText(origin);
-  await expect(page.locator('.ds-preview-detail')).toContainText('Snapped to peak');
+  await expect(page.locator('.gr-preview-detail')).toContainText('Snapped to peak');
   await page.screenshot({ path: testInfo.outputPath('peak-gravity.png') });
 
   await page.mouse.click(x, nearY);
@@ -115,7 +115,7 @@ test('hidden profiles, disabled magnetism, and range selection bypass peak attra
   page,
 }) => {
   const { x, y } = await openMap(page);
-  const hover = page.locator('.ds-map-hover');
+  const hover = page.locator('.gr-map-hover');
   await withMapSettings(page, (panel) =>
     panel.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('markers'),
   );
@@ -142,7 +142,7 @@ test('hidden profiles, disabled magnetism, and range selection bypass peak attra
   // The map scrolls into view in the frame that focuses Cancel; measure after it.
   await expect(page.getByRole('button', { name: 'Cancel map selection' })).toBeFocused();
   const track = await trackGeometry(page);
-  const trackElement = page.locator('.ds-track');
+  const trackElement = page.locator('.gr-track');
   // Fractional page scrolling can offset Firefox's delivered pointer coordinates.
   // Assert the exact row for the received input, not the requested mouse position.
   await trackElement.evaluate((element) => {

@@ -111,11 +111,11 @@ export interface UseGranumGridOptions<Row> {
 // bake the build-time React version's event handlers into the published .d.ts.
 interface ViewportElementProps extends HTMLAttributes<HTMLDivElement> {
   ref: (element: HTMLDivElement | null) => void;
-  'data-ds-part': 'viewport';
+  'data-gr-part': 'viewport';
 }
 interface RowElementProps extends HTMLAttributes<HTMLDivElement> {
   ref: ((element: HTMLDivElement | null) => void) | undefined;
-  'data-ds-part': 'row';
+  'data-gr-part': 'row';
   'data-status': RowSlot<unknown>['status'];
   'data-selected': boolean | undefined;
   'data-focused': boolean | undefined;
@@ -123,7 +123,7 @@ interface RowElementProps extends HTMLAttributes<HTMLDivElement> {
 }
 interface LayerElementProps extends HTMLAttributes<HTMLDivElement> {
   ref: (element: HTMLDivElement | null) => void;
-  'data-ds-part': 'layer';
+  'data-gr-part': 'layer';
 }
 interface AnnouncementProps {
   className: string;
@@ -447,8 +447,8 @@ export function useGranumGrid<Row>({
     'aria-description':
       props['aria-description'] ??
       (onRowActivate ? 'Press Enter to inspect the focused row.' : undefined),
-    className: `ds-viewport ${props.className ?? ''}`,
-    'data-ds-part': 'viewport',
+    className: `gr-viewport ${props.className ?? ''}`,
+    'data-gr-part': 'viewport',
     style: {
       position: 'relative',
       overflowX: 'hidden',
@@ -538,8 +538,8 @@ export function useGranumGrid<Row>({
       ...props,
       ref: setLayer,
       role: 'rowgroup',
-      className: `ds-view-layer ${props.className ?? ''}`.trim(),
-      'data-ds-part': 'layer',
+      className: `gr-view-layer ${props.className ?? ''}`.trim(),
+      'data-gr-part': 'layer',
       style: {
         ...props.style,
         // The scroll binding owns `transform`; rows outside the viewport are clipped.
@@ -562,8 +562,8 @@ export function useGranumGrid<Row>({
         'aria-rowindex': slot.index + 1,
         id: `${id}-row-${slot.index}`,
         className:
-          `ds-row${dynamicRowHeight ? ' ds-row-dynamic' : ''} ${props.className ?? ''}`.trim(),
-        'data-ds-part': 'row',
+          `gr-row${dynamicRowHeight ? ' gr-row-dynamic' : ''} ${props.className ?? ''}`.trim(),
+        'data-gr-part': 'row',
         'data-status': slot.status,
         'aria-selected': selected,
         'data-selected': selected || undefined,
@@ -600,7 +600,7 @@ export function useGranumGrid<Row>({
       };
     },
     getAnnouncementProps: () => ({
-      className: 'ds-sr',
+      className: 'gr-sr',
       style: {
         position: 'absolute',
         width: 1,

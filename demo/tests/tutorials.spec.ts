@@ -74,7 +74,7 @@ test('compose tutorial builds an explorer from the headless hook and controlled 
   const position = page.getByLabel('Current row');
   await expect(position).toHaveText('Row 1 of 120');
   // A host marker with its own kind reaches the map and its styling hook.
-  await expect(page.locator('.ds-marker[data-kind="restock"]')).toHaveCount(1);
+  await expect(page.locator('.gr-marker[data-kind="restock"]')).toHaveCount(1);
   await rows.focus();
   await page.keyboard.press('n');
   await expect(position).toHaveText('Row 100 of 120');
@@ -86,12 +86,12 @@ test('compose tutorial builds an explorer from the headless hook and controlled 
   const dialog = page.getByRole('dialog', { name: 'Jump to a location' });
   // The host passes the dialog's matches to the map as highlights.
   await dialog.getByRole('textbox').fill('50');
-  await expect(page.locator('.ds-marker[data-kind="search"]')).toHaveCount(1);
+  await expect(page.locator('.gr-marker[data-kind="search"]')).toHaveCount(1);
   await dialog.getByRole('textbox').fill('restock');
   await dialog.getByRole('button', { name: /^Restock SKU-100 Row 100/ }).click();
   await expect(dialog).not.toBeVisible();
   await expect(position).toHaveText('Row 100 of 120');
-  await expect(page.locator('.ds-marker[data-kind="search"]')).toHaveCount(0);
+  await expect(page.locator('.gr-marker[data-kind="search"]')).toHaveCount(0);
   await expect(open).toBeFocused();
   await page.setViewportSize(MOBILE);
   expect(await fitsViewportWidth(page)).toBe(true);

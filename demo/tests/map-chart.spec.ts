@@ -24,24 +24,24 @@ for (const layout of ['expanded', 'compact', 'mobile'] as const) {
     const rail = page.getByRole('complementary', { name: 'Dataset scrollbar' });
     const slider = rail.getByRole('slider', { name: 'Dataset position' });
     // Coordinate clicks need the whole track on screen, even when its settings button is visible.
-    await rail.locator('.ds-track').scrollIntoViewIfNeeded();
-    const track = (await rail.locator('.ds-track').boundingBox())!;
-    const viewport = (await page.locator('.ds-viewport').boundingBox())!;
+    await rail.locator('.gr-track').scrollIntoViewIfNeeded();
+    const track = (await rail.locator('.gr-track').boundingBox())!;
+    const viewport = (await page.locator('.gr-viewport').boundingBox())!;
     if (layout !== 'expanded') {
       expect(Math.abs(track.y - viewport.y)).toBeLessThanOrEqual(1);
       expect(Math.abs(track.y + track.height - (viewport.y + viewport.height))).toBeLessThanOrEqual(
         1,
       );
     }
-    const plot = (await rail.locator('.ds-map-plot').boundingBox())!;
+    const plot = (await rail.locator('.gr-map-plot').boundingBox())!;
     const thumb = (await slider.boundingBox())!;
     expect(thumb.x).toBeGreaterThan(plot.x + plot.width);
     expect(track.x + track.width - (thumb.x + thumb.width)).toBeLessThanOrEqual(5);
-    for (const marker of await rail.locator('.ds-marker').all()) {
+    for (const marker of await rail.locator('.gr-marker').all()) {
       const rect = (await marker.boundingBox())!;
       expect(rect.x + rect.width).toBeLessThanOrEqual(thumb.x - 2);
     }
-    await expect(rail.locator('.ds-track-line')).toHaveCSS('border-top-style', 'dashed');
+    await expect(rail.locator('.gr-track-line')).toHaveCSS('border-top-style', 'dashed');
 
     const progress = async () => Number(await slider.getAttribute('aria-valuenow')) / 4_000_000_000;
     const x = thumb.x + thumb.width / 2;
@@ -86,27 +86,27 @@ test('one named chart uses its own scale and preview without moving the current 
   const rail = page.getByRole('complementary', { name: 'Dataset scrollbar' });
   const chart = rail.getByRole('combobox', { name: 'Scrollbar chart' });
   await expect(chart.locator('option')).toHaveText(['Error rate', 'p95 latency']);
-  await expect(rail.locator('.ds-track canvas')).toHaveCount(1);
-  const axis = rail.locator('.ds-map-value-axis');
+  await expect(rail.locator('.gr-track canvas')).toHaveCount(1);
+  const axis = rail.locator('.gr-map-value-axis');
   await expect(axis).toHaveAttribute('aria-label', 'Error rate scale: 0% to 30%');
   await expect(axis.locator('span')).toHaveText(['0%', '30%']);
-  await expect(rail.locator('.ds-map-legend')).toContainText('sampled');
+  await expect(rail.locator('.gr-map-legend')).toContainText('sampled');
   await page.setViewportSize({ width: 1280, height: 720 });
   await expect
-    .poll(async () => (await rail.locator('.ds-track').boundingBox())!.height)
+    .poll(async () => (await rail.locator('.gr-track').boundingBox())!.height)
     .toBeGreaterThan(100);
   await page.setViewportSize(DESKTOP);
   const profile = rail.getByTestId('overview');
   const errorChart = await profile.evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
 
-  const primaryTrack = (await rail.locator('.ds-track').boundingBox())!;
+  const primaryTrack = (await rail.locator('.gr-track').boundingBox())!;
   await page.mouse.move(primaryTrack.x + 8, primaryTrack.y + primaryTrack.height / 2);
-  const summary = rail.locator('.ds-map-bucket-summary');
+  const summary = rail.locator('.gr-map-bucket-summary');
   await expect(summary).toContainText('Error rate');
   await expect(summary).toContainText('Estimated average');
   // Group extent, scale, and provenance stay in map help, not the hover card.
-  await expect(rail.locator('.ds-preview')).not.toContainText('evenly spaced');
-  const help = rail.locator('.ds-map-help');
+  await expect(rail.locator('.gr-preview')).not.toContainText('evenly spaced');
+  const help = rail.locator('.gr-map-help');
   await expect(help).toContainText('12,500,000 rows per group');
   await expect(help).toContainText('64 evenly spaced error-rate model values');
   await expect(help).toContainText('0%–30%');
@@ -117,10 +117,10 @@ test('one named chart uses its own scale and preview without moving the current 
     .poll(() => profile.evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL()))
     .not.toBe(errorChart);
   await expect(page.getByTestId('position')).toHaveText(position);
-  const track = (await rail.locator('.ds-track').boundingBox())!;
+  const track = (await rail.locator('.gr-track').boundingBox())!;
   await page.mouse.move(track.x + track.width / 2, track.y + track.height / 2);
-  await expect(rail.locator('.ds-map-bucket-summary strong')).toContainText('p95 latency');
-  await expect(summary.locator('.ds-map-reading-value')).toContainText('ms');
+  await expect(rail.locator('.gr-map-bucket-summary strong')).toContainText('p95 latency');
+  await expect(summary.locator('.gr-map-reading-value')).toContainText('ms');
   await expect(summary).not.toContainText('%');
   await expect(summary).not.toContainText('error-rate model');
 

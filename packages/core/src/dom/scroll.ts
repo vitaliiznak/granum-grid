@@ -85,7 +85,7 @@ interface Scroller {
 /** `viewport` reads the engine's height, so no scroll frame forces a layout read. */
 function elementScroller(element: HTMLElement, viewport: () => number): Scroller {
   const spacer = element.ownerDocument.createElement('div');
-  spacer.dataset.dsScrollSpacer = '';
+  spacer.dataset.grScrollSpacer = '';
   spacer.setAttribute('aria-hidden', 'true');
   spacer.style.cssText =
     'position:absolute;top:0;left:0;width:1px;visibility:hidden;pointer-events:none;';
@@ -109,7 +109,7 @@ function elementScroller(element: HTMLElement, viewport: () => number): Scroller
 function windowScroller(view: Window): Scroller {
   const document = view.document;
   const spacer = document.createElement('div');
-  spacer.dataset.dsWindowSpacer = '';
+  spacer.dataset.grWindowSpacer = '';
   spacer.setAttribute('aria-hidden', 'true');
   spacer.style.cssText = 'width:1px;pointer-events:none;overflow-anchor:none;';
   document.body.append(spacer);

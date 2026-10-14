@@ -57,8 +57,8 @@ body {
   opacity: 0.5;
   cursor: default;
 }
-.example-page .ds-row [role='gridcell'],
-.example-page [data-ds-part='row'] > span {
+.example-page .gr-row [role='gridcell'],
+.example-page [data-gr-part='row'] > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

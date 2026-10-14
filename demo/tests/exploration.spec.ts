@@ -64,8 +64,8 @@ test('range summaries, linked comparison, bookmarks and dialog focus', async ({ 
   await expect(a.locator('[data-status=ready]').first()).toContainText('1,000,000');
   await expect(b.locator('[data-status=ready]').first()).toContainText('61,700,000');
   await expect(dialog.getByText('Estimated summary', { exact: true })).toHaveCount(2);
-  await expect(dialog.locator('.ds-legend').first()).toContainText('exact overview');
-  await expect(dialog.locator('.ds-meta-error')).toHaveCount(0);
+  await expect(dialog.locator('.gr-legend').first()).toContainText('exact overview');
+  await expect(dialog.locator('.gr-meta-error')).toHaveCount(0);
   // Real wheel input: the pane scrolls natively (how far is the browser's choice; Firefox
   // caps a step at about a page), and the linked pane follows to the same row.
   await a.hover();
@@ -147,7 +147,7 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
   const popup = await opened;
   try {
     await expect(popup.getByTestId('position')).toHaveText('Row 73,500,000 of 100,000,000');
-    await expect(popup.locator('[data-ds-root]')).toHaveCSS('position', 'fixed');
+    await expect(popup.locator('[data-gr-root]')).toHaveCSS('position', 'fixed');
     // The scrollbar addresses the whole dataset. Four viewports at each end scroll one to one,
     // so the middle is proportional to within about 0.0001.
     const nativeProgress = () =>
@@ -175,13 +175,13 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
       'aria-valuenow',
       String(middle),
     );
-    await popup.locator('.ds-rail-title').hover();
+    await popup.locator('.gr-rail-title').hover();
     await popup.mouse.wheel(0, 400);
     await expect(popup.getByTestId('position')).toHaveText(
       `Row ${(middle + 10).toLocaleString('en-US')} of 100,000,000`,
     );
     // Scrubbing the map updates the native scrollbar in the reverse direction.
-    const track = (await popup.locator('.ds-track').boundingBox())!;
+    const track = (await popup.locator('.gr-track').boundingBox())!;
     await popup.keyboard.down('Shift');
     await popup.mouse.move(track.x + track.width / 2, track.y + track.height / 2);
     await popup.mouse.down();
@@ -210,7 +210,7 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
     await expect
       .poll(() =>
         popup
-          .locator('[data-ds-root]')
+          .locator('[data-gr-root]')
           .evaluate((e) => Math.abs(e.getBoundingClientRect().height - innerHeight)),
       )
       .toBeLessThan(1);
@@ -225,14 +225,14 @@ test('map selection can be canceled and optional channel tracks stay bounded', a
   await page.getByRole('button', { name: /^Draw on map/ }).click();
   // The map scrolls into view in the frame that focuses Cancel; measure after it.
   await expect(page.getByRole('button', { name: 'Cancel map selection' })).toBeFocused();
-  const rect = (await page.locator('.ds-track').boundingBox())!;
+  const rect = (await page.locator('.gr-track').boundingBox())!;
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height * 0.3);
   await page.mouse.down();
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height * 0.5, { steps: 3 });
-  await expect(page.locator('.ds-map-selection')).toBeVisible();
+  await expect(page.locator('.gr-map-selection')).toBeVisible();
   await page.keyboard.press('Escape');
   await page.mouse.up();
-  await expect(page.locator('.ds-map-selection')).toHaveCount(0);
+  await expect(page.locator('.gr-map-selection')).toHaveCount(0);
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
   await withMapSettings(page, async (panel) => {
     await panel.getByRole('checkbox', { name: 'Show channel tracks' }).check();
@@ -241,7 +241,7 @@ test('map selection can be canceled and optional channel tracks stay bounded', a
   const chart = page.getByRole('combobox', { name: 'Scrollbar chart' });
   await expect(chart.locator('option')).toHaveCount(5);
   await chart.selectOption({ label: 'North' });
-  await expect(page.locator('.ds-track canvas')).toHaveCount(1);
+  await expect(page.locator('.gr-track canvas')).toHaveCount(1);
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
 });
 

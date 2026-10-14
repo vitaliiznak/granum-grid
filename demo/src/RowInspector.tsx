@@ -42,7 +42,7 @@ export function RowInspector({
       className={`row-inspector${className ? ` ${className}` : ''}`}
       role="dialog"
       aria-labelledby={titleId}
-      data-ds-native-scroll=""
+      data-gr-native-scroll=""
     >
       <header>
         <div>

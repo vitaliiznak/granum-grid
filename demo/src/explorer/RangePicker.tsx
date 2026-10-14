@@ -56,7 +56,7 @@ export function RangePicker({
   };
   return (
     <section
-      className="ds-range-picker"
+      className="gr-range-picker"
       aria-label={title}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
@@ -65,7 +65,7 @@ export function RangePicker({
         }
       }}
     >
-      <div className="ds-flow-heading">
+      <div className="gr-flow-heading">
         <div>
           <strong>{title}</strong>
           <p id={helpId}>
@@ -74,24 +74,24 @@ export function RangePicker({
               : 'How would you like to choose them?'}
           </p>
         </div>
-        <button className="ds-button" onClick={onCancel}>
+        <button className="gr-button" onClick={onCancel}>
           Cancel
         </button>
       </div>
       {manual ? (
         <form
-          className="ds-range-form"
+          className="gr-range-form"
           onSubmit={(event) => {
             event.preventDefault();
             choose(range);
           }}
         >
-          <div className="ds-range-inputs">
+          <div className="gr-range-inputs">
             <label>
               From row
               <input
                 ref={input}
-                className="ds-input"
+                className="gr-input"
                 inputMode="numeric"
                 aria-describedby={error ? `${helpId} ${errorId}` : helpId}
                 aria-invalid={!!error}
@@ -106,7 +106,7 @@ export function RangePicker({
             <label>
               To row
               <input
-                className="ds-input"
+                className="gr-input"
                 inputMode="numeric"
                 aria-describedby={error ? `${helpId} ${errorId}` : helpId}
                 aria-invalid={!!error}
@@ -118,15 +118,15 @@ export function RangePicker({
               />
             </label>
           </div>
-          <div className="ds-range-confirm">
+          <div className="gr-range-confirm">
             <span aria-live="polite">
               {valid ? `${rangeCount(range)} in this selection` : 'Enter a valid range to continue'}
             </span>
-            <button className="ds-button ds-flow-primary" type="submit" disabled={!rowCount}>
+            <button className="gr-button gr-flow-primary" type="submit" disabled={!rowCount}>
               Use these rows
             </button>
             <button
-              className="ds-button"
+              className="gr-button"
               type="button"
               onClick={() => {
                 setManual(false);
@@ -138,9 +138,9 @@ export function RangePicker({
           </div>
         </form>
       ) : (
-        <div className="ds-selection-methods">
+        <div className="gr-selection-methods">
           <button
-            className="ds-button ds-selection-method"
+            className="gr-button gr-selection-method"
             disabled={!rowCount}
             onClick={(event) => {
               event.currentTarget.focus();
@@ -150,12 +150,12 @@ export function RangePicker({
             <strong>Rows on screen</strong>
             <span>Use the rows currently in view.</span>
           </button>
-          <button className="ds-button ds-selection-method" disabled={!rowCount} onClick={onMap}>
+          <button className="gr-button gr-selection-method" disabled={!rowCount} onClick={onMap}>
             <strong>Draw on map</strong>
             <span>Drag over a part of the dataset.</span>
           </button>
           <button
-            className="ds-button ds-selection-method"
+            className="gr-button gr-selection-method"
             disabled={!rowCount}
             onClick={() => setManual(true)}
           >
@@ -165,7 +165,7 @@ export function RangePicker({
         </div>
       )}
       {error && (
-        <p id={errorId} className="ds-form-error" role="alert">
+        <p id={errorId} className="gr-form-error" role="alert">
           {error}
         </p>
       )}

@@ -289,7 +289,7 @@ Those are application features; the playground builds all of them on the public 
   explorer beside the first, without materializing rows.
 
 With `layout="page"`, arrow, page, and space keys outside the explorer move its rows. A
-panel that scrolls on its own needs `data-ds-native-scroll`, so those keys scroll the panel
+panel that scrolls on its own needs `data-gr-native-scroll`, so those keys scroll the panel
 instead.
 
 `stickyChapters` keeps the current provider chapter above the rows. The `toolbar`

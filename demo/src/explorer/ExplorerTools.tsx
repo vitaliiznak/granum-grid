@@ -28,7 +28,7 @@ function SelectionDetails<Row>({
   const [expanded, setExpanded] = useState(false);
   return (
     <details
-      className="ds-selection-details"
+      className="gr-selection-details"
       onToggle={(event) => setExpanded(event.currentTarget.open)}
     >
       <summary>{expanded ? 'Hide summary' : 'Show summary'}</summary>
@@ -191,8 +191,8 @@ function ExplorerToolsView<Row>({
         requestAnimationFrame(() => {
           cancelMapButton.current?.focus();
           cancelMapButton.current
-            ?.closest('[data-ds-root]')
-            ?.querySelector('.ds-track')
+            ?.closest('[data-gr-root]')
+            ?.querySelector('.gr-track')
             ?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
         });
       }}
@@ -202,10 +202,10 @@ function ExplorerToolsView<Row>({
   return (
     <>
       {!pinned && !selecting && (
-        <div className="ds-explore-toggle">
+        <div className="gr-explore-toggle">
           <button
             ref={selectionButton}
-            className="ds-button"
+            className="gr-button"
             aria-expanded={panel === 'select'}
             disabled={!provider.rowCount}
             onClick={() => {
@@ -217,7 +217,7 @@ function ExplorerToolsView<Row>({
           </button>
           {selection && (
             <button
-              className="ds-button"
+              className="gr-button"
               aria-label="Clear selection"
               onClick={() => {
                 api.setSelection(null);
@@ -231,7 +231,7 @@ function ExplorerToolsView<Row>({
           )}
           {!selection && <span>Choose a part of the dataset to explore.</span>}
           <button
-            className="ds-button ds-saved-views-trigger"
+            className="gr-button gr-saved-views-trigger"
             aria-expanded={panel === 'saved'}
             onClick={() => {
               setPanel(panel === 'saved' ? null : 'saved');
@@ -245,7 +245,7 @@ function ExplorerToolsView<Row>({
       )}
       {selecting ? (
         <div
-          className="ds-map-prompt"
+          className="gr-map-prompt"
           role="region"
           aria-label="Select on map"
           onKeyDown={(event) => {
@@ -262,7 +262,7 @@ function ExplorerToolsView<Row>({
           </div>
           <button
             ref={cancelMapButton}
-            className="ds-button"
+            className="gr-button"
             onClick={() => {
               onSelectingChange(false);
               returnFocus();
@@ -274,12 +274,12 @@ function ExplorerToolsView<Row>({
       ) : pinned ? (
         <section
           ref={comparisonSetup}
-          className="ds-comparison-setup"
-          data-ds-native-scroll
+          className="gr-comparison-setup"
+          data-gr-native-scroll
           aria-label="Range comparison"
           tabIndex={-1}
         >
-          <div className="ds-flow-heading">
+          <div className="gr-flow-heading">
             <div>
               <strong>Compare two ranges</strong>
               <p role="status">
@@ -289,7 +289,7 @@ function ExplorerToolsView<Row>({
               </p>
             </div>
             <button
-              className="ds-button"
+              className="gr-button"
               onClick={() => {
                 setPinned(null);
                 setPanel(null);
@@ -300,25 +300,25 @@ function ExplorerToolsView<Row>({
               Cancel comparison
             </button>
           </div>
-          <div className="ds-comparison-ranges">
-            <div className="ds-comparison-range" role="group" aria-label="First range">
-              <span className="ds-comparison-step">1 · First range</span>
+          <div className="gr-comparison-ranges">
+            <div className="gr-comparison-range" role="group" aria-label="First range">
+              <span className="gr-comparison-step">1 · First range</span>
               <strong>{describeRange(pinned)}</strong>
               <span>{rangeDetails(pinned)}</span>
             </div>
             <div
-              className="ds-comparison-range"
+              className="gr-comparison-range"
               data-empty={!secondRange || undefined}
               role="group"
               aria-label="Second range"
             >
-              <span className="ds-comparison-step">2 · Second range</span>
+              <span className="gr-comparison-step">2 · Second range</span>
               <strong>
                 {secondRange ? describeRange(secondRange) : 'Choose what to compare it with'}
               </strong>
               {secondRange && <span>{rangeDetails(secondRange)}</span>}
               {panel !== 'select' && (
-                <button className="ds-button" onClick={() => setPanel('select')}>
+                <button className="gr-button" onClick={() => setPanel('select')}>
                   {secondRange ? 'Change second range' : 'Choose second range'}
                 </button>
               )}
@@ -327,10 +327,10 @@ function ExplorerToolsView<Row>({
           {panel === 'select' ? (
             picker
           ) : (
-            <div className="ds-comparison-actions">
+            <div className="gr-comparison-actions">
               <button
                 ref={comparisonButton}
-                className="ds-button ds-flow-primary ds-comparison-primary"
+                className="gr-button gr-flow-primary gr-comparison-primary"
                 disabled={!secondRange}
                 onClick={(event) => {
                   event.currentTarget.focus();
@@ -343,12 +343,12 @@ function ExplorerToolsView<Row>({
           )}
         </section>
       ) : panel === 'select' ? (
-        <div className="ds-explorer-panel" data-ds-native-scroll>
+        <div className="gr-explorer-panel" data-gr-native-scroll>
           {picker}
         </div>
       ) : panel === 'bookmark' ? (
-        <section className="ds-explorer-panel" data-ds-native-scroll aria-label="Save a bookmark">
-          <div className="ds-flow-heading">
+        <section className="gr-explorer-panel" data-gr-native-scroll aria-label="Save a bookmark">
+          <div className="gr-flow-heading">
             <div>
               <strong>Add bookmark</strong>
               <p>
@@ -359,7 +359,7 @@ function ExplorerToolsView<Row>({
             </div>
           </div>
           <form
-            className="ds-bookmark-form"
+            className="gr-bookmark-form"
             onSubmit={(event) => {
               event.preventDefault();
               if (!name.trim()) {
@@ -381,24 +381,24 @@ function ExplorerToolsView<Row>({
               Bookmark name
               <input
                 ref={bookmarkInput}
-                className="ds-input"
+                className="gr-input"
                 maxLength={80}
                 placeholder="e.g. Unusual spike"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
             </label>
-            <button className="ds-button ds-flow-primary" disabled={!provider.rowCount}>
+            <button className="gr-button gr-flow-primary" disabled={!provider.rowCount}>
               Save bookmark
             </button>
-            <button className="ds-button" type="button" onClick={closePanel}>
+            <button className="gr-button" type="button" onClick={closePanel}>
               Cancel
             </button>
           </form>
         </section>
       ) : panel === 'saved' ? (
-        <section className="ds-explorer-panel" data-ds-native-scroll aria-label="Bookmarks">
-          <div className="ds-flow-heading">
+        <section className="gr-explorer-panel" data-gr-native-scroll aria-label="Bookmarks">
+          <div className="gr-flow-heading">
             <div>
               <strong>Bookmarks</strong>
               <p>
@@ -407,20 +407,20 @@ function ExplorerToolsView<Row>({
                   : 'Save a place to return to it later.'}
               </p>
             </div>
-            <button className="ds-button" onClick={closePanel}>
+            <button className="gr-button" onClick={closePanel}>
               Close bookmarks
             </button>
           </div>
           {!!bookmarks.length && (
-            <p className="ds-bookmarks-heading">Saved by you · {bookmarks.length}</p>
+            <p className="gr-bookmarks-heading">Saved by you · {bookmarks.length}</p>
           )}
           {!!bookmarks.length && (
-            <ul className="ds-bookmarks" aria-label="Saved bookmarks">
+            <ul className="gr-bookmarks" aria-label="Saved bookmarks">
               {bookmarks.map((bookmark, i) => (
                 // `savedMarkers` follows `bookmarks` one to one.
                 <li key={bookmark.id}>
                   <button
-                    className="ds-button ds-saved-view"
+                    className="gr-button gr-saved-view"
                     onClick={() => {
                       api.restoreView(bookmark);
                       if (bookmark.selection) settleRange();
@@ -430,7 +430,7 @@ function ExplorerToolsView<Row>({
                       }
                     }}
                   >
-                    <span className="ds-place-index" aria-hidden="true">
+                    <span className="gr-place-index" aria-hidden="true">
                       {placeNumber.get(placeKey(savedMarkers[i]))}
                     </span>
                     <strong>{bookmark.name}</strong>
@@ -441,7 +441,7 @@ function ExplorerToolsView<Row>({
                     </span>
                   </button>
                   <button
-                    className="ds-button"
+                    className="gr-button"
                     aria-label={`Remove bookmark ${bookmark.name}`}
                     onClick={() =>
                       saveBookmarks(bookmarks.filter((item) => item.id !== bookmark.id))
@@ -453,26 +453,26 @@ function ExplorerToolsView<Row>({
               ))}
             </ul>
           )}
-          <button className="ds-button" disabled={!provider.rowCount} onClick={addBookmark}>
+          <button className="gr-button" disabled={!provider.rowCount} onClick={addBookmark}>
             Bookmark current position
           </button>
           {!!datasetMarkers.length && (
             <>
-              <p className="ds-bookmarks-heading">
+              <p className="gr-bookmarks-heading">
                 From this dataset · {datasetMarkers.length.toLocaleString()}
               </p>
-              <ul className="ds-bookmarks" aria-label="Dataset markers">
+              <ul className="gr-bookmarks" aria-label="Dataset markers">
                 {datasetMarkers.slice(0, markerCount).map((marker) => (
                   <li key={placeKey(marker)}>
                     <button
-                      className="ds-button ds-saved-view"
+                      className="gr-button gr-saved-view"
                       onClick={() => {
                         api.goTo(marker.index, { reason: 'marker' });
                         setPanel(null);
                         returnFocus();
                       }}
                     >
-                      <span className="ds-place-index" aria-hidden="true">
+                      <span className="gr-place-index" aria-hidden="true">
                         {placeNumber.get(placeKey(marker))}
                       </span>
                       <strong>{marker.label}</strong>
@@ -483,7 +483,7 @@ function ExplorerToolsView<Row>({
               </ul>
               {datasetMarkers.length > markerCount && (
                 <button
-                  className="ds-button"
+                  className="gr-button"
                   onClick={() => setMarkerCount(markerCount + MARKER_PAGE)}
                 >
                   More markers
@@ -493,29 +493,29 @@ function ExplorerToolsView<Row>({
           )}
         </section>
       ) : selection ? (
-        <section className="ds-selection-card" data-ds-native-scroll aria-label="Your selection">
-          <div className="ds-selection-overview">
-            <div className="ds-selection-description">
-              <span className="ds-selection-kicker">{rangeCount(selection)} selected</span>
+        <section className="gr-selection-card" data-gr-native-scroll aria-label="Your selection">
+          <div className="gr-selection-overview">
+            <div className="gr-selection-description">
+              <span className="gr-selection-kicker">{rangeCount(selection)} selected</span>
               <strong>{describeRange(selection)}</strong>
               {formatRange && selection.end - selection.start > 1 && (
                 <span>{rangeAddress(selection)}</span>
               )}
             </div>
-            <div className="ds-panel-actions">
+            <div className="gr-panel-actions">
               <button
                 ref={selectionAction}
-                className="ds-button ds-flow-primary"
+                className="gr-button gr-flow-primary"
                 onClick={() => {
                   api.scrollToIndex(selection.start, { align: 'start' });
                 }}
               >
                 {selection.end - selection.start === 1 ? 'Open row' : 'View selection'}
               </button>
-              <button className="ds-button" onClick={startComparison}>
+              <button className="gr-button" onClick={startComparison}>
                 Compare ranges
               </button>
-              <button className="ds-button" onClick={addBookmark}>
+              <button className="gr-button" onClick={addBookmark}>
                 Save bookmark
               </button>
             </div>
@@ -528,7 +528,7 @@ function ExplorerToolsView<Row>({
         </section>
       ) : null}
       {message && (
-        <p className="ds-tool-message ds-flow-message" role="status">
+        <p className="gr-tool-message gr-flow-message" role="status">
           {message}
         </p>
       )}

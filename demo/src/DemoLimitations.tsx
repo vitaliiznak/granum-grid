@@ -29,7 +29,7 @@ export function DemoLimitations({
         </p>
       )}
       <button
-        className={compact ? 'ds-button' : 'text-button'}
+        className={compact ? 'gr-button' : 'text-button'}
         aria-haspopup="dialog"
         onClick={() => dialog.current?.showModal()}
       >
@@ -38,7 +38,7 @@ export function DemoLimitations({
       <dialog ref={dialog} className="demo-limitations-dialog" aria-label="Demo limitations">
         <div className="demo-limitations-heading">
           <h2>Demo limitations</h2>
-          <button className="ds-button" onClick={() => dialog.current?.close()}>
+          <button className="gr-button" onClick={() => dialog.current?.close()}>
             Close
           </button>
         </div>

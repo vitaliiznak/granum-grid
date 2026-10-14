@@ -88,7 +88,7 @@ export function observeCanvas(element: Element, redraw: (change: CanvasChange) =
   resize.observe(element);
   const onTheme = () => redraw({ theme: true });
   const theme = new MutationObserver(onTheme);
-  theme.observe(element.closest('.ds-root') ?? element, { attributes: true });
+  theme.observe(element.closest('.gr-root') ?? element, { attributes: true });
   const media = matchMedia('(prefers-color-scheme: dark)');
   media.addEventListener('change', onTheme);
   return () => {
@@ -130,7 +130,7 @@ export function drawAtlas(
   if (!target || total < 1) return;
   const { context: ctx, width, height } = target;
   const styles = getComputedStyle(canvas);
-  const accent = styles.getPropertyValue('--ds-accent').trim() || styles.color;
+  const accent = styles.getPropertyValue('--gr-accent').trim() || styles.color;
   const scale = (value: number) =>
     clamp((value - domain[0]) / (domain[1] - domain[0]), 0, 1) * width;
   const baseline = scale(0);

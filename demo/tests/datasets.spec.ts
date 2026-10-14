@@ -33,7 +33,7 @@ test('a search step types into the real jump bar', async ({ page }) => {
   await expect(page.getByRole('button', { name: /^status 50\d/ }).first()).toBeVisible();
   await input.press('Enter');
   await expect(page.getByRole('dialog')).not.toBeVisible();
-  await expect(page.locator('.ds-row[data-focused] .lg-status')).toHaveText(/^50\d$/, {
+  await expect(page.locator('.gr-row[data-focused] .lg-status')).toHaveText(/^50\d$/, {
     timeout: 8000,
   });
 });

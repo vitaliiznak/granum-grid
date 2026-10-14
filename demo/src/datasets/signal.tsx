@@ -104,7 +104,7 @@ export const signal: DemoDataset<Reading> = {
   renderRow: ({ row, rowNumber, index }, { dynamic, expanded, toggle }) =>
     dynamic ? (
       <>
-        <span role="gridcell" className="ds-row-id">
+        <span role="gridcell" className="gr-row-id">
           {rowNumber.toLocaleString('en-US')}
         </span>
         <span role="gridcell" className="reading-note">
@@ -141,7 +141,7 @@ export const signal: DemoDataset<Reading> = {
       </>
     ) : (
       <>
-        <span role="gridcell" className="ds-row-id">
+        <span role="gridcell" className="gr-row-id">
           {rowNumber.toLocaleString('en-US')}
         </span>
         <span role="gridcell" className="reading-time">
