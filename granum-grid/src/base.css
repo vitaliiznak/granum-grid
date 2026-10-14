@@ -1229,14 +1229,20 @@
       overflow: hidden;
       clip-path: inset(50%);
     }
-    :where(.ds-summary-content[data-chart] .ds-summary-heading) {
+    :where(.ds-summary-content[data-chart] .ds-summary-heading),
+    :where(.ds-summary-content[data-chart] .ds-summary-meta),
+    :where(.ds-summary-content[data-chart] .ds-summary-actions) {
       flex-shrink: 0;
     }
     :where(.ds-summary-plot) {
+      flex: 1 1 auto;
       align-self: stretch;
+      min-height: 0;
+      overflow: hidden;
     }
     :where(.ds-summary-plot svg) {
-      height: 26px;
+      height: 16px;
+      max-height: 100%;
     }
     :where(.ds-summary-plot .ds-summary-metric) {
       margin-bottom: 0;
@@ -1256,6 +1262,9 @@
     }
     :where(.ds-summary-content) {
       padding: 6px;
+    }
+    :where(.ds-summary-content[data-chart]) {
+      padding: 4px 6px;
     }
     :where(.ds-summary-actions) {
       gap: 4px;
