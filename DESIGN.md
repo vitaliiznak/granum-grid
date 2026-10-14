@@ -139,13 +139,13 @@ Choices a contributor needs before changing the library, with options decided ag
 - **`features` is motion and data only.** Map layers are `AtlasRailOptions` alone, so
   there is no "feature wins over option" rule.
 
-- **The library writes no browser storage.** The playground's bookmarks and dismissed
-  hints use its original `deepscroll-*` keys.
+- **The library writes no browser storage.** The playground keeps bookmarks and dismissed
+  hints under `granum-*` keys.
 
-- **Stable names outlive the rename.** The package, directory, and stylesheet layer are
-  `granum-grid`, and the React names are `GranumGrid` / `useGranumGrid`. The `ds-*`
-  style hooks, browser storage keys, and the wiki sync manifest name stay, so existing
-  styling, bookmarks, and managed wiki pages keep working.
+- **No compatibility for names nobody uses yet.** Before the first npm release there are no
+  users to protect, so the deepscroll-era storage keys and wiki manifest are gone, and the
+  `ds-*` style hooks are renamed once, together with the package names
+  ([plan](docs/plans/library-family.md)). After a release, a rename needs a deprecation.
 
 - **Row identity and layout.** A data session belongs to the provider's data, not its
   object: sessions are keyed by `id`, `revision`, `rowCount` (outside append mode), and

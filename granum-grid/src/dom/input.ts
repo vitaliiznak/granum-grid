@@ -1,6 +1,6 @@
 import { clamp, wheelPixels } from '../core/mappings.js';
 import type { GranumGridEngine } from '../core/engine.js';
-import { NATIVE_SCROLL, isControl, isTextEntry } from './dom.js';
+import { NATIVE_SCROLL, isControl, isTextEntry } from './targets.js';
 
 /** Largest rubber-band shift. Further pull barely moves, so the edge reads as a wall. */
 const EDGE_LIMIT = 48;
@@ -28,8 +28,6 @@ interface InputOptions {
   windowScroll?: boolean;
   inertia: boolean;
   elasticity: boolean;
-  automaticAggregation: boolean;
-  onSpeed(span: number): void;
   onEdge(offset: number): void;
   onVelocity(rowsPerMs: number): void;
 }
@@ -44,10 +42,8 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
     lastTime = 0,
     velocity = 0,
     inertiaFrame = 0,
-    speedFrame = 0,
     settleTimer: ReturnType<typeof setTimeout> | undefined;
-  let speed = 0,
-    edge = 0,
+  let edge = 0,
     pull = 0,
     edgeFrame = 0,
     moved = false,
@@ -104,18 +100,9 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
   };
   const settle = () => {
     engine.visit();
-    cancelAnimationFrame(speedFrame);
     releaseEdge();
-    const decay = () => {
-      speed *= 0.64;
-      if (speed < 1) speed = 0;
-      options.onSpeed(speed);
-      if (speed) speedFrame = requestAnimationFrame(decay);
-    };
-    speedFrame = requestAnimationFrame(decay);
   };
   const pan = (pixels: number, time: number, measure = true) => {
-    cancelAnimationFrame(speedFrame);
     cancelAnimationFrame(edgeFrame);
     const state = engine.getSnapshot();
     const scale = 1 / state.rowHeight;
@@ -133,16 +120,9 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
       lastTime = time;
       options.onVelocity(velocity * scale);
     }
-    if (movedRows && options.automaticAggregation && Math.abs(velocity) > 1.8) {
-      speed = Math.min(
-        state.rowCount,
-        ((Math.abs(velocity) * state.height) / state.rowHeight) * 14,
-      );
-      options.onSpeed(speed);
-    }
     clearTimeout(settleTimer);
     // A blocked edge should start returning as soon as the gesture pauses.
-    // Real row movement keeps the longer pause so speed zoom can still engage.
+    // Real row movement waits longer, so a gesture's short pauses are not separate visits.
     if (movedRows || pull) settleTimer = setTimeout(settle, movedRows ? 140 : 60);
   };
   const wheel = (event: WheelEvent) => {
@@ -253,11 +233,9 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
   document.addEventListener('keydown', stopOnKey, true);
   return () => {
     cancelInertia();
-    cancelAnimationFrame(speedFrame);
     cancelAnimationFrame(edgeFrame);
     clearTimeout(settleTimer);
     pull = 0;
-    options.onSpeed(0);
     options.onEdge(0);
     wheelSurface.removeEventListener('wheel', wheel);
     viewport.removeEventListener('pointerdown', down);

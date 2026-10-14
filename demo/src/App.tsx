@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { MapSettings } from './MapSettings';
 import { DEMO_SWITCHES, DebugTools, switchFeatures, switchMap } from './DebugTools';
 import { DemoLimitations } from './DemoLimitations';
+import { useFrameRate } from './useFrameRate';
 import { RowInspector } from './RowInspector';
 import {
   DatasetGallery,
@@ -80,6 +81,7 @@ export default function App() {
   const [dynamic, setDynamic] = useState(false);
   const [expanded, setExpanded] = useState(new Set<number>());
   const api: Api = useRef<GranumGridApi<unknown>>(null);
+  const fps = useFrameRate(api, provider);
   /** Each dataset keeps its own place while you visit the others. */
   const places = useRef(new Map<string, SavedView>());
   const providerKey = `${provider.id}:${provider.revision}`;
@@ -149,9 +151,9 @@ export default function App() {
   // Selection, bookmarks, comparison, and hints are playground features on the public API.
   const tools = useExplorerTools(provider, {
     comparison,
-    storageKey: isImported ? undefined : `deepscroll-demo:${providerKey}`,
+    storageKey: isImported ? undefined : `granum-demo:${providerKey}`,
     formatRange: dataset.formatRange,
-    hints: switches.hints && { storageKey: 'deepscroll-hints-v1' },
+    hints: switches.hints && { storageKey: 'granum-hints-v1' },
   });
   const atlasSettings = datasetMapSettings[dataset.id] ?? {};
   const changeMapSettings = (patch: AtlasRailOptions) =>
@@ -360,6 +362,7 @@ export default function App() {
                 reduced={reduced}
                 onReduced={setReduced}
                 stats={stats}
+                fps={fps}
                 onReset={() => {
                   changeLatency(DEFAULT_LATENCY);
                   setSwitches(DEMO_SWITCHES);

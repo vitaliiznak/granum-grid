@@ -25,16 +25,15 @@ import { readView, type SavedView } from '../core/exploration.js';
 import { INTERNAL, type GridInternals } from './internal.js';
 import { useWindowScroll } from './useWindowScroll.js';
 import { useRowMeasurements } from './useRowMeasurements.js';
-import { bindInputs } from './input.js';
-import { isControl, ownsKeys } from './dom.js';
-import { useFrameRate } from './useFrameRate.js';
+import { bindInputs } from '../dom/input.js';
+import { isControl, ownsKeys } from '../dom/targets.js';
 import { useKeyed } from './useKeyed.js';
 import { useReducedMotion } from './useReducedMotion.js';
 import { useLatest } from './useLatest.js';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { useFollowOutput } from './useFollowOutput.js';
 import { useRowRequests } from './useRowRequests.js';
-import { handleViewportKey } from './keyboard.js';
+import { handleViewportKey } from '../dom/keyboard.js';
 import { bucketAt, chapterAt } from '../core/navigation.js';
 import { DataSession, sessionKey } from '../data/session.js';
 import { defaultFeatures, type Features } from '../features.js';
@@ -53,7 +52,6 @@ export interface ScrollStats {
   activeRequests: number;
   abortedRequests: number;
   completedFetches: number;
-  fps: number | null;
   measuredRows: number;
 }
 export interface RowActivationContext<Row> {
@@ -103,7 +101,7 @@ export interface UseGranumGridOptions<Row> {
   onRowActivate?(context: RowActivationContext<Row>): void;
   /** Committed jumps, not every animation frame. */
   onNavigate?(event: NavigationEvent): void;
-  /** Cache and request counts, measured rows, and frame rate (sampled only with this callback). */
+  /** Cache and request counts and measured rows. */
   onStats?(stats: ScrollStats): void;
   /** Motion and data behavior; see `defaultFeatures`. */
   features?: Partial<Features>;
@@ -147,7 +145,7 @@ export interface GranumGridState<Row> {
   markers: Marker[];
   /** The provider chapter containing the current row, for a breadcrumb. */
   chapter: Chapter | null;
-  /** A long jump or fast fling is showing the overview instead of rows. */
+  /** A long jump is showing the overview instead of rows. */
   traveling: boolean;
   /** Elastic edge offset in pixels; translate the rows by it. */
   edgeOffset: number;
@@ -203,7 +201,6 @@ export function useGranumGrid<Row>({
   // page explorer owns the document and springs back at its ends.
   const features = { ...defaultFeatures, edgeElasticity: windowScroll, ...overrides };
   const id = useId();
-  const [speedSpan, setSpeedSpan] = useState(0);
   const [edgeOffset, setEdgeOffset] = useState(0);
   const velocity = useRef(0);
   const [announcement, setAnnouncement] = useState('');
@@ -212,7 +209,6 @@ export function useGranumGrid<Row>({
   const flight = !reduceMotion && features.flight;
   const inertia = !reduceMotion && features.inertia;
   const elasticity = !reduceMotion && features.edgeElasticity;
-  const automaticAggregation = !reduceMotion && features.automaticAggregation;
   const engine = useKeyed(
     () =>
       createEngine({
@@ -282,7 +278,6 @@ export function useGranumGrid<Row>({
   useEffect(() => {
     if (dynamicRowHeight && snapshot.measuredRows === 0) measurements.measure();
   }, [dynamicRowHeight, measurements, snapshot.layoutVersion, snapshot.measuredRows]);
-  const fps = useFrameRate(snapshot.position, onStats !== undefined);
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
   const session = useKeyed(
     () => new DataSession(provider, cache),
@@ -347,8 +342,8 @@ export function useGranumGrid<Row>({
     });
     return () => cancelAnimationFrame(frame);
   }, [engine, snapshot.moving]);
-  const temporarySpan = Math.max(snapshot.flightSpan, automaticAggregation ? speedSpan : 0);
-  // Long flights and fast flings show the overview instead of rows they would skip past.
+  const temporarySpan = snapshot.flightSpan;
+  // Long flights show the overview instead of rows they would skip past.
   const traveling = temporarySpan > (snapshot.height / rowHeight) * 3;
   const mapping = useMemo(() => {
     if (traveling)
@@ -419,14 +414,12 @@ export function useGranumGrid<Row>({
       windowScroll,
       inertia,
       elasticity,
-      automaticAggregation,
-      onSpeed: setSpeedSpan,
       onEdge: setEdgeOffset,
       onVelocity: (value) => {
         velocity.current = value;
       },
     });
-  }, [viewport, windowScroll, engine, inertia, elasticity, automaticAggregation]);
+  }, [viewport, windowScroll, engine, inertia, elasticity]);
   useRowRequests(engine, session, snapshot.moving, snapshot.targetIndex, {
     start,
     count,
@@ -437,7 +430,6 @@ export function useGranumGrid<Row>({
   // Session statistics include searches started through `session.search`.
   const stats: ScrollStats = {
     ...session.getStats(),
-    fps,
     measuredRows: snapshot.measuredRows,
   };
   const reportsStats = onStats !== undefined;
@@ -453,7 +445,6 @@ export function useGranumGrid<Row>({
     stats.activeRequests,
     stats.abortedRequests,
     stats.completedFetches,
-    fps,
     stats.measuredRows,
   ]);
   const rows: RowSlot<Row>[] = Array.from({ length: count }, (_, offset) => {

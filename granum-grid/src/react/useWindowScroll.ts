@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { GranumGridEngine } from '../core/engine.js';
-import { NATIVE_SCROLL, isWithin, ownsKeys } from './dom.js';
-import { handleMovementKey } from './keyboard.js';
+import { NATIVE_SCROLL, isWithin, ownsKeys } from '../dom/targets.js';
+import { handleMovementKey } from '../dom/keyboard.js';
 
 /** A bounded document scroll range representing the same global position as Atlas. */
 export function useWindowScroll(engine: GranumGridEngine, enabled: boolean) {

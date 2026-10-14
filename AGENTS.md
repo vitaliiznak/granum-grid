@@ -20,10 +20,13 @@ browser debugging, and handoffs. No API key, backend, or AI service is needed.
 | Public exports and contracts            | `granum-grid/src/index.ts`, `headless.ts`, `core/api.ts`, `data/types.ts`, `docs/GUIDE.md` |
 | Navigation, mappings, row measurements  | `granum-grid/src/core/engine.ts`, `mappings.ts`, `rowSizes.ts`                             |
 | Paging, cancellation, dataset lifecycle | `granum-grid/src/data/cache.ts`, `session.ts`, `range.ts`                                  |
-| React, DOM inputs, layout, styles       | `granum-grid/src/react/`, `granum-grid/src/base.css`, `styles.css`, `STYLING.md`           |
+| DOM input, keys, event targets          | `granum-grid/src/dom/` (framework-free)                                                    |
+| Map drawing, peaks, number formats      | `granum-grid/src/map/` (framework-free)                                                    |
+| React, layout, styles                   | `granum-grid/src/react/`, `granum-grid/src/base.css`, `styles.css`, `STYLING.md`           |
 | Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                 |
 | Screenshots and video                   | `media/README.md`, `media/scripts/capture.mjs`                                             |
-| Packaging and consumer compatibility    | `scripts/build-package.mjs`, `scripts/package-test.mjs`, `docs/PUBLISHING.md`              |
+| Packaging, consumers, size budgets      | `scripts/build-package.mjs`, `package-test.mjs`, `size.mjs`, `docs/PUBLISHING.md`          |
+| Current multi-step plan                 | `docs/plans/library-family.md`                                                             |
 
 `README.md` describes current use; `docs/GUIDE.md` is the integration reference, with
 limits and defaults. `DESIGN.md` records rationale and decisions. Check actual exports
@@ -35,9 +38,10 @@ and tests before treating documentation as implemented behavior.
   half-open `[start, end)`. Large counts must not overflow through bitwise math.
 - Work and memory must remain bounded by the viewport, pages, or requested
   buckets, not total dataset size. Never scan billions of synthetic rows.
-- Keep `core/` and `data/` independent of React. The library must not import demo,
-  media, domain-specific adapters, or model SDKs. ESM library imports use `.js`
-  suffixes so published output resolves in Node.
+- Layers, lowest first: `data/` ← `core/` ← `dom/` ← `map/` ← `react/`. A layer imports
+  only layers below it, and only `react/` and the package entries import React; lint
+  enforces this. The library must not import demo, media, domain-specific adapters, or
+  model SDKs. ESM library imports use `.js` suffixes so published output resolves in Node.
 - Provider identity/revision owns cached data and saved views. Preserve aborts,
   stale-result rejection, ordered fetch counts, and append-versus-revision semantics.
 - Preserve `exact` / `estimated` / `unavailable`, nullable aggregates, and search
@@ -49,12 +53,11 @@ and tests before treating documentation as implemented behavior.
 ## Validate and finish
 
 - `npm run check`: type-check source, tests, and configs (`typecheck`), verify tutorial
-  snippets and doc links (`test:tutorials`), test the wiki export (`test:wiki`), then
-  run unit tests. No browser, lint, formatting, or package output.
+  snippets and doc links (`test:tutorials`), then run unit tests. No browser, lint, formatting, or package output.
 - `npm run test:smoke`: four Chromium acceptance cases for navigation, history, and selection.
-- `npm run release:check`: lint, `check`, library/demo builds, and isolated React 18/19
-  tarball consumers (`test:package`).
-- `npm run check:full`: format check, `release:check`, media and wiki builds,
+- `npm run release:check`: lint, `check`, library/demo builds, isolated React 18/19
+  tarball consumers, and per-entry size budgets (`test:package`).
+- `npm run check:full`: format check, `release:check`, the media build,
   Chromium/Firefox/WebKit tests, and the Pages smoke test. Requires browser installs
   and possibly npm registry access for consumer dependencies. CI runs the same steps
   separately.

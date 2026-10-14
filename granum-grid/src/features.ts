@@ -5,7 +5,6 @@
 export const defaultFeatures = {
   inertia: true,
   edgeElasticity: false,
-  automaticAggregation: false,
   flight: true,
   transitions: true,
   progressiveEstimates: true,

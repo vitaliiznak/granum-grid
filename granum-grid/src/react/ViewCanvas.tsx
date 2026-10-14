@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { clamp } from '../core/mappings.js';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { bucketAt } from '../core/navigation.js';
-import { atlasDomain, observeCanvas, prepareCanvas, profileValue } from '../visuals/atlas.js';
+import { atlasDomain, observeCanvas, prepareCanvas, profileValue } from '../map/atlas.js';
 import type { GranumGridState } from './useGranumGrid.js';
 import { INTERNAL } from './internal.js';
 /** Size and theme change rarely; reading them every frame forces layout and style work. */

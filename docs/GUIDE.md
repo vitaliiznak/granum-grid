@@ -282,8 +282,7 @@ the wheel scrolls the panel instead of the rows.
 
 `stickyChapters` keeps the current provider chapter above the rows. The `toolbar`
 shows **Back** and **Go to…**; diagnostics are under **debug** in the demo, and
-`onStats` reports them to a host. Showing the overview instead of rows during a fast
-fling is opt-in with `features={{ automaticAggregation: true }}`.
+`onStats` reports cache, request, and measurement counts to a host.
 
 ## Open in a separate tab and scroll the window
 

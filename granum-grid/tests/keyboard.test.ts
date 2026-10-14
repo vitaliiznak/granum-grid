@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { createEngine } from '../src/core/engine';
-import { handleMovementKey, handleViewportKey } from '../src/react/keyboard';
+import { handleMovementKey, handleViewportKey } from '../src/dom/keyboard';
 
 const key = (
   name: string,

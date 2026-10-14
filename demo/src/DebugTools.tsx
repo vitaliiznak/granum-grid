@@ -84,7 +84,6 @@ const labels: Record<keyof DemoSwitches, string> = {
   trail: 'Visited trail',
   inertia: 'Touch inertia',
   edgeElasticity: 'Elastic edges',
-  automaticAggregation: 'Zoom out at speed',
   flight: 'Fly-to animation',
   transitions: 'View transitions',
   progressiveEstimates: 'Progressive estimates',
@@ -100,6 +99,7 @@ export function DebugTools({
   reduced,
   onReduced,
   stats,
+  fps,
   onReset,
   children,
 }: {
@@ -111,6 +111,8 @@ export function DebugTools({
   reduced: boolean;
   onReduced(value: boolean): void;
   stats: ScrollStats | null;
+  /** Frames per second during the latest navigation, measured by the playground. */
+  fps: number | null;
   onReset(): void;
   children?: ReactNode;
 }) {
@@ -199,7 +201,7 @@ export function DebugTools({
               <strong>{stats?.abortedRequests ?? 0}</strong> canceled
             </span>
             <span>
-              <strong>{stats?.fps ?? '—'}</strong> measured fps
+              <strong>{fps ?? '—'}</strong> measured fps
             </span>
             <span>
               <strong>{stats?.completedFetches ?? 0}</strong> pages fetched

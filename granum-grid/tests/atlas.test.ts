@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { atlasDomain, atlasTicks, overviewAccuracy, profileValue } from '../src/visuals/atlas';
+import { atlasDomain, atlasTicks, overviewAccuracy, profileValue } from '../src/map/atlas';
 import type { Bucket } from '../src/data/types';
 
 const bucket: Bucket = {

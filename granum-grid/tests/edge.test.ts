@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { edgeVisual, splitEdgeDelta } from '../src/react/input';
+import { edgeVisual, splitEdgeDelta } from '../src/dom/input';
 
 it('resists overscroll so the edge stays a short wall', () => {
   expect(edgeVisual(0)).toBe(0);

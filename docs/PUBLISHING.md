@@ -78,27 +78,18 @@ into `main` triggers a push run; **Actions → Frontend CI/CD → Run workflow �
 provides a manual deployment of that branch. PR runs and manual runs on other
 branches only verify. The workflow never publishes to npm.
 
-Two jobs use the verified artifacts from the same run:
-
-| Job             | Output                                       | Write access             |
-| --------------- | -------------------------------------------- | ------------------------ |
-| Deploy frontend | `demo/dist` → GitHub Pages                   | Pages and OIDC only      |
-| Deploy wiki     | `output/wiki` → the repository's `.wiki.git` | Repository contents only |
+**Deploy frontend** publishes the verified `demo/dist` from the same run to GitHub Pages,
+with Pages and OIDC write access only.
 
 The app includes the static gallery and every tutorial companion except HTTP. The HTTP
 lesson requires the local dev/preview server; GitHub Pages cannot host its API.
 Relative asset URLs keep the app usable at a domain root or project path.
 
-The wiki build rewrites lesson links to wiki URLs and repository links to the
-verified commit. Tutorial code stays unchanged. Its manifest records managed
-pages: deleting a lesson from `docs/wiki/` removes that published page at the next
-sync, while unrelated manual pages and wiki Git history remain. Edit managed
-lessons in the main repository; direct wiki edits to them are overwritten.
-Unchanged exports produce no wiki commit.
+The lessons are read in the repository under `docs/wiki/`; there is no GitHub Wiki
+copy to deploy.
 
-Browser reports and failure traces, the checked npm tarball, and the wiki export
-are retained as workflow artifacts for 14 days. Wiki artifacts are uploaded on
-`main` deployment runs; the export is built and tested on PRs too.
+Browser reports and failure traces and the checked npm tarball are retained as
+workflow artifacts for 14 days.
 
 ### Enable deployment
 
@@ -109,29 +100,23 @@ are retained as workflow artifacts for 14 days. Wiki artifacts are uploaded on
 3. In **Settings → Environments → github-pages**, allow branch `main`. Replace an
    old `master` deployment rule if present. For protected merges, require the
    **Verify frontend** status check in the `main` ruleset.
-4. Enable **Wikis** in repository settings, open **Wiki**, and create an initial
-   **Home** page. GitHub creates the separate wiki Git repository only after its
-   first page is saved. The pipeline replaces that page with `docs/wiki/Home.md`.
-5. Merge/push the workflow and source to `main`, or run the workflow on `main`.
-   Check that **Verify frontend**, **Deploy frontend**, and **Deploy wiki** succeed.
+4. Merge/push the workflow and source to `main`, or run the workflow on `main`.
+   Check that **Verify frontend** and **Deploy frontend** succeed.
 
 Pending for `vitaliiznak/granum-grid` (checked 2026-10-13; Pages already uses GitHub
-Actions and Wikis are enabled). Remove this list after the first `main` deployment:
+Actions). Remove this list after the first `main` deployment:
 
 - [ ] Rename the default branch from `master` to `main` (step 1).
 - [ ] Allow `main` in the `github-pages` environment (step 3).
-- [ ] Create the first wiki page (step 4).
 
-No personal access token or repository secret is needed. Wiki publishing uses the
-job's `GITHUB_TOKEN` with `contents: write`; Pages uses its deployment token/OIDC.
-See GitHub's [custom Pages workflow setup](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
-and [wiki initialization instructions](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages).
+No personal access token or repository secret is needed; Pages uses its deployment
+token/OIDC. See GitHub's [custom Pages workflow setup](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
 
 Expected destinations:
 
 - [Demo app](https://vitaliiznak.github.io/granum-grid/)
 - [Tutorial companions](https://vitaliiznak.github.io/granum-grid/tutorials.html)
-- [Tutorial wiki](https://github.com/vitaliiznak/granum-grid/wiki)
+- [Lessons](https://github.com/vitaliiznak/granum-grid/blob/main/docs/wiki/Home.md)
 
 ### Verify and recover
 
@@ -143,9 +128,7 @@ npx playwright install chromium firefox webkit
 CI=1 PLAYWRIGHT_PORT=5188 npm run check:full
 ```
 
-Use an unused port. `npm run build:wiki` exports Markdown locally without pushing;
-`npm run test:wiki` checks links, code preservation, repeatable sync, and removal
-of obsolete managed pages. Review `output/wiki/` before the first deployment.
+Use an unused port.
 
 After deployment, verify the public app:
 
@@ -156,9 +139,6 @@ PAGES_URL=https://vitaliiznak.github.io/granum-grid/ npm run test:pages
 The Pages check saves a screenshot under `output/playwright/pages-smoke/` and a
 trace on failure. A local pass does not establish a hosted deployment.
 
-If Pages fails, check its source and environment branch rule. If the wiki checkout
-reports “repository not found,” enable and initialize the wiki. For a wiki push
-permission failure, inspect the job's token permissions and repository policy.
-The deployment jobs are independent: one can succeed while the other fails; check
-both and rerun the failed job after fixing its setup. To roll back the release,
+If Pages fails, check its source and environment branch rule, then rerun the failed
+job after fixing its setup. To roll back the release,
 revert the unwanted source commit on `main`; verification runs before republishing.

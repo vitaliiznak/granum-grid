@@ -194,8 +194,8 @@ function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }
   const grid = useGranumGrid({
     provider,
     rowHeight: 48,
-    // Rows only: no animated flights and no overview during fast flings.
-    features: { automaticAggregation: false, flight: false },
+    // Rows only: no animated flights.
+    features: { flight: false },
   });
 
   return (

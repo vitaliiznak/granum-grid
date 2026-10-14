@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import type { Bucket } from '../src/data/types';
-import { atlasPeaks, attractToPeak } from '../src/visuals/atlasGravity';
+import { atlasPeaks, attractToPeak } from '../src/map/atlasGravity';
 
 const profile = (values: (number | null)[], size = 100): Bucket[] =>
   values.map((avg, i) => ({

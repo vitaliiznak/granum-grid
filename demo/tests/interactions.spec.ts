@@ -106,22 +106,6 @@ test('no runtime or console errors on a fresh load and row navigation', async ({
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
   expect(pageErrors).toEqual([]);
 });
-test('automatic speed zoom is optional and returns to rows after settling', async ({ page }) => {
-  await withDebug(page, async (dialog) => {
-    await expect(dialog.getByRole('checkbox', { name: 'Zoom out at speed' })).not.toBeChecked();
-    await dialog.getByRole('checkbox', { name: 'Zoom out at speed' }).check();
-  });
-  const grid = page.getByRole('grid');
-  await grid.focus();
-  await grid.dispatchEvent('wheel', { deltaY: 1800, deltaMode: 0 });
-  await expect(page.locator('.ds-aggregate-label')).toBeVisible();
-  await expect(page.locator('.ds-aggregate-label')).not.toBeVisible({ timeout: 4000 });
-  await withDebug(page, (dialog) =>
-    dialog.getByRole('checkbox', { name: 'Zoom out at speed' }).uncheck(),
-  );
-  await grid.dispatchEvent('wheel', { deltaY: 1800, deltaMode: 0 });
-  await expect(page.locator('.ds-aggregate-label')).not.toBeVisible();
-});
 test('touch pan navigates rows', async ({ page, browserName }) => {
   test.skip(
     browserName !== 'chromium',

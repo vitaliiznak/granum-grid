@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode, type SyntheticEvent } from 'react';
 import type { SavedView } from '../core/exploration.js';
 import type { PendingRowSlot } from '../data/types.js';
-import { chapterName, formatDecimal } from '../visuals/format.js';
+import { chapterName, formatDecimal } from '../map/format.js';
 import { partProps, type GranumGridAppearance } from './styling.js';
 import type { GranumGridState } from './useGranumGrid.js';
 import { useShortcutModifier } from './platform.js';

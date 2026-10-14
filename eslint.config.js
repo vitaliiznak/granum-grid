@@ -3,6 +3,34 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import compat from 'eslint-plugin-compat';
 
+// Library layers, lowest first: data ← core ← dom ← map ← react. A layer imports only the
+// layers below it, and only react/ and the package entries may import React.
+const LAYERS = ['data', 'core', 'dom', 'map'];
+const layerRules = LAYERS.map((layer, index) => ({
+  files: [`granum-grid/src/${layer}/**/*.ts`],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: [
+              ...LAYERS.slice(index + 1).map((above) => `../${above}/*`),
+              '../react/*',
+              '../*.js',
+              'react',
+              'react/*',
+              'react-dom',
+              'react-dom/*',
+            ],
+            message: `granum-grid/src/${layer} may import only ${LAYERS.slice(0, index).join(', ') || 'itself'}; layers are data ← core ← dom ← map ← react.`,
+          },
+        ],
+      },
+    ],
+  },
+}));
+
 export default defineConfig([
   {
     // Hook rules for every React surface: library, demo, and media studio.
@@ -43,4 +71,5 @@ export default defineConfig([
     },
     rules: { 'compat/compat': 'error' },
   },
+  ...layerRules,
 ]);

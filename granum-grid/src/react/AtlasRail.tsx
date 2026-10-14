@@ -17,9 +17,9 @@ import {
   observeCanvas,
   overviewAccuracy,
   profileValue,
-} from '../visuals/atlas.js';
-import { formatCompact, formatMetric } from '../visuals/format.js';
-import { atlasPeaks, attractToPeak } from '../visuals/atlasGravity.js';
+} from '../map/atlas.js';
+import { formatCompact, formatMetric } from '../map/format.js';
+import { atlasPeaks, attractToPeak } from '../map/atlasGravity.js';
 import { MarkerLayer } from './MarkerLayer.js';
 import type { Marker, RowRange } from '../data/types.js';
 import type { GranumGridState } from './useGranumGrid.js';

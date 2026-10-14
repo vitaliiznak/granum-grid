@@ -1,7 +1,7 @@
 name: Frontend CI/CD
 
 on:
-  # Merges/pushes to main and manual runs on main publish both app and wiki.
+  # Merges/pushes to main and manual runs on main publish the app.
   push:
     branches: [main]
   pull_request:
@@ -52,9 +52,6 @@ jobs:
       - name: Build media studio
         run: npm run media:build
 
-      - name: Build wiki with links to the verified source commit
-        run: npm run build:wiki
-
       - name: Verify npm tarball with React 18.2 and React 19
         run: npm run test:package
 
@@ -99,15 +96,6 @@ jobs:
         with:
           path: demo/dist
 
-      - name: Upload verified wiki
-        if: ${{ github.ref == 'refs/heads/main' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: wiki
-          path: output/wiki
-          retention-days: 14
-          if-no-files-found: error
-
   deploy:
     name: Deploy frontend
     needs: verify
@@ -130,56 +118,3 @@ jobs:
       - name: Deploy verified frontend
         id: deployment
         uses: actions/deploy-pages@v4
-
-  deploy-wiki:
-    name: Deploy wiki
-    needs: verify
-    if: ${{ github.ref == 'refs/heads/main' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    concurrency:
-      group: github-wiki
-      cancel-in-progress: false
-    steps:
-      - name: Check out sync script
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-
-      # Create the first wiki page in GitHub once before this checkout can work.
-      - name: Check out initialized wiki
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ github.repository }}.wiki
-          path: wiki-checkout
-
-      - name: Download verified wiki
-        uses: actions/download-artifact@v4
-        with:
-          name: wiki
-          path: output/wiki
-
-      - name: Sync managed wiki pages
-        run: node scripts/wiki.mjs sync output/wiki wiki-checkout
-
-      - name: Publish changed wiki pages
-        working-directory: wiki-checkout
-        env:
-          SOURCE_SHA: ${{ github.sha }}
-        run: |
-          git add --all
-          if git diff --cached --quiet; then
-            echo "Wiki is already up to date."
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m "docs: sync wiki from ${SOURCE_SHA}"
-          git push origin HEAD

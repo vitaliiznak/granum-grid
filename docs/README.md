@@ -4,7 +4,7 @@ Use Granum Grid to explore an ordered dataset with a known row count: render row
 jump to exact addresses, and add summaries and search through your own provider.
 The library can be installed in another app independently of the demo.
 
-**Learn by building with the [tutorial wiki](wiki/Home.md).** Use inventory, sensor,
+**Learn by building with the [lessons](wiki/Home.md).** Use inventory, sensor,
 log, and recording datasets to build progressively richer integrations. Each lesson
 has working code and checkpoints. For a direct setup recipe, use the
 [quick start](QUICK_START.md).
@@ -14,7 +14,7 @@ has working code and checkpoints. For a direct setup recipe, use the
 | I want to…                                      | Read                                                                                                                                                |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Get my first explorer running                   | [Quick start](QUICK_START.md)                                                                                                                       |
-| Learn through different datasets                | [Tutorial wiki](wiki/Home.md)                                                                                                                       |
+| Learn through different datasets                | [Lessons](wiki/Home.md)                                                                                                                             |
 | Adapt an existing array                         | [Array recipe](QUICK_START.md#use-your-own-array)                                                                                                   |
 | Load data from my server                        | [HTTP provider recipe](QUICK_START.md#connect-an-http-api) and [provider rules](GUIDE.md#provider-contract)                                         |
 | Sort, filter, or edit on the server             | [Server-owned ordering](GUIDE.md#server-owned-ordering)                                                                                             |
@@ -44,11 +44,10 @@ Generated demo data, sampled search, and recording-based examples have different
 limits. Read the [demo limitations](../README.md#demo-limitations) before using them
 as performance or completeness evidence.
 
-## Tutorial wiki
+## Lessons
 
-The [wiki](wiki/Home.md) is tutorial material for library users: setup, complete
-examples, expected results, and exercises. Edit lessons in `docs/wiki/` and review
-them with the code: their code blocks must match the companions in
-`demo/src/tutorials`, which `npm run check` verifies. Verified deployments from `main` export
-the lessons to [GitHub Wiki](https://github.com/vitaliiznak/granum-grid/wiki); see
-[Frontend CI/CD](PUBLISHING.md#frontend-cicd).
+The [lessons](wiki/Home.md) are tutorial material for library users: setup, complete
+examples, expected results, and exercises. Edit them in `docs/wiki/` and review them
+with the code: their code blocks must match the companions in `demo/src/tutorials`,
+which `npm run check` verifies. They are read here in the repository; there is no
+separate GitHub Wiki copy.
