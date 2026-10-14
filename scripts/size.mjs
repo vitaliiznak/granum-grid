@@ -4,7 +4,8 @@ import { gzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 // Bytes a consumer downloads for each public entry: every export bundled from the built
-// dist/, minified and gzipped, with React external. CSS is raw, as hosts usually ship it.
+// dist/, minified and gzipped, with peer dependencies (React, hyparquet) external. CSS is
+// raw, as hosts usually ship it.
 // Budgets ratchet down as the plan in docs/plans/library-family.md removes code; raise one
 // only on purpose, with the reason in the commit.
 const BUDGETS = {
@@ -12,26 +13,29 @@ const BUDGETS = {
   'granum-grid/headless': 13_200,
   'granum-grid/core': 3_700,
   'granum-grid/data': 4_100,
+  '@granum/parquet': 3_500,
   'base.css': 16_100,
   'styles.css': 19_500,
 };
 const dist = fileURLToPath(new URL('../granum-grid/dist/', import.meta.url));
+const workspace = fileURLToPath(new URL('../', import.meta.url));
 const scripts = {
-  'granum-grid': 'index.js',
-  'granum-grid/headless': 'headless.js',
-  'granum-grid/core': 'core/index.js',
-  'granum-grid/data': 'data/index.js',
+  'granum-grid': `${dist}index.js`,
+  'granum-grid/headless': `${dist}headless.js`,
+  'granum-grid/core': `${dist}core/index.js`,
+  'granum-grid/data': `${dist}data/index.js`,
+  '@granum/parquet': `${workspace}packages/parquet/dist/index.js`,
 };
 const sizes = {};
 for (const [entry, file] of Object.entries(scripts)) {
   const result = await build({
-    stdin: { contents: `export * from ${JSON.stringify(dist + file)};`, resolveDir: dist },
+    stdin: { contents: `export * from ${JSON.stringify(file)};`, resolveDir: workspace },
     bundle: true,
     minify: true,
     format: 'esm',
     platform: 'browser',
     target: 'es2022',
-    external: ['react', 'react/*', 'react-dom', 'react-dom/*'],
+    external: ['react', 'react/*', 'react-dom', 'react-dom/*', 'hyparquet'],
     write: false,
     logLevel: 'error',
   });

@@ -182,8 +182,9 @@ Choices a contributor needs before changing the library, with options decided ag
 
 - **Lead with Parquet over HTTP range requests.** A Parquet footer lists every row
   group's row count, so the count is exact and any address costs one row group, with no
-  server. The playground's adapter (`demo/src/data/parquet.ts`) uses hyparquet, pinned
-  and loaded on first use, so the main bundle grows by about 7 KB gzipped. It refuses a
+  server. The adapter (`@granum/parquet`, in `packages/parquet`) loads hyparquet on first
+  use, so the main bundle grows by about 7 KB gzipped, and takes decompressors from the
+  host rather than depending on `hyparquet-compressors` itself. It refuses a
   server that ignores byte ranges rather than downloading the file, shares an in-flight
   range between readers and aborts it only when all have gone, and reuses a redirect's
   target (Hugging Face redirects each read to a signed CDN URL; skipping the hop cut a

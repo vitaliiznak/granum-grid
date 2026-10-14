@@ -3,7 +3,9 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
 // 1,000 rows in ten row groups: id, label ("reading N"), value, when.
-const file = readFileSync(new URL('../src/data/fixtures/readings.parquet', import.meta.url));
+const file = readFileSync(
+  new URL('../../packages/parquet/tests/fixtures/readings.parquet', import.meta.url),
+);
 const FILE_URL = 'https://files.example/readings.parquet';
 const CORS = {
   'access-control-allow-origin': '*',

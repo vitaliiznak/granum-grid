@@ -16,6 +16,9 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));
 const manifest = JSON.parse(readFileSync(join(root, 'granum-grid/package.json'), 'utf8'));
+const parquetManifest = JSON.parse(
+  readFileSync(join(root, 'packages/parquet/package.json'), 'utf8'),
+);
 const temporary = mkdtempSync(join(tmpdir(), 'granum-grid-package-'));
 
 function npm(args, cwd = root) {
@@ -28,12 +31,12 @@ function npm(args, cwd = root) {
   });
 }
 
-try {
-  // Exercise prepack too: no workspace symlinks or existing dist can hide missing files.
+/** Pack a workspace, running its prepack build, so no symlink or old dist hides a file. */
+function pack(workspace) {
   const [packed] = JSON.parse(
     npm([
       'pack',
-      '--workspace=granum-grid',
+      `--workspace=${workspace}`,
       '--json',
       '--foreground-scripts=false',
       '--ignore-scripts=false',
@@ -41,6 +44,12 @@ try {
       temporary,
     ]),
   );
+  return packed;
+}
+
+try {
+  // granum-grid first: the adapters' declarations build against its dist/ types.
+  const packed = pack('granum-grid');
   assert.equal(packed.name, manifest.name);
   assert.equal(packed.version, manifest.version);
   assert.equal(manifest.license, 'Apache-2.0');
@@ -72,7 +81,19 @@ try {
     assert.ok(!/(^|\/)(?:tests?|node_modules|demo|media)(\/|\.)/.test(path), path);
   }
 
+  const parquetPacked = pack('packages/parquet');
+  assert.equal(parquetPacked.name, parquetManifest.name);
+  assert.equal(parquetPacked.version, parquetManifest.version);
+  assert.deepEqual(Object.keys(parquetManifest.exports), ['.']);
+  for (const { path } of parquetPacked.files)
+    assert.match(
+      path,
+      /^(?:package\.json|README\.md|LICENSE|(?:dist|src)\/[^.].*\.(?:js|map|ts))$/,
+      `Unexpected packed file in ${parquetManifest.name}: ${path}`,
+    );
+
   const archive = join(temporary, packed.filename);
+  const parquetArchive = join(temporary, parquetPacked.filename);
   const installedVersion = (name) => lock.packages[`node_modules/${name}`].version;
   const consumers = [
     {
@@ -101,6 +122,9 @@ try {
         type: 'module',
         dependencies: {
           [manifest.name]: `file:${archive}`,
+          [parquetManifest.name]: `file:${parquetArchive}`,
+          hyparquet: installedVersion('hyparquet'),
+          'hyparquet-compressors': installedVersion('hyparquet-compressors'),
           react: consumer.react,
           'react-dom': consumer.reactDom,
           '@types/react': consumer.reactTypes,
@@ -142,10 +166,19 @@ try {
         assert.ok(files.has(target), `${path} references missing source ${target}`);
       }
     }
-    for (const fixture of ['package-smoke.mjs', 'package-consumer.tsx']) {
+    for (const fixture of [
+      'package-smoke.mjs',
+      'package-parquet-smoke.mjs',
+      'package-consumer.tsx',
+    ]) {
       copyFileSync(join(root, 'scripts', fixture), join(cwd, fixture));
     }
+    copyFileSync(
+      join(root, 'packages/parquet/tests/fixtures/readings.parquet'),
+      join(cwd, 'readings.parquet'),
+    );
     execFileSync(process.execPath, ['package-smoke.mjs'], { cwd, stdio: 'inherit' });
+    execFileSync(process.execPath, ['package-parquet-smoke.mjs'], { cwd, stdio: 'inherit' });
     for (const mode of [
       ['--module', 'NodeNext'],
       ['--module', 'ESNext', '--moduleResolution', 'Bundler'],
@@ -172,10 +205,12 @@ try {
   }
   const output = join(root, 'output');
   mkdirSync(output, { recursive: true });
-  copyFileSync(archive, join(output, packed.filename));
-  console.log(
-    `Verified output/${packed.filename}: ${files.size} files, ${Math.ceil(packed.size / 1024)} KiB packed.`,
-  );
+  for (const verified of [packed, parquetPacked]) {
+    copyFileSync(join(temporary, verified.filename), join(output, verified.filename));
+    console.log(
+      `Verified output/${verified.filename}: ${verified.files.length} files, ${Math.ceil(verified.size / 1024)} KiB packed.`,
+    );
+  }
 } finally {
   rmSync(temporary, { recursive: true, force: true });
 }

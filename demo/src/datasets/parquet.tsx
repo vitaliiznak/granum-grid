@@ -8,7 +8,7 @@ import {
   type ParquetRow,
   type ParquetTransfer,
   type ParquetValue,
-} from '../data/parquet';
+} from '@granum/parquet';
 import { ParquetIcon } from './icons';
 import { compact, formatCount, type DemoDataset } from './types';
 
@@ -23,6 +23,9 @@ export const FINEWEB: ParquetFileFacts = {
   rowCount: 973_991,
 };
 const FINEWEB_ROW_GROUPS = 974;
+
+/** zstd and the other codecs beyond Snappy, loaded with the first row group that needs them. */
+const compressors = () => import('hyparquet-compressors').then((module) => module.compressors);
 
 /** Downloads spent on the open file, footer included, for the panel's running total. */
 export interface TransferMeter {
@@ -180,6 +183,7 @@ function fineweb(): DemoDataset<ParquetRow> {
     // A few pages run to tens of thousands of tokens; the typical page is under 2,000.
     domain: [0, 2000],
     onTransfer: meter.update,
+    compressors,
   });
   details.set(provider, {
     url: FINEWEB.url,
@@ -239,13 +243,22 @@ function fineweb(): DemoDataset<ParquetRow> {
 }
 export const parquet = fineweb();
 
+/** What a jump downloads, from the footer: pages with a page index, else a row group. */
+function jumpCost(file: ParquetFile) {
+  if (file.pageIndex) return 'each jump downloads only the pages that hold the rows in view.';
+  const largest = bytes(file.largestRowGroupBytes);
+  return file.largestRowGroupBytes > 64 * 1024 * 1024
+    ? `the file has no page index, so a jump can download a whole row group, up to ${largest}. Rewriting it with smaller row groups or a page index makes jumps cheaper.`
+    : `each jump downloads the row group that holds the rows in view, at most ${largest}.`;
+}
+
 /** A dataset for a file the reader opened; `footer` is what reading its footer cost. */
 export function parquetDataset(
   file: ParquetFile,
   footer: ParquetTransfer,
 ): DemoDataset<ParquetRow> {
   const meter = transferMeter(footer);
-  const provider = createParquetProvider(file, { onTransfer: meter.update });
+  const provider = createParquetProvider(file, { onTransfer: meter.update, compressors });
   details.set(provider, {
     url: file.url,
     byteLength: file.byteLength,
@@ -259,7 +272,7 @@ export function parquetDataset(
     name: 'Your Parquet file',
     unit: 'rows',
     title: name,
-    description: `${formatCount(file.rowCount)} rows in ${formatCount(file.rowGroups)} row groups, ${bytes(file.byteLength)}. The footer took ${bytes(footer.bytes)} and ${Math.round(file.footerMs)} ms; each jump downloads the row group that holds the rows in view.`,
+    description: `${formatCount(file.rowCount)} rows in ${formatCount(file.rowGroups)} row groups, ${bytes(file.byteLength)}. The footer took ${bytes(footer.bytes)} and ${Math.round(file.footerMs)} ms; ${jumpCost(file)}`,
     facts: [
       `${formatCount(file.columns.length)} columns`,
       `${formatCount(file.rowGroups)} row groups`,

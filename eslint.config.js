@@ -34,7 +34,12 @@ const layerRules = LAYERS.map((layer, index) => ({
 export default defineConfig([
   {
     // Hook rules for every React surface: library, demo, and media studio.
-    files: ['granum-grid/src/**/*.{ts,tsx}', 'demo/src/**/*.{ts,tsx}', 'media/src/**/*.{ts,tsx}'],
+    files: [
+      'granum-grid/src/**/*.{ts,tsx}',
+      'packages/*/src/**/*.ts',
+      'demo/src/**/*.{ts,tsx}',
+      'media/src/**/*.{ts,tsx}',
+    ],
     languageOptions: { parser: tseslint.parser },
     linterOptions: { reportUnusedDisableDirectives: 'error' },
     plugins: { 'react-hooks': reactHooks },
@@ -62,8 +67,8 @@ export default defineConfig([
     },
   },
   {
-    // Library browser APIs against granum-grid/package.json browserslist.
-    files: ['granum-grid/src/**/*.{ts,tsx}'],
+    // Library browser APIs against each package's browserslist.
+    files: ['granum-grid/src/**/*.{ts,tsx}', 'packages/*/src/**/*.ts'],
     plugins: { compat },
     settings: {
       // Also check JavaScript built-ins such as Array.prototype.findLast, not only Web APIs.

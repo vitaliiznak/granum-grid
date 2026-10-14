@@ -18,6 +18,7 @@ import {
 import { useGranumGrid as useHeadlessGrid, type Marker } from 'granum-grid/headless';
 import { createEngine, readView, type NavigationController } from 'granum-grid/core';
 import { PageCache, checkBuckets, rangeProvider } from 'granum-grid/data';
+import { createParquetProvider, type ParquetRow } from '@granum/parquet';
 import { createRef, useMemo, useState } from 'react';
 // @ts-expect-error The engine and its adapters live in granum-grid/core, not the root entry.
 import type { GranumGridEngine } from 'granum-grid';
@@ -257,3 +258,11 @@ engine.appendRows(provider.rowCount + 10, true);
 export const validated = readView(view, provider);
 export const buckets = checkBuckets([], { start: 0, end: 0, buckets: 1 });
 export const cursor = createCursorProvider;
+// An adapter's provider is an ordinary provider: its row type reaches renderRow.
+export const parquetRows = (
+  <GranumGrid
+    provider={createParquetProvider({ url: '', byteLength: 1, revision: '1', rowCount: 1 })}
+    ariaLabel="Parquet rows"
+    renderRow={({ row }: { row: ParquetRow }) => String(row.id)}
+  />
+);

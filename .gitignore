@@ -6,8 +6,9 @@ playwright-report/
 .playwright-cli/
 .DS_Store
 *.tgz
-# Copied from the root license when building the npm package.
+# Copied from the root license when building the npm packages.
 granum-grid/LICENSE
+packages/*/LICENSE
 # Screenshots and the film are release assets; see media/README.md.
 media/images/
 media/*.mp4

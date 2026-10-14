@@ -130,13 +130,14 @@ const logs = createCursorProvider(server, {
 ### A file without a server: Parquet over HTTP
 
 A Parquet file's footer lists every row group's row count, so `rowCount` is exact and an
-address maps to one row group. The playground's
-[`createParquetProvider`](../demo/src/data/parquet.ts) reads the footer once with an HTTP
-range request, then downloads only the column chunks that hold the requested rows (only
-their pages when the file has a page index). It is a demo adapter built on
-[hyparquet](https://github.com/hyparam/hyparquet), not part of the package; copy it into
-your app. The server must answer byte ranges with `206` and allow cross-origin reads; the
-adapter refuses a server that sends the whole file instead.
+address maps to one row group. [`@granum/parquet`](../packages/parquet/README.md)'s
+`createParquetProvider` reads the footer once with an HTTP range request, then downloads
+only the column chunks that hold the requested rows (only their pages when the file has a
+page index). It is a separate package with [hyparquet](https://github.com/hyparam/hyparquet)
+as a peer dependency, so the explorer itself stays free of it. The server must answer byte
+ranges with `206` and allow cross-origin reads; the adapter refuses a server that sends the
+whole file instead. `file.largestRowGroupBytes` and `file.pageIndex` tell a host what one
+jump will cost before it opens the file.
 
 Measured on 14 October 2026 from one machine, against a 2.15 GB FineWeb file on Hugging
 Face (973,991 rows in 974 row groups of about 1,000): the footer took about 2 s and

@@ -274,7 +274,11 @@ Exit: no behavior change besides the cuts, and budgets enforced.
    the overview scan, and memory. If a deep `fetchRows` at 10M rows takes over ~100 ms or
    a revision takes over ~10 s, SQL serves only search and the overview, and rows stay on
    the Parquet reader.
-2. `@granum/parquet`: move the reader and add the row-group warning.
+2. Done 2026-10-14: `@granum/parquet` lives in `packages/parquet` with hyparquet as a
+   peer. Decompressors are injected (`compressors`), `openParquetFile` takes an options
+   object, and `file.largestRowGroupBytes` and `file.pageIndex` let the playground say
+   what a jump costs. `test:package` installs its tarball beside `granum-grid` and reads
+   the fixture through it; its budget is 3.3 KiB with hyparquet external.
 3. `@granum/sql`, with unit tests against DuckDB on Node (`@duckdb/node-api`) and a
    browser test that uses a fixture file.
 4. Demo: Open anything, filter and sort as revisions, links to a row, show the provider.

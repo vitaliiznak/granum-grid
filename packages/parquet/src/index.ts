@@ -1,19 +1,50 @@
-import type { AsyncBuffer, FileMetaData, SchemaElement } from 'hyparquet';
+import type { AsyncBuffer, Compressors, FileMetaData, SchemaElement } from 'hyparquet';
 import type { Bucket, DataProvider } from 'granum-grid';
-import { sharedLoad } from './remote';
 
-let library: ReturnType<typeof loadLibrary> | null = null;
-function loadLibrary() {
-  return Promise.all([import('hyparquet'), import('hyparquet-compressors')]).then(
-    ([reader, { compressors }]) => ({ ...reader, compressors }),
-  );
-}
-/** The reader and its decompressors load on first use, outside the playground's main bundle. */
+let library: Promise<typeof import('hyparquet')> | null = null;
+/** hyparquet loads on first use, so a host's main bundle does not carry it. */
 const parquet = () =>
-  (library ??= loadLibrary().catch((error) => {
+  (library ??= import('hyparquet').catch((error) => {
     library = null;
     throw error;
   }));
+
+/**
+ * Decompressors for codecs hyparquet does not decode itself (it reads uncompressed and
+ * Snappy pages). Pass `compressors` from `hyparquet-compressors` for zstd, gzip, Brotli, or
+ * LZ4, or a function that loads them on first use.
+ */
+export type CompressorsOption = Compressors | (() => Promise<Compressors>);
+
+function compressorLoader(option: CompressorsOption | undefined) {
+  if (typeof option !== 'function') return () => Promise.resolve(option);
+  let loaded: Promise<Compressors> | null = null;
+  return () =>
+    (loaded ??= option().catch((error) => {
+      loaded = null;
+      throw error;
+    }));
+}
+
+/**
+ * A load shared by every caller. A caller's signal ends only its own wait; a failed load
+ * is retried by the next caller.
+ */
+function sharedLoad<T>(load: (signal: AbortSignal) => Promise<T>) {
+  let pending: Promise<T> | null = null;
+  return (signal: AbortSignal) => {
+    const shared = (pending ??= load(new AbortController().signal).catch((error) => {
+      pending = null;
+      throw error;
+    }));
+    return new Promise<T>((resolve, reject) => {
+      signal.throwIfAborted();
+      const abort = () => reject(signal.reason);
+      signal.addEventListener('abort', abort, { once: true });
+      shared.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
+    });
+  };
+}
 
 /** A `fetch` replacement, for tests. */
 export type RangeFetch = (
@@ -57,6 +88,13 @@ export interface ParquetFile {
   revision: string;
   rowCount: number;
   rowGroups: number;
+  /**
+   * Compressed bytes of the largest row group. Without a page index, a jump into that
+   * group downloads about this much.
+   */
+  largestRowGroupBytes: number;
+  /** Whether every column has an offset index, so a jump reads pages instead of groups. */
+  pageIndex: boolean;
   columns: ParquetColumn[];
   metadata: FileMetaData;
   /** Footer download time in milliseconds, including the size request. */
@@ -251,32 +289,49 @@ function readFooter(
   const groupRows = metadata.row_groups.reduce((sum, group) => sum + Number(group.num_rows), 0);
   if (groupRows !== rowCount)
     throw new Error('The footer’s row groups do not add up to its row count.');
+  const chunks = metadata.row_groups.flatMap((group) => group.columns);
   return {
     rowCount,
+    largestRowGroupBytes: metadata.row_groups.reduce(
+      (largest, group) =>
+        Math.max(
+          largest,
+          group.columns.reduce(
+            (sum, chunk) => sum + Number(chunk.meta_data?.total_compressed_size ?? 0),
+            0,
+          ),
+        ),
+      0,
+    ),
+    pageIndex: chunks.length > 0 && chunks.every((chunk) => chunk.offset_index_offset != null),
     columns: parquetSchema(metadata).children.map((child) => describeColumn(child.element)),
   };
+}
+
+export interface OpenParquetOptions {
+  /** A `fetch` replacement, for tests or authenticated requests. */
+  request?: RangeFetch;
 }
 
 /** Read the footer of the Parquet file at `url`. Nothing but the footer is downloaded. */
 export async function openParquetFile(
   url: string,
   signal: AbortSignal,
-  request: RangeFetch = browserFetch,
+  { request = browserFetch }: OpenParquetOptions = {},
 ): Promise<{ file: ParquetFile; transfer: ParquetTransfer }> {
   const started = performance.now();
   const { parquetMetadataAsync, parquetSchema } = await parquet();
   const size = await fileSize(url, request, signal);
   const reader = new RangeReader(url, size.byteLength, request, () => {});
   const metadata = await parquetMetadataAsync(reader.buffer(signal));
-  const { rowCount, columns } = readFooter(metadata, parquetSchema);
+  const footer = readFooter(metadata, parquetSchema);
   return {
     file: {
       url,
       byteLength: size.byteLength,
       revision: size.etag ?? `${size.byteLength} bytes`,
-      rowCount,
       rowGroups: metadata.row_groups.length,
-      columns,
+      ...footer,
       metadata,
       footerMs: performance.now() - started,
     },
@@ -355,7 +410,10 @@ export interface ParquetProviderOptions {
   domain?: readonly [number, number];
   /** Called after each download, for a running total. */
   onTransfer?(transfer: ParquetTransfer): void;
+  /** A `fetch` replacement, for tests or authenticated requests. */
   request?: RangeFetch;
+  /** Decoders for compressed pages beyond Snappy; see `CompressorsOption`. */
+  compressors?: CompressorsOption;
 }
 
 export interface ParquetProvider extends DataProvider<ParquetRow> {
@@ -372,8 +430,15 @@ export interface ParquetProvider extends DataProvider<ParquetRow> {
  */
 export function createParquetProvider(
   source: ParquetFile | ParquetFileFacts,
-  { metricColumn, domain, onTransfer, request = browserFetch }: ParquetProviderOptions = {},
+  {
+    metricColumn,
+    domain,
+    onTransfer,
+    request = browserFetch,
+    compressors,
+  }: ParquetProviderOptions = {},
 ): ParquetProvider {
+  const decoders = compressorLoader(compressors);
   const reader = new RangeReader(source.url, source.byteLength, request, () =>
     onTransfer?.(reader.transfer),
   );
@@ -383,15 +448,15 @@ export function createParquetProvider(
     const started = performance.now();
     const { parquetMetadataAsync, parquetSchema } = await parquet();
     const metadata = await parquetMetadataAsync(reader.buffer(signal));
-    const { rowCount, columns } = readFooter(metadata, parquetSchema);
-    if (rowCount !== source.rowCount)
+    const footer = readFooter(metadata, parquetSchema);
+    if (footer.rowCount !== source.rowCount)
       throw new Error(
-        `This file changed: expected ${source.rowCount} rows, the footer says ${rowCount}.`,
+        `This file changed: expected ${source.rowCount} rows, the footer says ${footer.rowCount}.`,
       );
     return {
       ...source,
+      ...footer,
       rowGroups: metadata.row_groups.length,
-      columns,
       metadata,
       footerMs: performance.now() - started,
     };
@@ -413,9 +478,10 @@ export function createParquetProvider(
       : undefined,
     async fetchRows(start, count, signal) {
       if (!count) return [];
-      const [{ metadata }, { parquetReadObjects, compressors }] = await Promise.all([
+      const [{ metadata }, { parquetReadObjects }, compressors] = await Promise.all([
         file(signal),
         parquet(),
+        decoders(),
       ]);
       const rows = await parquetReadObjects({
         file: reader.buffer(signal),
@@ -432,9 +498,10 @@ export function createParquetProvider(
     },
     fetchOverview: metric
       ? async (buckets, signal) => {
-          const [{ metadata, rowCount }, { parquetReadObjects, compressors }] = await Promise.all([
+          const [{ metadata, rowCount }, { parquetReadObjects }, compressors] = await Promise.all([
             file(signal),
             parquet(),
+            decoders(),
           ]);
           const plan = overviewPlan(metadata, metric, buckets);
           // No sample fits the byte budget: say so for the whole file rather than guess.

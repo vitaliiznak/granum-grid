@@ -6,6 +6,8 @@
   "include": [
     "granum-grid/src",
     "granum-grid/tests",
+    "packages/*/src",
+    "packages/*/tests",
     "demo/src",
     "demo/unit",
     "demo/tests",

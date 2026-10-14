@@ -24,14 +24,3 @@ nearby rows. The bundled dataset's revision is derived from the file contents, s
 views from an earlier recording are rejected after recapturing.
 
 The script launches headless Chromium and closes it in `finally`.
-
-# Parquet test file
-
-`readings.parquet` holds 1,000 generated rows (`id`, `label`, `value`, `when`) in ten
-zstd-compressed row groups of 100, with statistics and a page index. The Parquet unit
-and browser tests serve it with byte ranges. It was written with pyarrow 20:
-
-```python
-pq.write_table(table, 'readings.parquet', row_group_size=100, compression='zstd',
-               write_page_index=True, data_page_size=256, write_statistics=True)
-```

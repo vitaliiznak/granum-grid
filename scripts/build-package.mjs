@@ -1,9 +1,11 @@
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, rmSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { copyFileSync, existsSync, rmSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
+// Builds the workspace package in the current directory (npm runs `build` from there):
+// declarations and ESM from src/ into dist/, its stylesheets, and the root license.
 const root = new URL('../', import.meta.url);
-const pkg = new URL('granum-grid/', root);
+const pkg = pathToFileURL(`${process.cwd()}/`);
 rmSync(new URL('dist/', pkg), { recursive: true, force: true });
 execFileSync(
   process.execPath,
@@ -11,6 +13,7 @@ execFileSync(
   { cwd: fileURLToPath(pkg), stdio: 'inherit' },
 );
 for (const name of ['base.css', 'styles.css']) {
-  copyFileSync(new URL(`src/${name}`, pkg), new URL(`dist/${name}`, pkg));
+  if (existsSync(new URL(`src/${name}`, pkg)))
+    copyFileSync(new URL(`src/${name}`, pkg), new URL(`dist/${name}`, pkg));
 }
 copyFileSync(new URL('LICENSE', root), new URL('LICENSE', pkg));

@@ -1,17 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { compressors } from 'hyparquet-compressors';
 import { checkBuckets } from 'granum-grid/data';
 import {
   createParquetProvider,
   estimateParquetRowBytes,
   openParquetFile,
   type RangeFetch,
-} from '../src/data/parquet';
+} from '../src/index';
 
 // 1,000 rows in ten zstd row groups of 100, with a page index: id, label, value, when.
-const bytes = new Uint8Array(
-  readFileSync(new URL('../src/data/fixtures/readings.parquet', import.meta.url)),
-);
+const bytes = new Uint8Array(readFileSync(new URL('./fixtures/readings.parquet', import.meta.url)));
 const URL_ = 'https://files.example/readings.parquet';
 const signal = () => new AbortController().signal;
 
@@ -44,7 +43,7 @@ function server({ ranges = true, gate }: { ranges?: boolean; gate?: Promise<void
 describe('Parquet over range requests', () => {
   it('reads only the end of the file to learn the exact row count and schema', async () => {
     const { request, log } = server();
-    const { file, transfer } = await openParquetFile(URL_, signal(), request);
+    const { file, transfer } = await openParquetFile(URL_, signal(), { request });
     expect(file).toMatchObject({ rowCount: 1000, rowGroups: 10, revision: '"v1"' });
     expect(file.columns).toEqual([
       { name: 'id', type: 'INT64', numeric: true },
@@ -55,12 +54,37 @@ describe('Parquet over range requests', () => {
     // One read from the end holds the footer (up to 512 KB, so all of this small fixture).
     expect(log).toEqual([`bytes=0-${bytes.length - 1}`]);
     expect(transfer).toEqual({ requests: 2, bytes: bytes.length });
+    // Every column has an offset index, so a jump reads pages; the largest group is small.
+    expect(file.pageIndex).toBe(true);
+    expect(file.largestRowGroupBytes).toBeGreaterThan(0);
+    expect(file.largestRowGroupBytes).toBeLessThan(bytes.length);
+  });
+
+  it('loads decompressors once, on the first read that needs them', async () => {
+    const { request } = server();
+    const { file } = await openParquetFile(URL_, signal(), { request });
+    let loads = 0;
+    const provider = createParquetProvider(file, {
+      request,
+      compressors: async () => {
+        loads++;
+        return compressors;
+      },
+    });
+    expect(loads).toBe(0);
+    await Promise.all([provider.fetchRows(0, 5, signal()), provider.fetchRows(500, 5, signal())]);
+    await provider.fetchRows(900, 5, signal());
+    expect(loads).toBe(1);
+    // The fixture is zstd, which hyparquet does not decode on its own.
+    await expect(
+      createParquetProvider(file, { request }).fetchRows(0, 5, signal()),
+    ).rejects.toThrow();
   });
 
   it('serves any address from its row group, across group boundaries, as plain values', async () => {
     const { request, log } = server();
-    const { file } = await openParquetFile(URL_, signal(), request);
-    const provider = createParquetProvider(file, { request });
+    const { file } = await openParquetFile(URL_, signal(), { request });
+    const provider = createParquetProvider(file, { request, compressors });
     const rows = await provider.fetchRows(95, 10, signal());
     expect(rows.map((row) => row.id)).toEqual([95, 96, 97, 98, 99, 100, 101, 102, 103, 104]);
     expect(rows[0]).toEqual({
@@ -79,23 +103,27 @@ describe('Parquet over range requests', () => {
   it('reads the footer on first use and rejects a file that no longer matches', async () => {
     const { request } = server();
     const facts = { url: URL_, byteLength: bytes.length, revision: 'pinned', rowCount: 1000 };
-    const provider = createParquetProvider(facts, { metricColumn: 'value', request });
+    const provider = createParquetProvider(facts, { metricColumn: 'value', request, compressors });
     expect(provider).toMatchObject({ id: `parquet:${URL_}`, revision: 'pinned', rowCount: 1000 });
     expect((await provider.fetchRows(500, 1, signal()))[0].id).toBe(500);
-    const changed = createParquetProvider({ ...facts, rowCount: 999 }, { request });
+    const changed = createParquetProvider({ ...facts, rowCount: 999 }, { request, compressors });
     await expect(changed.fetchRows(0, 1, signal())).rejects.toThrow(
       'This file changed: expected 999 rows, the footer says 1000.',
     );
   });
 
   it('shares a range between readers and cancels it only when every reader leaves', async () => {
-    const { file } = await openParquetFile(URL_, signal(), server().request);
+    const { file } = await openParquetFile(URL_, signal(), { request: server().request });
     const alone = server();
-    await createParquetProvider(file, { request: alone.request }).fetchRows(20, 5, signal());
+    await createParquetProvider(file, { request: alone.request, compressors }).fetchRows(
+      20,
+      5,
+      signal(),
+    );
     let open!: () => void;
     const gate = new Promise<void>((resolve) => (open = resolve));
     const { request, log } = server({ gate });
-    const provider = createParquetProvider(file, { request });
+    const provider = createParquetProvider(file, { request, compressors });
     const left = new AbortController();
     const first = provider.fetchRows(20, 5, left.signal);
     const second = provider.fetchRows(20, 5, signal());
@@ -114,7 +142,7 @@ describe('Parquet over range requests', () => {
 
   it('reads from where a redirect led until that URL fails, then from the original', async () => {
     const { request: serve } = server();
-    const { file } = await openParquetFile(URL_, signal(), serve);
+    const { file } = await openParquetFile(URL_, signal(), { request: serve });
     const CDN = 'https://cdn.example/signed';
     const asked: string[] = [];
     let expired = false;
@@ -127,7 +155,7 @@ describe('Parquet over range requests', () => {
       Object.defineProperties(response, { redirected: { value: true }, url: { value: CDN } });
       return response;
     };
-    const provider = createParquetProvider(file, { request });
+    const provider = createParquetProvider(file, { request, compressors });
     // The first read's concurrent requests start before any redirect is known.
     await provider.fetchRows(0, 1, signal());
     expect(asked[0]).toBe(URL_);
@@ -145,15 +173,15 @@ describe('Parquet over range requests', () => {
 
   it('refuses a server that ignores byte ranges instead of downloading the file', async () => {
     const { request } = server({ ranges: false });
-    await expect(openParquetFile(URL_, signal(), request)).rejects.toThrow(
+    await expect(openParquetFile(URL_, signal(), { request })).rejects.toThrow(
       'This server ignores byte ranges',
     );
   });
 
   it('labels a sampled map: exact row-group min–max, the mean of one read group per bucket', async () => {
     const { request } = server();
-    const { file } = await openParquetFile(URL_, signal(), request);
-    const provider = createParquetProvider(file, { metricColumn: 'value', request });
+    const { file } = await openParquetFile(URL_, signal(), { request });
+    const provider = createParquetProvider(file, { metricColumn: 'value', request, compressors });
     expect(provider.metric).toMatchObject({ label: 'value', kind: 'value' });
     const all = await provider.fetchRows(0, 1000, signal());
     const values = all.map((row) => row.value as number);
