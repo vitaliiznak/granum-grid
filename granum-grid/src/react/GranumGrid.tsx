@@ -2,7 +2,6 @@ import {
   memo,
   useCallback,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
   type HTMLAttributes,
@@ -14,13 +13,10 @@ import {
 import type { GranumGridApi } from '../core/api.js';
 import { useGranumGrid, type UseGranumGridOptions, type GranumGridState } from './useGranumGrid.js';
 import { partProps, type GranumGridAppearance } from './styling.js';
-import { ContextHints } from './ContextHints.js';
 import { ViewCanvas } from './ViewCanvas.js';
 import { JumpBar } from './JumpBar.js';
 import { AtlasRail, type AtlasRailOptions, type AtlasRailProps } from './AtlasRail.js';
-import { ExplorerTools } from './ExplorerTools.js';
 import { Footer, RowPlaceholder, Toolbar, type ToolbarOptions } from './ExplorerChrome.js';
-import { CompareRanges } from './CompareRanges.js';
 import { INTERNAL } from './internal.js';
 import { overviewAccuracy } from '../visuals/atlas.js';
 import { chapterName, rangeAddress } from '../visuals/format.js';
@@ -28,7 +24,7 @@ import { isTextEntry, isWithin } from './dom.js';
 import { isSearchShortcut } from './keyboard.js';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { useOwnedState } from './useOwnedState.js';
-import type { Marker, PendingRowSlot, RowRange } from '../data/types.js';
+import type { Marker, PendingRowSlot } from '../data/types.js';
 export type { ToolbarOptions };
 export interface RowRenderContext<Row> {
   row: Row;
@@ -38,22 +34,10 @@ export interface RowRenderContext<Row> {
   rowNumber: number;
   focused: boolean;
 }
-/** Configure the selection, bookmark, and comparison tools through the `tools` prop. */
-export interface ToolsOptions {
-  /** Persist bookmarks in localStorage under this key. Default: only while mounted. */
-  storageKey?: string;
-  /** Describe a half-open range in domain units, such as elapsed time or base pairs. */
-  formatRange?(range: RowRange): string;
-}
-/** Configure the first-run hints for the map, search, and Back through the `hints` prop. */
-export interface HintsOptions {
-  /** Remember dismissed hints in localStorage under this key. Default: only while mounted. */
-  storageKey?: string;
-}
 /**
- * The explorer, built from `useGranumGrid`, `AtlasRail`, and `JumpBar`. Each region prop
- * (`toolbar`, `tools`, `rail`, `footer`, `hints`) takes `false` to hide the region, an
- * options object to configure it, or, where offered, a function to render your own.
+ * The explorer, built from `useGranumGrid`, `AtlasRail`, and `JumpBar`. The `toolbar`,
+ * `rail`, and `footer` regions take `false` to hide the region, an options object to
+ * configure it, or a function to render your own. `panel` is empty unless the host fills it.
  */
 export interface GranumGridProps<Row>
   extends Omit<UseGranumGridOptions<Row>, 'onOpenSearch'>, GranumGridAppearance {
@@ -73,11 +57,15 @@ export interface GranumGridProps<Row>
   apiRef?: Ref<GranumGridApi<Row>>;
   /** History, breadcrumb, and search. A function receives the hook state. */
   toolbar?: boolean | ToolbarOptions | ((grid: GranumGridState<Row>) => ReactNode);
-  /** Selection, bookmarks, and range comparison. */
-  tools?: boolean | ToolsOptions;
+  /**
+   * Host content between the toolbar and the rows, such as selection or bookmark tools.
+   * A function receives the hook state and re-renders while the rows move; prefer an element
+   * that reads `apiRef` when it does not need per-frame state.
+   */
+  panel?: ReactNode | ((grid: GranumGridState<Row>) => ReactNode);
   /**
    * The dataset map. A function receives the built-in map's props, including the explorer's
-   * search highlights and map selection; spread them into your own `AtlasRail`.
+   * search highlights; spread them into your own `AtlasRail`.
    */
   rail?:
     | boolean
@@ -85,8 +73,6 @@ export interface GranumGridProps<Row>
     | ((grid: GranumGridState<Row>, rail: AtlasRailProps<Row>) => ReactNode);
   /** Current row and progress. A function receives the hook state. */
   footer?: boolean | ((grid: GranumGridState<Row>) => ReactNode);
-  /** First-run hints for the map, search, and Back. */
-  hints?: boolean | HintsOptions;
   theme?: 'system' | 'dark' | 'light';
   /** Opt out of the optional skin, even when styles.css is loaded elsewhere. */
   unstyled?: boolean;
@@ -149,35 +135,17 @@ const NO_MARKERS: Marker[] = [];
 const CLOSED_SEARCH = { open: false, query: '' };
 
 export function GranumGrid<Row>(props: GranumGridProps<Row>) {
-  // Saved bookmarks join the host's markers; keyed by dataset so a switch never shows stale ones.
-  const [bookmarkMarkers, setBookmarkMarkers] = useOwnedState(
-    `${props.provider.id}:${props.provider.revision}`,
-    NO_MARKERS,
-  );
-  const hostMarkers = props.markers;
-  const explorerMarkers = useMemo(
-    () =>
-      hostMarkers?.length && bookmarkMarkers.length
-        ? [...hostMarkers, ...bookmarkMarkers]
-        : hostMarkers?.length
-          ? hostMarkers
-          : bookmarkMarkers,
-    [hostMarkers, bookmarkMarkers],
-  );
   const grid: GranumGridState<Row> = useGranumGrid<Row>({
     ...props,
-    markers: explorerMarkers,
     // Read when a shortcut or `api.openSearch` fires, after this render has committed.
     onOpenSearch: (query) => setSearch({ open: true, query }),
   });
   useImperativeHandle(props.apiRef, () => grid.api, [grid.api]);
   const { snapshot, api } = grid;
-  const { engine, session, mapping, features, reduceMotion, append, getVisibleRange } =
-    grid[INTERNAL];
-  // Search, map highlights, and map selection belong to one engine; a provider switch resets them.
+  const { engine, session, mapping, features, reduceMotion, append } = grid[INTERNAL];
+  // Search and map highlights belong to one engine; a provider switch resets them.
   const [search, setSearch] = useOwnedState(engine, CLOSED_SEARCH);
   const [highlights, setHighlights] = useOwnedState(engine, NO_MARKERS);
-  const [selecting, setSelecting] = useOwnedState(engine, false);
   const setSearchOpen = useCallback(
     (open: boolean) =>
       setSearch((current) => ({ open, query: open && !current.open ? '' : current.query })),
@@ -187,44 +155,13 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
     (query: string) => setSearch((current) => ({ ...current, query })),
     [setSearch],
   );
-  // Tools and dialogs receive only what they use, so a scroll frame does not re-render them.
-  const { provider, selection, markers } = grid;
-  const explorerScroll = useMemo(
-    () => ({ api, provider, selection, getVisibleRange, markers }),
-    [api, provider, selection, getVisibleRange, markers],
-  );
-  // Depend on the settings comparison panes reuse, not the whole props object.
-  const { rowHeight, dynamicRowHeight, theme, unstyled, classNames, styles, renderRow } = props;
-  const comparisonHost = useMemo(
-    () => ({
-      provider,
-      rowHeight,
-      dynamicRowHeight,
-      theme,
-      unstyled,
-      classNames,
-      styles,
-      renderRow,
-    }),
-    [provider, rowHeight, dynamicRowHeight, theme, unstyled, classNames, styles, renderRow],
-  );
-  const renderComparison = useCallback(
-    (a: RowRange, b: RowRange, close: () => void) => (
-      <CompareRanges a={a} b={b} host={comparisonHost} onClose={close} />
-    ),
-    [comparisonHost],
-  );
   const rail: AtlasRailProps<Row> = {
     ...optionsOf<AtlasRailOptions>(props.rail),
     grid,
     highlights,
-    selecting,
-    onSelectingChange: setSelecting,
     className: props.classNames?.rail,
     style: props.styles?.rail,
   };
-  const tools = optionsOf<ToolsOptions>(props.tools);
-  const hints = optionsOf<HintsOptions>(props.hints);
   const contentEnd =
     !grid.traveling && snapshot.rowCount > 0 ? mapping.toPixel(snapshot.rowCount) : snapshot.height;
   const endGap = snapshot.height - contentEnd;
@@ -261,17 +198,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
         : props.toolbar !== false && (
             <Toolbar grid={grid} appearance={props} {...optionsOf<ToolbarOptions>(props.toolbar)} />
           )}
-      {props.tools !== false && (
-        <ExplorerTools
-          scroll={explorerScroll}
-          selecting={selecting}
-          onSelectingChange={setSelecting}
-          onBookmarkMarkersChange={setBookmarkMarkers}
-          storageKey={tools?.storageKey}
-          formatRange={tools?.formatRange}
-          renderComparison={renderComparison}
-        />
-      )}
+      {typeof props.panel === 'function' ? props.panel(grid) : props.panel}
       <div {...partProps('header', props, 'ds-legend')}>
         <span>{props.header ?? 'RECORDS'}</span>
         <span>
@@ -374,13 +301,6 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
           </button>
         </div>
       )}
-      <ContextHints
-        hints={props.hints !== false}
-        canGoBack={snapshot.canGoBack}
-        storageKey={hints?.storageKey}
-        className={props.classNames?.hint}
-        style={props.styles?.hint}
-      />
       <JumpBar
         grid={grid}
         open={search.open}

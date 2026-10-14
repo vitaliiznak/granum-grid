@@ -2,13 +2,7 @@
 // `GranumGrid` -> widgets (`AtlasRail`, `JumpBar`, `ViewCanvas`) with `useGranumGrid` ->
 // `granum-grid/core`.
 export { GranumGrid } from './react/GranumGrid.js';
-export type {
-  GranumGridProps,
-  RowRenderContext,
-  ToolbarOptions,
-  ToolsOptions,
-  HintsOptions,
-} from './react/GranumGrid.js';
+export type { GranumGridProps, RowRenderContext, ToolbarOptions } from './react/GranumGrid.js';
 export { useGranumGrid } from './react/useGranumGrid.js';
 export type {
   UseGranumGridOptions,

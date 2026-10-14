@@ -31,6 +31,7 @@ import { useFrameRate } from './useFrameRate.js';
 import { useKeyed } from './useKeyed.js';
 import { useReducedMotion } from './useReducedMotion.js';
 import { useLatest } from './useLatest.js';
+import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { useFollowOutput } from './useFollowOutput.js';
 import { useRowRequests } from './useRowRequests.js';
 import { handleViewportKey } from './keyboard.js';
@@ -257,11 +258,14 @@ export function useGranumGrid<Row>({
     },
     [engine, provider.rowCount, uncontrolledSelection, latestSelection, latestOnSelectionChange],
   );
+  // Rows in view, read by `api.getVisibleRange()` without re-rendering on scroll.
+  const latestVisibleRange = useRef<RowRange>({ start: 0, end: 0 });
   const api = useMemo(
     () =>
       createGranumGridApi(provider, engine, {
         getSelection: () => latestSelection.current,
         setSelection,
+        getVisibleRange: () => latestVisibleRange.current,
         openSearch: (query) => latestOnOpenSearch.current?.(query),
         retry: () => latestSession.current?.retry(),
       }),
@@ -384,12 +388,9 @@ export function useGranumGrid<Row>({
   const visibleStart = Math.max(0, Math.floor(mapping.toRow(0)));
   const visibleEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)));
   const visibleRange = { start: visibleStart, end: visibleEnd };
-  // Actions read the latest range without making their components render on every frame.
-  const latestVisibleRange = useLatest(visibleRange);
-  const getVisibleRange = useCallback(
-    (): RowRange => latestVisibleRange.current,
-    [latestVisibleRange],
-  );
+  useClientLayoutEffect(() => {
+    latestVisibleRange.current = visibleRange;
+  });
   useEffect(() => {
     if (!viewport) return;
     let width = viewport.clientWidth;
@@ -581,7 +582,6 @@ export function useGranumGrid<Row>({
       features,
       reduceMotion,
       append,
-      getVisibleRange,
     },
     getViewportProps,
     getRowProps: (

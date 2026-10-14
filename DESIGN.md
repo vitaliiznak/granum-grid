@@ -27,7 +27,7 @@ the source of truth.
   and estimates are never presented as exact values or exhaustive results.
 - Columns, sorting, filtering, and editing belong to the server, because a large index
   cannot be rearranged in the browser. The host sends an intent and installs the new
-  ordered revision the server returns ([server actions](docs/GUIDE.md#server-actions)).
+  ordered revision the server returns ([server-owned ordering](docs/GUIDE.md#server-owned-ordering)).
   Addresses belong to one revision; only append-only growth keeps the revision.
 - Work and memory are bounded by the viewport, pages, and requested buckets, not by
   dataset size. The library stays independent of the demo's data, worker, and latency.
@@ -139,7 +139,7 @@ results describe the test machine; 60 fps is a target, not a claim.
   `GranumGridApi`, carries navigation, selection, saved views, search, and retry; it
   replaced the separate `controller`/`controllerRef`, and raw `getLocation`/`restore`
   stay on the engine because views validate dataset and revision. The component's
-  regions (`toolbar`, `tools`, `rail`, `footer`, `hints`) follow one rule (`false`
+  regions (`toolbar`, `rail`, `footer`) follow one rule (`false`
   hides, an object configures, a function replaces), which replaced thirteen flat
   props such as `renderRail`, `railActions`, `bookmarkStorageKey`, and `fullPageUrl`.
   The hook and component share `layout`, `dataMode` (`follow` absorbed `followOutput`),
@@ -148,31 +148,45 @@ results describe the test machine; 60 fps is a target, not a claim.
   behind a key no entry exports, so the published state shows only rows, prop getters,
   the handle, and display values. `showStats`, `measureFrameRate`, and the hook's
   `maxMeasuredRows` were removed: frame rate is sampled while `onStats` is supplied.
-  Server validation helpers and `rangeProvider` moved to `granum-grid/data`, and the
+  Cursor validation helpers and `rangeProvider` moved to `granum-grid/data`, and the
   package test pins the root and headless runtime exports. Considered and not taken:
   grouping row options into objects (more nesting, unstable inline identities),
   compound components with context (hides the data flow the widgets now show), a
   `theme: 'none'` value in place of `unstyled` (changes the CSS hooks), and dropping
   `ViewCanvas` (a headless layout would go blank during long jumps).
 
+- **The library ships the explorer; the application ships application features.** The
+  selection card and its summaries, bookmarks with their storage, two-pane range
+  comparison, and first-run hints moved to `demo/src/explorer`. A host could hide them
+  but not build them, because they read private state (`engineOf`, an internal
+  visible-range getter). They now use only public entries, which shows the API is
+  enough: `panel` for host content above the rows, `api.getVisibleRange()`, the rail's
+  `selecting`/`onSelectingChange` options, and `readView` and `checkBuckets` exports.
+  The `tools` and `hints` props, the `hint` styling part, `engineOf`, and the
+  unused server sort/filter/edit types and helpers were removed; the server owns
+  ordering, and `createCursorProvider` keeps its two-method cursor source. Animated
+  jumps, the visited trail, marker snapping, and precision dragging stay: they are the
+  behavior of the map, which is the part no other component provides. Considered and
+  not taken: a separate `granum-grid/explorer` entry for the moved tools (it would keep
+  application decisions such as localStorage keys and copy in the package).
+
 - **Layers a host can stop at** ([reference](granum-grid/README.md#layers)). The hook
   holds no dialog, search, bookmark, or map-mode state, so a host owns every piece of
   explorer UI it shows and a list without search never captures its shortcuts.
   `JumpBar`, `AtlasRail`, and `ViewCanvas` are controlled widgets that take the hook's
   result as `grid`, not a hidden context, so each can be placed alone.
-  `GranumGrid` owns the explorer state, keying search, highlights, and map selection by
-  engine and bookmark markers by provider identity. Search runs through
+  `GranumGrid` keys search and highlights by engine; the host owns map selection mode
+  and its own places. Search runs through
   `DataSession.search`, so request statistics need no UI flag. Breaking these fields was
   acceptable because 0.1.0 is unpublished.
 
 - **`features` is motion and data only.** Map layers are `AtlasRailOptions` alone
-  (`precision` joined them), so there is no "feature wins over option" rule, and hints
-  are the `GranumGrid` `hints` region. The demo's debug panel keeps its sixteen switches: `switchMap`
+  (`precision` joined them), so there is no "feature wins over option" rule. The demo's
+  debug panel keeps its sixteen switches: `switchMap`
   turns a map switch that is off into a rail option override.
 
-- **The library writes no browser storage on its own.** Bookmarks and dismissed hints
-  persist only under a host's `tools.storageKey` / `hints.storageKey`; the demo passes
-  its original `deepscroll-*` keys.
+- **The library writes no browser storage.** The playground's bookmarks and dismissed
+  hints use its original `deepscroll-*` keys.
 
 - **One chart at a time in the map.** Additional provider metrics are choices in a
   selector rather than narrow side-by-side plots, so unrelated scales never look
@@ -188,9 +202,10 @@ results describe the test machine; 60 fps is a target, not a claim.
 - **`AtlasRail` is not fully memoized.** It receives per-frame explorer state; targeted
   hover and lookup changes remove the avoidable work.
 - **Similar-looking tests stay.** They check different contracts.
-- **Bookmarks are markers.** Saved bookmarks publish `bookmark` markers into the same
-  list as provider markers, so the map, N/P, magnetism, and named search treat them alike,
-  and the Bookmarks panel lists provider markers too. They rank after errors and spikes:
+- **Host places are markers.** The playground's bookmarks publish `bookmark` markers
+  through the `markers` prop into the same list as provider markers, so the map, N/P,
+  magnetism, and named search treat them alike, and its Bookmarks panel lists provider
+  markers too. They rank after errors and spikes:
   a reader's place names a group over a deploy but never hides an incident. The list is
   keyed by provider identity so a dataset switch never shows another dataset's bookmarks.
   A map click jumps to the row like any marker; restoring position and selection stays in the
@@ -201,8 +216,9 @@ results describe the test machine; 60 fps is a target, not a claim.
   corners.
 - **The rail's arrow keys pan one fixed row height.** Routing them through
   `handleMovementKey` would change the slider's step with dynamic row heights.
-- **Linked comparison panes share an unclamped progress ratio,** so a tall final row's
-  fractional end carries over (`snapshot.progress` is clamped).
+- **The playground's linked comparison panes share a progress ratio** and place each
+  other with `restoreView`, held just below the row count because saved views reject an
+  address past the last row.
 - **`demo/src/data/trace.ts` imports only types from `granum-grid`.** The dev server's trace
   plugin loads it without a library build.
 - **No shared select component for map settings.** It was longer than the plain selects.

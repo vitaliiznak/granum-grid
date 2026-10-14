@@ -57,16 +57,19 @@ export interface AtlasRailOptions {
   formatValue?(value: number): string;
   /** Host controls displayed beside the map title and help button. */
   actions?: ReactNode;
+  /**
+   * While true, dragging on the map draws the selection instead of navigating. The host owns
+   * this mode, for example from a "Select rows" button.
+   */
+  selecting?: boolean;
+  /** Called with false when a map selection ends or is cancelled. */
+  onSelectingChange?(selecting: boolean): void;
 }
 export interface AtlasRailProps<Row> extends AtlasRailOptions {
   /** The `useGranumGrid` result. */
   grid: GranumGridState<Row>;
   /** Extra places drawn with the markers, such as search results. N/P does not visit them. */
   highlights?: readonly Marker[];
-  /** While true, dragging on the map draws `selection` instead of navigating. */
-  selecting?: boolean;
-  /** Called with false when a map selection ends or is cancelled. */
-  onSelectingChange?(selecting: boolean): void;
   ariaLabel?: string;
   className?: string;
   style?: CSSProperties;

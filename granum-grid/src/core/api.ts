@@ -12,6 +12,8 @@ export interface GranumGridApi<Row> extends Omit<NavigationController, 'getLocat
   readonly provider: DataProvider<Row>;
   /** The current half-open selection, or null. */
   getSelection(): RowRange | null;
+  /** Rows in view now, as a half-open range. Reading it does not re-render anything. */
+  getVisibleRange(): RowRange;
   /** Controlled selection emits onSelectionChange; the host still owns its value. */
   setSelection(range: RowRange | null): void;
   /** A detached copy of the location and selection for this dataset revision. */
@@ -27,10 +29,6 @@ export interface GranumGridApi<Row> extends Omit<NavigationController, 'getLocat
   retry(): void;
 }
 
-const engines = new WeakMap<object, GranumGridEngine>();
-/** The engine behind a handle, for the library's own linked panes. Not exported publicly. */
-export const engineOf = (api: GranumGridApi<unknown>) => engines.get(api);
-
 /** Internal adapter shared by React and contract tests; it owns no DOM or data requests. */
 export function createGranumGridApi<Row>(
   provider: DataProvider<Row>,
@@ -38,6 +36,7 @@ export function createGranumGridApi<Row>(
   state: {
     getSelection(): RowRange | null;
     setSelection(range: RowRange | null): void;
+    getVisibleRange(): RowRange;
     openSearch(query: string): void;
     retry(): void;
   },
@@ -68,6 +67,10 @@ export function createGranumGridApi<Row>(
     resetMeasurements: engine.resetMeasurements,
     getSelection,
     setSelection,
+    getVisibleRange: () => {
+      const { start, end } = state.getVisibleRange();
+      return { start, end };
+    },
     getView: () => ({
       version: 1,
       dataset: provider.id,
@@ -84,6 +87,5 @@ export function createGranumGridApi<Row>(
     openSearch: (query = '') => state.openSearch(query),
     retry: () => state.retry(),
   };
-  engines.set(api, engine);
   return api;
 }

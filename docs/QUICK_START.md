@@ -239,7 +239,7 @@ replacing, sorting, or filtering a snapshot.
 ## Add search and a dataset map
 
 Optional provider methods determine available capabilities. `fetchOverview` adds
-the global profile; `fetchAggregates` adds selection statistics and comparison maps.
+the global profile; `fetchAggregates` adds range statistics for your own summaries and sub-range maps.
 `fetchMarkers` adds named events. `search` performs searches without a component-side
 scan. Every summary retains `exact`, `estimated`, or `unavailable`; every search
 retains its `complete` flag.
@@ -307,14 +307,15 @@ for search, focus, controlled selection, and saved-view URLs.
 | Fixed row height                                  | `rowHeight={36}`                           |
 | Natural row height, estimated before measurement  | `dynamicRowHeight rowHeight={36}`          |
 | No exact-row requests on map hover                | `rail={{ preview: 'summary' }}`            |
-| Rows only: no map, tools, or hints                | `rail={false} tools={false} hints={false}` |
+| Rows only: no map                                 | `rail={false}`                             |
 
 Append mode requires the same ID/revision and unchanged existing rows. The count
 may increase, never decrease; `follow` is append mode that also stays at the end.
 
-`features` switches motion and data behavior; map layers are `rail` options. Every
-region prop (`toolbar`, `tools`, `rail`, `footer`, `hints`) takes `false` to hide it or
-an object to configure it, and `toolbar`, `rail`, and `footer` also take a function.
+`features` switches motion and data behavior; map layers are `rail` options. The region
+props `toolbar`, `rail`, and `footer` take `false` to hide the region, an object to
+configure it, or a function to render your own; `panel` holds your own content above the
+rows.
 Keep provider objects outside render or memoize them: changing object identity in
 snapshot mode creates a new data session. Changing identity/revision also resets
 navigation; appending with the same identity retains its prior addresses.

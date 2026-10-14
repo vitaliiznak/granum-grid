@@ -1,26 +1,17 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { DataProvider, GranumGridApi, Marker, RowRange } from 'granum-grid';
 import {
   MAX_BOOKMARKS,
   bookmarkMarkers,
   readBookmarks,
   writeBookmarks,
   type Bookmark,
-} from '../core/exploration.js';
-import type { DataProvider, Marker, RowRange } from '../data/types.js';
-import type { GranumGridApi } from '../core/api.js';
-import { RangePicker } from './RangePicker.js';
-import { RangeSummary } from './RangeSummary.js';
-import { useOwnedState } from './useOwnedState.js';
-import { rangeAddress, rangeCount } from '../visuals/format.js';
+} from './bookmarks';
+import { RangePicker } from './RangePicker';
+import { RangeSummary } from './RangeSummary';
+import { useOwnedState } from './hooks';
+import { rangeAddress, rangeCount } from './format';
 
-/** The explorer state these tools use. Per-frame position is excluded so scrolling skips them. */
-interface ExplorerScroll<Row> {
-  api: GranumGridApi<Row>;
-  provider: DataProvider<Row>;
-  selection: RowRange | null;
-  markers: Marker[];
-  getVisibleRange(): RowRange;
-}
 /** Dataset markers listed per page in the Bookmarks panel. */
 const MARKER_PAGE = 40;
 const NO_BOOKMARKS: Bookmark[] = [];
@@ -47,7 +38,10 @@ function SelectionDetails<Row>({
 }
 
 function ExplorerToolsView<Row>({
-  scroll,
+  api,
+  provider,
+  selection,
+  markers,
   selecting,
   onSelectingChange,
   onBookmarkMarkersChange,
@@ -55,8 +49,12 @@ function ExplorerToolsView<Row>({
   formatRange,
   renderComparison,
 }: {
-  scroll: ExplorerScroll<Row>;
-  /** Whether the map is drawing a selection; the explorer shares it with `AtlasRail`. */
+  /** Hook state without per-frame position, so scrolling skips these tools. */
+  api: GranumGridApi<Row>;
+  provider: DataProvider<Row>;
+  selection: RowRange | null;
+  markers: readonly Marker[];
+  /** Whether the map is drawing a selection; the host passes the same value to `AtlasRail`. */
   selecting: boolean;
   onSelectingChange(selecting: boolean): void;
   /** Saved bookmarks as `bookmark` markers, for the hook's `markers` option. */
@@ -70,7 +68,6 @@ function ExplorerToolsView<Row>({
   const [message, setMessage] = useState('');
   const [pinned, setPinned] = useState<RowRange | null>(null);
   const [compare, setCompare] = useState(false);
-  const { provider, selection, markers } = scroll;
   const identity = `${provider.id}:${provider.revision}`;
   // Keyed by dataset so the first render after a provider switch has no stale bookmarks.
   const [bookmarks, setBookmarks] = useOwnedState(identity, NO_BOOKMARKS);
@@ -122,7 +119,7 @@ function ExplorerToolsView<Row>({
     });
   };
   const chooseRange = (range: RowRange) => {
-    scroll.api.setSelection(range);
+    api.setSelection(range);
     settleRange();
   };
   const startComparison = () => {
@@ -179,7 +176,7 @@ function ExplorerToolsView<Row>({
       rowCount={provider.rowCount}
       initialRange={selection}
       excludedRange={pinned}
-      getVisibleRange={scroll.getVisibleRange}
+      getVisibleRange={api.getVisibleRange}
       title={
         pinned
           ? 'Choose the second range'
@@ -223,7 +220,7 @@ function ExplorerToolsView<Row>({
               className="ds-button"
               aria-label="Clear selection"
               onClick={() => {
-                scroll.api.setSelection(null);
+                api.setSelection(null);
                 setPanel(null);
                 setMessage('');
                 requestAnimationFrame(() => selectionButton.current?.focus());
@@ -370,7 +367,7 @@ function ExplorerToolsView<Row>({
                 return;
               }
               const item = {
-                ...scroll.api.getView(),
+                ...api.getView(),
                 id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
                 name: name.trim(),
               };
@@ -425,7 +422,7 @@ function ExplorerToolsView<Row>({
                   <button
                     className="ds-button ds-saved-view"
                     onClick={() => {
-                      scroll.api.restoreView(bookmark);
+                      api.restoreView(bookmark);
                       if (bookmark.selection) settleRange();
                       else {
                         setPanel(null);
@@ -470,7 +467,7 @@ function ExplorerToolsView<Row>({
                     <button
                       className="ds-button ds-saved-view"
                       onClick={() => {
-                        scroll.api.goTo(marker.index, { reason: 'marker' });
+                        api.goTo(marker.index, { reason: 'marker' });
                         setPanel(null);
                         returnFocus();
                       }}
@@ -510,7 +507,7 @@ function ExplorerToolsView<Row>({
                 ref={selectionAction}
                 className="ds-button ds-flow-primary"
                 onClick={() => {
-                  scroll.api.scrollToIndex(selection.start, { align: 'start' });
+                  api.scrollToIndex(selection.start, { align: 'start' });
                 }}
               >
                 {selection.end - selection.start === 1 ? 'Open row' : 'View selection'}

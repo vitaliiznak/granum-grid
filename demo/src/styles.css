@@ -2628,3 +2628,19 @@ summary::-webkit-details-marker {
     display: none !important;
   }
 }
+
+/* On a phone the rows come first: the dataset switcher, then the explorer, then the
+   description, numbers, and tour that a wide screen shows above it. */
+@media (max-width: 650px) {
+  .app:not(.app-page) {
+    display: flex;
+    flex-direction: column;
+  }
+  .app:not(.app-page) > .demo-explorer {
+    order: 1;
+    margin-top: 12px;
+  }
+  .app:not(.app-page) > :is(.intro, .trace-import, .feature-tour, .shortcut-strip) {
+    order: 2;
+  }
+}

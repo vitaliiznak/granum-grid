@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { validRange } from '../data/bounds.js';
-import type { RowRange } from '../data/types.js';
-import { rangeCount } from '../visuals/format.js';
+import type { RowRange } from 'granum-grid';
+import { validRange } from 'granum-grid/core';
+import { rangeCount } from './format';
 
 /** The same choice of input methods is used for a selection and a comparison. */
 export function RangePicker({

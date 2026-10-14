@@ -21,6 +21,6 @@ export {
 } from './mappings.js';
 export type { CoordinateMapping } from './mappings.js';
 export type { RowMeasurement, RowSizeReader } from './rowSizes.js';
-export { encodeView, decodeView } from './exploration.js';
+export { encodeView, decodeView, readView } from './exploration.js';
 export { validRange } from '../data/bounds.js';
 export type { SavedView } from './exploration.js';

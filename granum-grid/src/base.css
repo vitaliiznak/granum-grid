@@ -1,252 +1,11 @@
 /* Structural styles only. No palette, typography, borders, or control skin.
    Unlayered application CSS and framework utilities can override these rules. */
 @layer granum-grid {
-  :where(.ds-panel-actions, .ds-explore-toggle, .ds-range-form, .ds-bookmark-form) {
+  :where(.ds-panel-actions) {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-  }
-  :where(.ds-explore-toggle) {
-    flex-shrink: 0;
-    padding: 6px 18px;
-  }
-  :where(.ds-explorer-panel) {
-    flex-shrink: 1;
-    min-height: 0;
-    max-height: min(340px, 48vh);
-    max-height: min(340px, 48dvh);
-    overflow: auto;
-    overscroll-behavior: contain;
-    padding: 12px 18px;
-  }
-  :where(.ds-explorer-panel:has(.ds-bookmarks)) {
-    max-height: min(480px, 62vh);
-    max-height: min(480px, 62dvh);
-  }
-  :where(.ds-range-form, .ds-bookmark-form) {
-    margin: 12px 0;
-    align-items: end;
-  }
-  :where(.ds-range-form label, .ds-bookmark-form label) {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-  }
-  :where(.ds-range-form .ds-input) {
-    width: 140px;
-    max-width: 100%;
-  }
-  :where(.ds-bookmark-form .ds-input) {
-    width: 220px;
-    max-width: 100%;
-  }
-  :where(.ds-bookmarks) {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    list-style: none;
-    gap: 6px;
-    margin: 8px 0 0;
-    padding: 0;
-  }
-  :where(.ds-bookmarks li) {
-    display: flex;
-    align-items: stretch;
-    gap: 6px;
-  }
-  :where(.ds-bookmarks-heading) {
-    margin: 12px 0 0;
-  }
-  :where(.ds-range-summary dl) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    margin: 12px 0 6px;
-  }
-  :where(.ds-range-summary dd) {
-    margin: 0;
-  }
-  :where(.ds-summary-heading) {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-  }
-  :where(.ds-summary-heading strong) {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  :where(.ds-flow-heading, .ds-selection-overview, .ds-map-prompt) {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  :where(.ds-flow-heading > div, .ds-selection-description) {
-    min-width: 0;
-  }
-  :where(.ds-flow-heading > .ds-button) {
-    flex-shrink: 0;
-  }
-  :where(.ds-flow-heading p, .ds-map-prompt p) {
-    margin: 3px 0 0;
-  }
-  :where(.ds-selection-methods) {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: 14px;
-  }
-  :where(.ds-selection-method, .ds-saved-view, .ds-selection-description) {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    gap: 4px;
-    text-align: left;
-  }
-  :where(.ds-bookmarks .ds-saved-view) {
-    flex: 1 1 auto;
-    flex-direction: row;
-    align-items: baseline;
-    gap: 10px;
-    min-width: 0;
-  }
-  :where(.ds-bookmarks .ds-saved-view > strong) {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  :where(.ds-place-index) {
-    flex: none;
-    width: 1.6em;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-  :where(.ds-bookmarks .ds-saved-view > span:last-child) {
-    flex: none;
-  }
-  :where(.ds-selection-description) {
-    overflow-wrap: anywhere;
-  }
-  :where(.ds-range-picker .ds-range-form) {
-    display: block;
-    margin: 16px 0 0;
-  }
-  :where(.ds-range-inputs, .ds-range-confirm) {
-    display: flex;
-    align-items: end;
-    gap: 12px;
-  }
-  :where(.ds-range-inputs) {
-    max-width: 440px;
-  }
-  :where(.ds-range-inputs label) {
-    flex: 1;
-  }
-  :where(.ds-range-inputs .ds-input) {
-    width: 100%;
-  }
-  :where(.ds-range-inputs > span) {
-    padding-bottom: 8px;
-  }
-  :where(.ds-range-confirm) {
-    flex-wrap: wrap;
-    align-items: center;
-    margin-top: 14px;
-  }
-  :where(.ds-saved-views-trigger) {
-    margin-left: auto;
-  }
-  :where(.ds-selection-card) {
-    flex-shrink: 1;
-    min-height: 0;
-    max-height: 48vh;
-    max-height: 48dvh;
-    overflow: auto;
-    overscroll-behavior: contain;
-    padding: 14px 18px 10px;
-  }
-  :where(.ds-selection-details) {
-    margin-top: 10px;
-  }
-  :where(.ds-selection-details > summary) {
-    width: fit-content;
-    cursor: pointer;
-  }
-  :where(.ds-selection-details .ds-range-summary) {
-    padding: 12px 0 2px;
-    max-width: 520px;
-  }
-  :where(.ds-comparison-range .ds-button) {
-    align-self: start;
-    margin-top: 5px;
-  }
-  :where(.ds-flow-message) {
-    flex-shrink: 0;
-    margin: 0;
-    padding: 8px 18px;
-  }
-  :where(.ds-map-prompt) {
-    flex-shrink: 0;
-    padding: 12px 18px;
-    flex-wrap: wrap;
-  }
-  :where(.ds-comparison-setup) {
-    flex-shrink: 1;
-    min-height: 0;
-    max-height: 42vh;
-    max-height: 42dvh;
-    overflow: auto;
-    overscroll-behavior: contain;
-    padding: 12px 18px;
-  }
-  :where(.ds-comparison-actions) {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-  }
-  :where(.ds-comparison-primary) {
-    margin-left: auto;
-  }
-  :where(.ds-comparison-ranges) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin: 10px 0;
-  }
-  :where(.ds-comparison-range) {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-    padding: 10px 12px;
-    overflow-wrap: anywhere;
-  }
-  :where(.ds-comparison-setup + .ds-explorer-panel) {
-    max-height: 22vh;
-    max-height: 22dvh;
-  }
-  :where(
-    .ds-comparison-setup ~ .ds-body,
-    .ds-explorer-panel ~ .ds-body,
-    .ds-selection-card ~ .ds-body
-  ) {
-    min-height: 100px;
-  }
-  :where(.ds-compare) {
-    width: min(1200px, calc(100vw - 24px));
-    max-height: 92vh;
-    max-height: 92dvh;
-    overflow: auto;
-    padding: 20px;
-  }
-  :where(.ds-compare-panes) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 20px;
   }
   :where(.ds-sticky-chapter) {
     display: flex;
@@ -255,36 +14,7 @@
     flex-shrink: 0;
     padding: 5px 18px;
   }
-  :where(.ds-tool-message:empty) {
-    display: none;
-  }
   @media (max-width: 650px) {
-    :where(.ds-selection-methods) {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 6px;
-    }
-    :where(.ds-selection-overview) {
-      align-items: start;
-      flex-direction: column;
-    }
-    :where(.ds-selection-card, .ds-explorer-panel) {
-      padding: 12px;
-    }
-    :where(.ds-range-confirm > span) {
-      flex-basis: 100%;
-    }
-    :where(.ds-explore-toggle > span) {
-      display: none;
-    }
-    :where(.ds-comparison-setup) {
-      padding: 10px;
-    }
-    :where(.ds-comparison-range) {
-      padding: 8px;
-    }
-    :where(.ds-compare-panes) {
-      grid-template-columns: minmax(0, 1fr);
-    }
     :where(.ds-sticky-chapter span) {
       display: none;
     }
@@ -472,23 +202,6 @@
   :where(.ds-aggregate-label span) {
     display: block;
   }
-  :where(.ds-hint) {
-    position: absolute;
-    right: calc(var(--ds-rail-width, 232px) + 14px);
-    top: 110px;
-    max-width: 250px;
-    display: flex;
-    align-items: start;
-    gap: 10px;
-    z-index: 5;
-  }
-  :where(.ds-hint-1, .ds-hint-2) {
-    top: 58px;
-  }
-  :where(.ds-hint-2) {
-    left: 18px;
-    right: auto;
-  }
   :where(.ds-meta-error) {
     position: absolute;
     bottom: 48px;
@@ -512,14 +225,6 @@
     :where(.ds-preview) {
       width: 220px;
       right: calc(100% + 4px);
-    }
-    :where(.ds-hint) {
-      right: 72px;
-      max-width: 210px;
-    }
-    :where(.ds-hint-2) {
-      left: 12px;
-      right: auto;
     }
   }
 

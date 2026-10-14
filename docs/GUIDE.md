@@ -2,8 +2,8 @@
 
 [Documentation home](README.md) · [Quick start](QUICK_START.md) · [Styling](../STYLING.md) · [Library overview](../README.md)
 
-This guide covers provider rules, server actions, search, navigation, summaries,
-exploration, page layout, live feeds, and limits. Start with the
+This guide covers provider rules, server-owned ordering, search, navigation, summaries,
+selection and host tools, page layout, live feeds, and limits. Start with the
 [quick start](QUICK_START.md) for installation and a first component. The exact types are in
 [`index.ts`](../granum-grid/src/index.ts), [`data/types.ts`](../granum-grid/src/data/types.ts),
 [`core/engine.ts`](../granum-grid/src/core/engine.ts), and
@@ -51,23 +51,24 @@ Only `id`, `revision`, `rowCount`, and `fetchRows` are required. Optional capabi
 | Capability                                         | Purpose                                                                                                   |
 | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `fetchOverview(buckets, signal)`                   | Global profile on the dataset map and loading estimates.                                                  |
-| `fetchAggregates({ start, end, buckets }, signal)` | Selection statistics and comparison maps.                                                                 |
+| `fetchAggregates({ start, end, buckets }, signal)` | Range statistics: sub-range maps through `rangeProvider`, and any summary your page shows.                |
 | `fetchOverviewTracks(buckets, signal)`             | Up to four additional profiles sharing the same row addresses; enable with `rail={{ showTracks: true }}`. |
 | `fetchMarkers(signal)`                             | A bounded set of named events and snap targets.                                                           |
 | `fetchChapters(signal)`                            | Ordered non-overlapping index ranges and breadcrumbs.                                                     |
 | `search(query, { fromIndex, limit, signal })`      | Date, predicate, and opt-in plain-text queries performed by your provider.                                |
 
-Sorting, filtering, and editing are [server actions](#server-actions), not provider
-capabilities.
+Sorting, filtering, and editing belong to the server; see
+[server-owned ordering](#server-owned-ordering).
 
-`fetchOverview` supplies the permanent whole-dataset map; `fetchAggregates` supplies
-statistics for selected ranges and overview data for comparison panes. Without an
-overview, row navigation still works with a neutral map. Selection statistics load
-only when opened. Markers closer than 28 px on screen share
-one button named after the most severe marker, with a +N count of the others; a searchable,
-paged dialog lists the individual markers. On a compact map the button's number is that
-named marker's place in the Bookmarks list, not the number of markers in the button. The reader's bookmarks join the same layer as
-`bookmark` markers (★), ranked after errors and spikes. No capability falls back
+`fetchOverview` supplies the permanent whole-dataset map. `fetchAggregates` supplies
+range statistics: `rangeProvider` turns it into a sub-range's map, and a host calls it
+directly for a summary panel. The explorer itself never requests range statistics.
+Without an overview, row navigation still works with a neutral map. Markers closer than
+28 px on screen share one button named after the most severe marker, with a +N count of
+the others; a searchable, paged dialog lists the individual markers. On a compact map the
+button's number is that named marker's place among all markers in row order, not the
+number of markers in the button. Host places passed through `markers` with kind
+`bookmark` draw as ★, ranked after errors and spikes. No capability falls back
 to a browser scan of the dataset. Resolutions and counts are listed under
 [limits and defaults](#limits-and-defaults); map presentation is in
 [map configuration and styling](../STYLING.md#configure-the-dataset-map).
@@ -84,52 +85,40 @@ primary metric's explanation. `showMagnifier` (off by default) adds a crop of th
 overview buckets and does not fetch finer aggregates. Short rails hide the magnifier and
 row examples so the metric and jump target remain readable.
 
-## Server actions
+## Server-owned ordering
 
-A large index cannot be rearranged in the browser, so columns, sorting, filtering, and
-editing are server operations. `ServerDataset<Row>` is the host's interface to them;
-the explorer does not call it.
+A large index cannot be rearranged in the browser, so sorting, filtering, and editing
+happen on the server. The explorer reads one ordered revision. When the order or contents
+change, give it a new provider with the same `id` and a new `revision`: cached pages,
+history, selection, and saved views belong to the previous revision and are dropped. A
+filter is a new revision with its own `rowCount`; search finds addresses in the current
+revision only.
 
-- `columns(signal)` returns the server's column model. A column can be sorted,
-  filtered, or edited only when the server marks it so.
+The library has no column model and no sort or filter controls. Put them in
+`toolbar={{ actions }}` or `panel`, send the intent to your server, and install the
+provider it returns.
+
+A server that pages with an opaque cursor can satisfy `fetchRows` through
+`createCursorProvider(source, { id, revision, rowCount })`. The source has two methods:
+
 - `cursorAt(index, signal)` returns the opaque cursor at one address; null is valid
   only at address 0.
 - `fetchWindow({ cursor, windowSize }, signal)` returns at most `windowSize` rows from
   that cursor, the address of the first row, and the next cursor (null at the end).
-- Optional `sort(keys, signal)`, `filter(filters, signal)`, and `edit(edit, signal)`
-  return the next ordered provider: the same `id` and a new `revision`. An edit
-  replaces the opaque row at one address or writes one editable column.
 
-The helpers below come from `granum-grid/data`; `createCursorProvider` is also on the
-root entry. `serverActionIssue(action, columns, rowCount)` checks the intent against the published
-column model before the request is sent. Text filters use equality or `contains`,
-numbers and times use comparison, and booleans use equality; time values are strings.
-An empty sort or filter list asks the server to clear that operation.
-`acceptServerRevision(current, next)` installs the returned provider and refuses one
-that changes the dataset id, keeps the current revision, or reports an invalid count.
-The component then navigates that revision. Search finds addresses in the current
-revision; a filter replaces the revision.
+`createCursorProvider` seeks once and follows the next cursor only until the requested
+slice is full. `cursorWindowIssue` and `acceptCursorWindow` from `granum-grid/data`
+expose the same window checks for a host's own transport.
 
-`createCursorProvider(server, { id, revision, rowCount })` builds `fetchRows` from
-`cursorAt` and `fetchWindow`: it seeks once and follows the next cursor only until the
-requested slice is full. `cursorWindowIssue` and `acceptCursorWindow` expose the same
-window checks for a host's own transport.
+Random access is the hard part, and it is yours. `cursorAt` must find an address without
+reading the rows before it: a dense sequence number, a fixed-cadence timestamp, or
+row-group offsets in a columnar file. SQL `OFFSET` reads every skipped row, so it does
+not scale to deep addresses.
 
 ```ts
-import { acceptServerRevision, createCursorProvider, serverActionIssue } from 'granum-grid/data';
+import { createCursorProvider } from 'granum-grid';
 
-const columns = await server.columns(signal);
-const action = {
-  kind: 'sort' as const,
-  keys: [{ columnId: 'level', direction: 'desc' as const }],
-};
-const issue = serverActionIssue(action, columns, provider.rowCount);
-if (!issue && server.sort) {
-  const next = await server.sort(action.keys, signal);
-  setProvider(acceptServerRevision(provider, next));
-}
-
-const readings = createCursorProvider(server, {
+const logs = createCursorProvider(server, {
   id: 'logs',
   revision: '7',
   rowCount: 4_000_000_000,
@@ -236,19 +225,42 @@ imports: `createEngine` takes numeric dimensions and normalized input, and the c
 drives flights with `step(timestamp)`. Snapshots keep their identity until a value
 changes, so React subscribes through `useSyncExternalStore`.
 
-## Explore, compare, and save
+## Selection and host tools
 
-Choose **Select rows**, then choose **Rows on screen**, **Draw on map**, or **Enter row numbers**. Exact row entry shows an inclusive From/To range and its row count before you apply it with **Use these rows**. Editing a selection leaves the existing selection intact until you apply the new one; Cancel or Escape returns to it.
+The explorer keeps one half-open selection. `selection` and `onSelectionChange` support
+controlled or internal range state, and `initialView` can start with a saved selection.
+The hook exposes `selection`; the handle offers `getSelection`, `setSelection`, and
+`getVisibleRange`. Selected rows carry `data-selected`, and the map shades the range. API
+ranges are zero-based and half-open (`{ start: 99, end: 200 }` selects rows 100–200).
 
-The selection card identifies the selected rows and offers **View selection**, **Compare ranges**, and **Save bookmark**. A single row offers **Open row**. **Show summary** reveals provider-backed statistics with exact/estimated/unavailable status and units; a single row shows one value. Summaries load only when opened and never scan the whole dataset.
+The explorer ships no selection card, bookmarks, range comparison, or first-run hints.
+Those are application features; the playground builds all of them on the public API in
+[`demo/src/explorer`](../demo/src/explorer/index.tsx). The pieces a host uses:
 
-**Compare ranges** keeps the first range visible while **Choose second range** opens the same selection choices. **Show comparison** opens two virtualized panes after you choose different rows. **Change second range** lets you revise the pair; **Cancel comparison** returns to your selection. **Scroll together** matches relative progress through the two ranges, not timestamps or record identity. Each pane reads its range through `rangeProvider(provider, range)`, which does not materialize rows.
+- `panel` renders host content between the toolbar and the rows. Its function form
+  receives the hook state and runs on every frame; memoize what it renders.
+- `rail={{ selecting, onSelectingChange }}` lets a host button switch the map into
+  drawing a selection. The map calls `onSelectingChange(false)` when the drag ends or
+  Escape cancels it.
+- `api.getVisibleRange()` reads the rows in view without re-rendering, for "select
+  what is on screen".
+- `markers` adds host places, such as saved bookmarks, to the provider's markers for the
+  map, N/P, snapping, and named-marker search.
+- `api.getView()`, `encodeView`, `decodeView`, and `readView` (from `granum-grid/core`)
+  save and validate a place. The library writes no browser storage.
+- Your provider's `fetchAggregates({ start, end, buckets: 1 }, signal)` returns a
+  range's statistics with `exact`, `estimated`, or `unavailable` accuracy;
+  `checkBuckets` from `granum-grid/data` validates the response.
+- `rangeProvider(provider, range)` reads a sub-range as its own provider, for a second
+  explorer beside the first, without materializing rows.
 
-**Save bookmark** asks for a name only when saving. **Bookmarks** lists your saved locations and also lets you save your current position without selecting rows. Bookmarks save the current row address, fractional offset, and selection, but no row data. They remain in memory unless the host supplies `tools={{ storageKey }}`; the demo opts into local storage. Likewise, dismissing the first-run hints lasts only while the explorer is mounted unless the host supplies `hints={{ storageKey }}`. The library writes no browser storage on its own. Restore validates the dataset ID, revision, and row bounds. A blocked/full browser store leaves bookmarks usable for the current session.
+With `layout="page"`, a panel that scrolls on its own needs `data-ds-native-scroll`, so
+the wheel scrolls the panel instead of the rows.
 
-Bookmarks and provider markers form one set of places. Each bookmark appears on the dataset map as a ★ marker at its selection start or saved row, and N/P, magnetic snapping, and named-marker search in **Go to…** include it. Clicking it on the map jumps to that row; choosing it in **Bookmarks** also restores the saved view and selection. The **Bookmarks** panel lists the provider's markers under **From this dataset**, 40 at a time, and numbers every saved place and dataset marker in that shared row order. Custom tools add their own places through the `markers` option on the component or the hook; the hook's `markers` holds provider markers and those places in row order.
-
-`selection` and `onSelectionChange` support controlled or internal range state, and `initialView` can start with a saved selection; the hook exposes `selection`, and the handle offers `getSelection` and `setSelection`. Drawing a selection on the map is `AtlasRail`'s controlled `selecting` prop. API ranges are zero-based and half-open (`{ start: 99, end: 200 }` selects rows 100–200). Set `tools={false}` to hide these controls; `tools={{ formatRange }}` describes a range in domain units, such as elapsed time. `stickyChapters` keeps the current provider chapter above the rows. Normal navigation shows **Back** and **Go to…**; diagnostics are under **debug** in the demo, and `onStats` reports them to a host. Showing the overview instead of rows during a fast fling is opt-in with `features={{ automaticAggregation: true }}`.
+`stickyChapters` keeps the current provider chapter above the rows. Normal navigation
+shows **Back** and **Go to…**; diagnostics are under **debug** in the demo, and
+`onStats` reports them to a host. Showing the overview instead of rows during a fast
+fling is opt-in with `features={{ automaticAggregation: true }}`.
 
 ## Open in a separate tab and scroll the window
 
@@ -297,11 +309,9 @@ new revision.
 | Row request deadline    | 15,000 ms, then the page offers a retry                                                     | `cache.requestTimeoutMs` |
 | Concurrent row requests | 4; at most 8 unsettled transports, including canceled ones                                  | Fixed                    |
 | Overview                | 320 buckets                                                                                 | Fixed                    |
-| Selection statistics    | One bucket for the selected range                                                           | `fetchAggregates`        |
 | Extra map tracks        | Up to 4, with 160 buckets each                                                              | `fetchOverviewTracks`    |
 | Markers and chapters    | At most 4,096 each; markers closer than 28 px are grouped, and group lists show 40 per page | Fixed                    |
 | Search dialog           | 100 matches without pagination; up to 4 examples from `searchHelp`                          | Fixed                    |
-| Bookmarks               | 40 bookmarks                                                                                | `tools.storageKey`       |
 | Saved view text         | 8,192 characters for `decodeView`                                                           | Fixed                    |
 | Page layout scroll      | Native document scroll range capped at 1,000,000 CSS px                                     | `layout="page"`          |
 
@@ -323,11 +333,12 @@ viewport, row, and announcement prop getters, and display state: `selection`,
 It fetches data and binds browser input; custom layouts choose the row content and place
 the map. Its data session and coordinate mapping are internal to the library's widgets.
 `onNavigate` reports committed jumps, and `onStats` reports cache and request counts and
-frame rate. The ready-made component adds the Go to dialog and the exploration tools.
+frame rate. The ready-made component adds the toolbar, the map, the Go to dialog, and
+the footer.
 `features` switches motion and data behavior; `defaultFeatures` lists every flag with its
-default. The component's regions (`toolbar`, `tools`, `rail`, `footer`, `hints`) each
-take `false`, options, or, for `toolbar`, `rail`, and `footer`, a render function; map
-layers are `rail` options. Layers and package entry points are listed in the
+default. The component's regions (`toolbar`, `rail`, `footer`) each take `false`,
+options, or a render function, and `panel` holds host content; map layers are `rail`
+options. Layers and package entry points are listed in the
 [package README](../granum-grid/README.md#layers). Custom controls, headless
 layouts, and styling hooks are in [STYLING.md](../STYLING.md).
 
@@ -379,6 +390,7 @@ interface GranumGridApi<Row> {
   // Selection, places, and the explorer
   getSelection(): RowRange | null;
   setSelection(range: RowRange | null): void;
+  getVisibleRange(): RowRange;
   getView(): SavedView;
   restoreView(view: SavedView): void;
   openSearch(query?: string): void;

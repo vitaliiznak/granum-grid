@@ -17,8 +17,8 @@ has working code and checkpoints. For a direct setup recipe, use the
 | Learn through different datasets                | [Tutorial wiki](wiki/Home.md)                                                                                                                       |
 | Adapt an existing array                         | [Array recipe](QUICK_START.md#use-your-own-array)                                                                                                   |
 | Load data from my server                        | [HTTP provider recipe](QUICK_START.md#connect-an-http-api) and [provider rules](GUIDE.md#provider-contract)                                         |
-| Sort, filter, or edit on the server             | [Server actions](GUIDE.md#server-actions)                                                                                                           |
-| Add search or dataset summaries                 | [Provider capabilities](GUIDE.md#provider-capabilities), [search](GUIDE.md#search), and [selection statistics](GUIDE.md#explore-compare-and-save)   |
+| Sort, filter, or edit on the server             | [Server-owned ordering](GUIDE.md#server-owned-ordering)                                                                                             |
+| Add search or dataset summaries                 | [Provider capabilities](GUIDE.md#provider-capabilities), [search](GUIDE.md#search), and [host tools](GUIDE.md#selection-and-host-tools)             |
 | Navigate from my own buttons                    | [Custom controls](QUICK_START.md#build-custom-controls) and the [integration interface](GUIDE.md#integration-interface)                             |
 | Handle row heights, append mode, or saved views | [Integration guide](GUIDE.md)                                                                                                                       |
 | Look up a default or limit                      | [Limits and defaults](GUIDE.md#limits-and-defaults)                                                                                                 |

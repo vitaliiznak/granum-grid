@@ -1,0 +1,473 @@
+/* Selection tools, bookmarks, range comparison, and hints. These are playground features
+   built on the public API, so their rules live here. They join the library's cascade layer
+   to keep the same precedence as the library's own controls. Layout first, then the skin. */
+@layer granum-grid {
+  :where(.ds-explore-toggle, .ds-range-form, .ds-bookmark-form) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  :where(.ds-explore-toggle) {
+    flex-shrink: 0;
+    padding: 6px 18px;
+  }
+  :where(.ds-explorer-panel) {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: min(340px, 48vh);
+    max-height: min(340px, 48dvh);
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 12px 18px;
+  }
+  :where(.ds-explorer-panel:has(.ds-bookmarks)) {
+    max-height: min(480px, 62vh);
+    max-height: min(480px, 62dvh);
+  }
+  :where(.ds-range-form, .ds-bookmark-form) {
+    margin: 12px 0;
+    align-items: end;
+  }
+  :where(.ds-range-form label, .ds-bookmark-form label) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  :where(.ds-range-form .ds-input) {
+    width: 140px;
+    max-width: 100%;
+  }
+  :where(.ds-bookmark-form .ds-input) {
+    width: 220px;
+    max-width: 100%;
+  }
+  :where(.ds-bookmarks) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    list-style: none;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 0;
+  }
+  :where(.ds-bookmarks li) {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+  }
+  :where(.ds-bookmarks-heading) {
+    margin: 12px 0 0;
+  }
+  :where(.ds-range-summary dl) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin: 12px 0 6px;
+  }
+  :where(.ds-range-summary dd) {
+    margin: 0;
+  }
+  :where(.ds-summary-heading) {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  :where(.ds-summary-heading strong) {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :where(.ds-flow-heading, .ds-selection-overview, .ds-map-prompt) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  :where(.ds-flow-heading > div, .ds-selection-description) {
+    min-width: 0;
+  }
+  :where(.ds-flow-heading > .ds-button) {
+    flex-shrink: 0;
+  }
+  :where(.ds-flow-heading p, .ds-map-prompt p) {
+    margin: 3px 0 0;
+  }
+  :where(.ds-selection-methods) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  :where(.ds-selection-method, .ds-saved-view, .ds-selection-description) {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 4px;
+    text-align: left;
+  }
+  :where(.ds-bookmarks .ds-saved-view) {
+    flex: 1 1 auto;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+  }
+  :where(.ds-bookmarks .ds-saved-view > strong) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  :where(.ds-place-index) {
+    flex: none;
+    width: 1.6em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  :where(.ds-bookmarks .ds-saved-view > span:last-child) {
+    flex: none;
+  }
+  :where(.ds-selection-description) {
+    overflow-wrap: anywhere;
+  }
+  :where(.ds-range-picker .ds-range-form) {
+    display: block;
+    margin: 16px 0 0;
+  }
+  :where(.ds-range-inputs, .ds-range-confirm) {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+  }
+  :where(.ds-range-inputs) {
+    max-width: 440px;
+  }
+  :where(.ds-range-inputs label) {
+    flex: 1;
+  }
+  :where(.ds-range-inputs .ds-input) {
+    width: 100%;
+  }
+  :where(.ds-range-inputs > span) {
+    padding-bottom: 8px;
+  }
+  :where(.ds-range-confirm) {
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 14px;
+  }
+  :where(.ds-saved-views-trigger) {
+    margin-left: auto;
+  }
+  :where(.ds-selection-card) {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 48vh;
+    max-height: 48dvh;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 14px 18px 10px;
+  }
+  :where(.ds-selection-details) {
+    margin-top: 10px;
+  }
+  :where(.ds-selection-details > summary) {
+    width: fit-content;
+    cursor: pointer;
+  }
+  :where(.ds-selection-details .ds-range-summary) {
+    padding: 12px 0 2px;
+    max-width: 520px;
+  }
+  :where(.ds-comparison-range .ds-button) {
+    align-self: start;
+    margin-top: 5px;
+  }
+  :where(.ds-flow-message) {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 8px 18px;
+  }
+  :where(.ds-map-prompt) {
+    flex-shrink: 0;
+    padding: 12px 18px;
+    flex-wrap: wrap;
+  }
+  :where(.ds-comparison-setup) {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 42vh;
+    max-height: 42dvh;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 12px 18px;
+  }
+  :where(.ds-comparison-actions) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  :where(.ds-comparison-primary) {
+    margin-left: auto;
+  }
+  :where(.ds-comparison-ranges) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 10px 0;
+  }
+  :where(.ds-comparison-range) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 10px 12px;
+    overflow-wrap: anywhere;
+  }
+  :where(.ds-comparison-setup + .ds-explorer-panel) {
+    max-height: 22vh;
+    max-height: 22dvh;
+  }
+  :where(
+    .ds-comparison-setup ~ .ds-body,
+    .ds-explorer-panel ~ .ds-body,
+    .ds-selection-card ~ .ds-body
+  ) {
+    min-height: 100px;
+  }
+  :where(.ds-compare) {
+    width: min(1200px, calc(100vw - 24px));
+    max-height: 92vh;
+    max-height: 92dvh;
+    overflow: auto;
+    padding: 20px;
+  }
+  :where(.ds-compare-panes) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+  :where(.ds-tool-message:empty) {
+    display: none;
+  }
+  @media (max-width: 650px) {
+    :where(.ds-selection-methods) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+    }
+    :where(.ds-selection-overview) {
+      align-items: start;
+      flex-direction: column;
+    }
+    :where(.ds-selection-card, .ds-explorer-panel) {
+      padding: 12px;
+    }
+    :where(.ds-range-confirm > span) {
+      flex-basis: 100%;
+    }
+    :where(.ds-explore-toggle > span) {
+      display: none;
+    }
+    :where(.ds-comparison-setup) {
+      padding: 10px;
+    }
+    :where(.ds-comparison-range) {
+      padding: 8px;
+    }
+    :where(.ds-compare-panes) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  :where(.ds-hint) {
+    position: absolute;
+    right: calc(var(--ds-rail-width, 232px) + 14px);
+    top: 110px;
+    max-width: 250px;
+    display: flex;
+    align-items: start;
+    gap: 10px;
+    z-index: 5;
+  }
+  :where(.ds-hint-1, .ds-hint-2) {
+    top: 58px;
+  }
+  :where(.ds-hint-2) {
+    left: 18px;
+    right: auto;
+  }
+  @media (max-width: 650px) {
+    :where(.ds-hint) {
+      right: 72px;
+      max-width: 210px;
+    }
+    :where(.ds-hint-2) {
+      left: 12px;
+      right: auto;
+    }
+  }
+}
+/* Skin: palette and type, matching granum-grid/styles.css. */
+@layer granum-grid {
+  :where(.ds-root:not([data-unstyled]) .ds-hint) {
+    background: var(--ds-panel);
+    border: 1px solid var(--ds-line);
+    color: var(--ds-text);
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    box-shadow: 0 5px 20px #0001;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-hint .ds-button) {
+    border: 0;
+    padding: 0 3px;
+    line-height: 1.2;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-explorer-panel .ds-input) {
+    border: 1px solid var(--ds-line);
+    border-radius: 5px;
+    padding: 6px 8px;
+    background: var(--ds-bg);
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-explore-toggle,
+    .ds-root:not([data-unstyled]) .ds-explorer-panel
+  ) {
+    border-bottom: 1px solid var(--ds-line);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-explore-toggle) {
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-range-summary p) {
+    margin: 5px 0;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-range-summary dt,
+    .ds-root:not([data-unstyled]) .ds-tool-message,
+    .ds-root:not([data-unstyled]) .ds-explore-toggle > span
+  ) {
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-range-summary dd) {
+    font-size: 17px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-heading strong) {
+    color: var(--ds-text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-selection-card,
+    .ds-root:not([data-unstyled]) .ds-map-prompt
+  ) {
+    background: var(--ds-panel);
+    border-bottom: 1px solid var(--ds-line);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-flow-heading strong) {
+    font-size: 14px;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-flow-heading p,
+    .ds-root:not([data-unstyled]) .ds-selection-method > span,
+    .ds-root:not([data-unstyled]) .ds-range-confirm > span,
+    .ds-root:not([data-unstyled]) .ds-selection-description > span,
+    .ds-root:not([data-unstyled]) .ds-summary-note,
+    .ds-root:not([data-unstyled]) .ds-map-prompt p,
+    .ds-root:not([data-unstyled]) .ds-saved-view > span,
+    .ds-root:not([data-unstyled]) .ds-bookmarks-heading
+  ) {
+    color: var(--ds-muted);
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-saved-view > .ds-place-index) {
+    color: var(--ds-mark);
+    font-weight: 600;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-description .ds-selection-kicker) {
+    color: var(--ds-accent);
+    font-weight: 600;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-description > strong) {
+    font-size: 14px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-method) {
+    padding: 12px;
+    background: var(--ds-panel);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-method:hover) {
+    border-color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-details > summary) {
+    color: var(--ds-muted);
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-selection-details > summary:focus-visible) {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 2px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-quality) {
+    padding: 2px 7px;
+    border: 1px solid var(--ds-line);
+    border-radius: 4px;
+    color: var(--ds-muted);
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-form-error) {
+    color: var(--ds-text);
+    border-left: 2px solid var(--ds-mark);
+    padding-left: 10px;
+    margin: 12px 0 0;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled),
+    .ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled)
+  ) {
+    background: var(--ds-accent);
+    border-color: var(--ds-accent);
+    color: var(--ds-bg);
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled):hover,
+    .ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled):hover
+  ) {
+    background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-setup) {
+    background: var(--ds-panel);
+    border-bottom: 1px solid var(--ds-line);
+    font-size: 12px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-setup:focus-visible) {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: -2px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range) {
+    border: 1px solid var(--ds-line);
+    border-radius: var(--ds-radius);
+    background: var(--ds-bg);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range[data-empty]) {
+    border-style: dashed;
+    background: transparent;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range > strong) {
+    font-size: 13px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range > span) {
+    color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-comparison-range .ds-comparison-step) {
+    color: var(--ds-accent);
+    font-weight: 600;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-compare) {
+    color: var(--ds-text);
+    background: var(--ds-bg);
+    border: 1px solid var(--ds-line);
+    border-radius: 8px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-compare::backdrop) {
+    background: #0006;
+  }
+}

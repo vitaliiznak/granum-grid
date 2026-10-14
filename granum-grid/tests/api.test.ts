@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { createGranumGridApi, engineOf } from '../src/core/api';
+import { createGranumGridApi } from '../src/core/api';
 import { createEngine } from '../src/core/engine';
 import type { DataProvider, RowRange } from '../src/data/types';
 
@@ -10,10 +10,12 @@ it('captures independent views, restores selection and location, and rejects for
     rowCount: 3_000_000_000,
     fetchRows: vi.fn(),
   };
+  const visible: RowRange = { start: 0, end: 1 };
   const engine = createEngine({ rowCount: provider.rowCount });
   let selection: RowRange | null = null;
   const openSearch = vi.fn();
   const api = createGranumGridApi(provider, engine, {
+    getVisibleRange: () => visible,
     getSelection: () => selection,
     setSelection: (value) => {
       selection = value;
@@ -59,9 +61,11 @@ it('saved views report the host value until a controlled selection is accepted',
     rowCount: 10,
     fetchRows: vi.fn(),
   };
+  const visible: RowRange = { start: 0, end: 1 };
   const engine = createEngine({ rowCount: 10 });
   const onChange = vi.fn();
   const api = createGranumGridApi(provider, engine, {
+    getVisibleRange: () => visible,
     getSelection: () => null,
     setSelection: onChange,
     openSearch: vi.fn(),
@@ -83,8 +87,10 @@ it('restores a saved offset inside a measured final row taller than the viewport
     rowCount: 2,
     fetchRows: vi.fn(),
   };
+  const visible: RowRange = { start: 0, end: 1 };
   const engine = createEngine({ rowCount: 2, dynamicRowHeight: true });
   const api = createGranumGridApi(provider, engine, {
+    getVisibleRange: () => visible,
     getSelection: () => null,
     setSelection: () => {},
     openSearch: () => {},
@@ -115,10 +121,12 @@ it('is the one handle: navigation, detached selection, search, and retry without
     rowCount: 1_000,
     fetchRows: vi.fn(),
   };
+  const visible: RowRange = { start: 0, end: 1 };
   const engine = createEngine({ rowCount: provider.rowCount });
   let selection: RowRange | null = { start: 10, end: 20 };
   const retry = vi.fn();
   const api = createGranumGridApi(provider, engine, {
+    getVisibleRange: () => visible,
     getSelection: () => selection,
     setSelection: (value) => {
       selection = value;
@@ -146,7 +154,10 @@ it('is the one handle: navigation, detached selection, search, and retry without
     // Adapters and unvalidated locations stay on the engine.
     for (const adapter of ['pan', 'scrub', 'measureRows', 'appendRows', 'restore', 'getLocation'])
       expect(adapter in api).toBe(false);
-    expect(engineOf(api)).toBe(engine);
+    // The visible range is a detached copy, like the selection.
+    const range = api.getVisibleRange();
+    range.end = 99;
+    expect(api.getVisibleRange()).toEqual({ start: 0, end: 1 });
   } finally {
     engine.destroy();
   }

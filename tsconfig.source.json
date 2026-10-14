@@ -5,7 +5,9 @@
     "types": ["vite/client"],
     "paths": {
       "granum-grid": ["./granum-grid/src/index.ts"],
-      "granum-grid/headless": ["./granum-grid/src/headless.ts"]
+      "granum-grid/headless": ["./granum-grid/src/headless.ts"],
+      "granum-grid/core": ["./granum-grid/src/core/index.ts"],
+      "granum-grid/data": ["./granum-grid/src/data/index.ts"]
     }
   }
 }

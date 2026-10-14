@@ -51,7 +51,10 @@ and elapsed response/body-reading time, not compressed wire traffic or heap usag
 
 Read [`HttpExample.tsx`](../../demo/src/HttpExample.tsx). Its connection effect uses an
 AbortController and creates the provider only after metadata loads. It passes that
-provider and a typed `apiRef` to `GranumGrid`.
+provider and a typed `apiRef` to `GranumGrid`. The selection card, bookmarks, and range
+comparison on this page are the playground's own tools from
+[`demo/src/explorer`](../../demo/src/explorer/index.tsx), attached through the
+explorer's `panel`, `markers`, and `rail` props; the library does not ship them.
 
 | Application action | Public API used | Responsibility |
 | --- | --- | --- |

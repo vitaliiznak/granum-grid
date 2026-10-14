@@ -1,24 +1,63 @@
 # Granum Grid
 
-[Open the playground](https://vitaliiznak.github.io/granum-grid/)
+A React component and headless hook for reading ordered datasets too large to load: millions to billions of rows, fetched a page at a time, with a map of the whole dataset beside them. Jump to a row, a date, or a named event, then come back.
 
-A playground for looking at data that is too large to open as a file. Pick a dataset, read the rows in front of you, and keep a map of the whole thing beside them. Jump to a row, a date, or a named event, then come back.
+[Open the playground](https://vitaliiznak.github.io/granum-grid/) · [Use it in React](#use-it-in-react) · [Watch the film](media/granum-grid-launch.mp4) · [The datasets](#the-datasets) · [Visual tour](#visual-tour) · [Run it locally](#run-it-locally) · [Scope and current limits](#scope-and-current-limits)
 
 ![Granum Grid showing a live table near row 73,500,000 and a map of 100 million synthetic readings](media/images/hero.png)
 
-[Open the playground](https://vitaliiznak.github.io/granum-grid/) · [Watch the film](media/granum-grid-launch.mp4) · [The datasets](#the-datasets) · [Visual tour](#visual-tour) · [Run it locally](#run-it-locally) · [Demo limitations](#demo-limitations) · [Scope and current limits](#scope-and-current-limits)
+## Use it in React
+
+Not yet on npm: [build and install a local package](docs/QUICK_START.md#1-install-the-library). React 18.2–19, no other runtime dependencies.
+
+```tsx
+import { GranumGrid, type DataProvider } from 'granum-grid';
+import 'granum-grid/styles.css';
+
+type LogLine = { time: string; message: string };
+
+// Keep the provider outside render, or memoize it by its revision.
+const logs: DataProvider<LogLine> = {
+  id: 'logs',
+  revision: '2026-09',
+  rowCount: 4_000_000_000,
+  fetchRows: (start, count, signal) =>
+    fetch(`/api/logs?start=${start}&count=${count}`, { signal }).then((r) => r.json()),
+};
+
+export function Logs() {
+  return (
+    <GranumGrid
+      provider={logs}
+      ariaLabel="Logs"
+      style={{ height: 600 }}
+      renderRow={({ row }) => (
+        <span role="gridcell">
+          {row.time} {row.message}
+        </span>
+      )}
+    />
+  );
+}
+```
+
+The provider is the whole contract: a stable `id`, a `revision`, a known `rowCount`, and `fetchRows` for any slice by address. Overview buckets for the map, markers, chapters, and search are optional provider methods. Your server must answer `fetchRows(3_000_000_000, 256)` without reading the rows before it. That is the hard part, and it stays yours: [server-owned ordering](docs/GUIDE.md#server-owned-ordering).
+
+It is a reading surface, not a spreadsheet grid. There is no column model, sorting, filtering, or editing in the browser, and no bookmark store or range comparison. The playground builds those last two on the public API in [`demo/src/explorer`](demo/src/explorer/index.tsx). Start with the [package README](granum-grid/README.md), then the [integration guide](docs/GUIDE.md).
+
+## The playground
+
+You never download the full set. The page asks for the slice you are looking at, and for a coarse summary of the whole set to draw the map. Five sets are generated in the browser. Three are real: Bitcoin from Binance, Hacker News from its public API, and a recorded browser trace. The billion-scale counts are addresses you can visit, not billions of rows sitting in memory.
 
 ## Film
 
 [![Watch the Granum Grid playground film](media/images/hero.png)](media/granum-grid-launch.mp4)
 
-Granum Grid is a playground for data too large to open as a file. The film records an earlier version of the demo, before the reading controls were simplified: jump to a row, read the shape, compare two stretches, and come back. Generated sets label sampled summaries and partial search. Bitcoin and Hacker News are live public sources.
+The film records an earlier version of the playground, before the reading controls were simplified: jump to a row, read the shape, compare two stretches, and come back. Generated sets label sampled summaries and partial search. Bitcoin and Hacker News are live public sources.
 
 [Play granum-grid-launch.mp4](media/granum-grid-launch.mp4) · [Captions](media/granum-grid-launch.srt) · [Description](media/granum-grid-launch-description.txt)
 
 Music: 'Firefly' by Scott Buckley, released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). [scottbuckley.com.au](https://www.scottbuckley.com.au) · [track](https://www.scottbuckley.com.au/library/firefly/). The film trims, fades, and levels the recording.
-
-You never download the full set. The page asks for the slice you are looking at, and for a coarse summary of the whole set to draw the map. Five sets are generated in the browser. Three are real: Bitcoin from Binance, Hacker News from its public API, and a recorded browser trace. The billion-scale counts are addresses you can visit, not billions of rows sitting in memory.
 
 ## The datasets
 
@@ -92,7 +131,7 @@ npm run dev
 
 Open the URL Vite prints. `/tutorials.html` runs the [tutorial lessons](docs/wiki/Home.md).
 
-The navigation the playground uses can also be embedded in another React app. It comes in [layers you can stop at](granum-grid/README.md#layers): the ready-made `GranumGrid`, the map and search widgets, the headless `useGranumGrid` hook, and a React-free engine and data session. Its API fits in [four ideas](granum-grid/README.md#the-api-in-four-ideas): a provider describes the data, three props render it, each explorer region is one prop (`false`, options, or your own renderer), and one handle acts on it. That package, its provider contract, and styling live in [`granum-grid/`](granum-grid/README.md) and the [integration guide](docs/GUIDE.md). This repository is the playground those docs are about.
+The library comes in [layers you can stop at](granum-grid/README.md#layers): the ready-made `GranumGrid`, the map and search widgets, the headless `useGranumGrid` hook, and a React-free engine and data session.
 
 ## Demo limitations
 

@@ -69,8 +69,6 @@ export default function Inventory() {
         ariaLabel="Inventory products"
         rowHeight={40}
         style={{ height: 560, marginTop: 16 }}
-        hints={false}
-        tools={false}
         rail={false}
         getRowKey={(row) => row.sku}
         renderRow={({ row, rowNumber }) => (
@@ -85,10 +83,9 @@ export default function Inventory() {
 ```
 
 `scrollToIndex(59)` targets visible row 60. `align: 'start'` places it at the top.
-`getRowKey` uses the SKU as the record identity. `rail={false}` and `tools={false}`
-hide the map and range tools because this provider only supplies rows. Every explorer
-region (`toolbar`, `tools`, `rail`, `footer`, `hints`) follows the same rule: `false`
-hides it, an object configures it, and a function, where offered, renders your own.
+`getRowKey` uses the SKU as the record identity. `rail={false}` hides the map because
+this provider only supplies rows. The `toolbar`, `rail`, and `footer` regions follow the
+same rule: `false` hides it, an object configures it, and a function renders your own.
 
 ## 3. Check the result
 

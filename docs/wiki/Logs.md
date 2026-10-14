@@ -136,8 +136,6 @@ export default function Logs() {
         ariaLabel="Application logs"
         rowHeight={48}
         style={{ height: 560, marginTop: 16 }}
-        hints={false}
-        tools={false}
         rail={false}
         renderRow={({ row, rowNumber }) => (
           <span role="gridcell">

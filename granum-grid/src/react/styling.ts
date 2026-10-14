@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 
 /** Stable styling hooks. Row positioning remains owned by the virtualizer. */
 export type GranumGridPart =
-  'toolbar' | 'header' | 'body' | 'viewport' | 'row' | 'rail' | 'footer' | 'jump' | 'hint';
+  'toolbar' | 'header' | 'body' | 'viewport' | 'row' | 'rail' | 'footer' | 'jump';
 
 export interface GranumGridAppearance {
   classNames?: Partial<Record<GranumGridPart, string>>;

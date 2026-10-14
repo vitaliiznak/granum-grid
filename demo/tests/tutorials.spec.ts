@@ -28,12 +28,12 @@ test('sensor tutorial gives the documented exact selected-range summary', async 
     page.getByRole('grid', { name: 'Sensor readings' }).locator('[data-status="ready"]').first(),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Inspect warm interval' }).click();
-  const selection = page.getByRole('region', { name: 'Your selection' });
-  await expect(selection).toContainText('20 rows selected');
-  await expect(selection).toContainText('Rows 721–740');
-  await selection.getByText('Show summary', { exact: true }).click();
-  await expect(selection).toContainText('Exact summary');
-  await expect(selection).toContainText('40 °C');
+  const summary = page.getByRole('region', { name: 'Sensor lesson' }).getByRole('status');
+  await expect(summary).toContainText('Rows 721–740 · 20 readings · exact');
+  await expect(summary).toContainText('mean 40 °C · min 40 °C · max 40 °C');
+  await expect(
+    page.getByRole('grid', { name: 'Sensor readings' }).locator('[aria-rowindex="721"]'),
+  ).toHaveAttribute('data-selected', 'true');
   await page.screenshot({ path: testInfo.outputPath('sensor-lesson.png'), fullPage: true });
 });
 

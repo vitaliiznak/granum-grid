@@ -1,7 +1,6 @@
 import type { GranumGridEngine } from '../core/engine.js';
 import type { CoordinateMapping } from '../core/mappings.js';
 import type { DataSession } from '../data/session.js';
-import type { RowRange } from '../data/types.js';
 import type { Features } from '../features.js';
 
 /**
@@ -21,6 +20,4 @@ export interface GridInternals<Row> {
   features: Features;
   reduceMotion: boolean;
   append: boolean;
-  /** The latest visible range, for handlers that should not re-render on scroll. */
-  getVisibleRange(): RowRange;
 }

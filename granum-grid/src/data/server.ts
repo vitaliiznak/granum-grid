@@ -1,97 +1,5 @@
 import { checkRowRequest } from './bounds.js';
-import type {
-  ColumnEdit,
-  ColumnFilter,
-  CursorWindow,
-  CursorWindowQuery,
-  DataProvider,
-  FilterOperator,
-  RowEdit,
-  ServerAction,
-  ServerColumn,
-  ServerDataset,
-} from './types.js';
-
-const COMPARE: readonly FilterOperator[] = ['>', '>=', '<', '<=', '=', '!='];
-const EQUALITY: readonly FilterOperator[] = ['=', '!='];
-
-function columnOf(columns: readonly ServerColumn[], id: string): ServerColumn | undefined {
-  return columns.find((column) => column.id === id);
-}
-
-function valueFits(column: ServerColumn, value: string | number | boolean): boolean {
-  if (column.type === 'number') return typeof value === 'number' && Number.isFinite(value);
-  if (column.type === 'boolean') return typeof value === 'boolean';
-  return typeof value === 'string';
-}
-
-function operatorFits(column: ServerColumn, operator: FilterOperator): boolean {
-  if (operator === 'contains') return column.type === 'text';
-  if (column.type === 'boolean' || column.type === 'text') return EQUALITY.includes(operator);
-  return COMPARE.includes(operator);
-}
-
-function indexIssue(index: number, rowCount?: number): string | null {
-  if (!Number.isSafeInteger(index) || index < 0) return 'Row address must be a nonnegative integer';
-  if (rowCount !== undefined && index >= rowCount)
-    return `Row address ${index} is outside ${rowCount} rows`;
-  return null;
-}
-
-function isColumnEdit<Row>(edit: RowEdit<Row> | ColumnEdit): edit is ColumnEdit {
-  return 'columnId' in edit;
-}
-
-/**
- * Refuse a sort, filter, or edit the server's column model does not allow.
- * This checks the published model only. It does not reorder, scan, or mutate rows.
- * An empty sort or filter list asks the server to clear that operation.
- */
-export function serverActionIssue<Row>(
-  action: ServerAction<Row>,
-  columns: readonly ServerColumn[],
-  rowCount?: number,
-): string | null {
-  if (action.kind === 'sort') {
-    const seen = new Set<string>();
-    for (const key of action.keys) {
-      if (key.direction !== 'asc' && key.direction !== 'desc')
-        return 'Sort direction must be asc or desc';
-      if (seen.has(key.columnId)) return `Sort already includes ${key.columnId}`;
-      seen.add(key.columnId);
-      const column = columnOf(columns, key.columnId);
-      if (!column) return `This server has no column ${key.columnId}`;
-      if (column.sortable !== true) return `${column.label} is not sortable on the server`;
-    }
-    return null;
-  }
-  if (action.kind === 'filter') {
-    for (const filter of action.filters) {
-      const issue = filterIssue(filter, columns);
-      if (issue) return issue;
-    }
-    return null;
-  }
-  const address = indexIssue(action.edit.index, rowCount);
-  if (address) return address;
-  if (!isColumnEdit(action.edit)) return null;
-  const column = columnOf(columns, action.edit.columnId);
-  if (!column) return `This server has no column ${action.edit.columnId}`;
-  if (column.editable !== true) return `${column.label} is not editable on the server`;
-  if (!valueFits(column, action.edit.value))
-    return `${column.label} requires a ${column.type} value`;
-  return null;
-}
-
-function filterIssue(filter: ColumnFilter, columns: readonly ServerColumn[]): string | null {
-  const column = columnOf(columns, filter.columnId);
-  if (!column) return `This server has no column ${filter.columnId}`;
-  if (column.filterable !== true) return `${column.label} is not filterable on the server`;
-  if (!operatorFits(column, filter.operator))
-    return `${column.label} does not support ${filter.operator} on the server`;
-  if (!valueFits(column, filter.value)) return `${column.label} requires a ${column.type} value`;
-  return null;
-}
+import type { CursorSource, CursorWindow, CursorWindowQuery, DataProvider } from './types.js';
 
 /** Refuse a cursor window the server cannot answer: a bad size, or a cursor that is not opaque. */
 export function cursorWindowIssue(query: CursorWindowQuery): string | null {
@@ -135,7 +43,7 @@ export function acceptCursorWindow<Row>(
  * slice is full. It does not walk the rest of the revision.
  */
 export function createCursorProvider<Row>(
-  dataset: Pick<ServerDataset<Row>, 'cursorAt' | 'fetchWindow'>,
+  dataset: CursorSource<Row>,
   identity: { id: string; revision: string; rowCount: number },
 ): DataProvider<Row> {
   return {
@@ -172,22 +80,4 @@ export function createCursorProvider<Row>(
       return rows;
     },
   };
-}
-
-/**
- * Install a provider returned by a server sort, filter, or edit.
- * The dataset id stays. The revision must change, because the previous order's
- * addresses, cache, and saved views belong to the previous snapshot.
- */
-export function acceptServerRevision<Row>(
-  current: { id: string; revision: string },
-  next: DataProvider<Row>,
-): DataProvider<Row> {
-  if (next.id !== current.id)
-    throw new Error('A server action must keep the dataset id and publish a new revision');
-  if (next.revision === '' || next.revision === current.revision)
-    throw new Error('A server action must publish a new revision');
-  if (!Number.isSafeInteger(next.rowCount) || next.rowCount < 0)
-    throw new RangeError('Server revision has an invalid row count');
-  return next;
 }

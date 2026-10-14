@@ -3,7 +3,7 @@
 [All lessons](Home.md) · [Previous: Inventory](Inventory.md) · [Next: Logs](Logs.md)
 
 **Build:** a day of minute readings with an overview, a named warm interval, and
-exact selected-range statistics.
+exact statistics for a selected range, read from the provider.
 **Run:** `/tutorials.html?lesson=sensors` on your local demo server.
 
 ## 1. Define an answer you can verify
@@ -109,30 +109,41 @@ Replace `src/App.tsx` with this component:
 
 <!-- source: demo/src/tutorials/SensorsLesson.tsx -->
 ```tsx
-import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi } from 'granum-grid';
+import { useRef, useState } from 'react';
+import { GranumGrid, type Bucket, type GranumGridApi } from 'granum-grid';
 import { sensors, type Reading } from './sensors';
 import 'granum-grid/styles.css';
 
+const WARM = { start: 720, end: 740 };
+
 export default function Sensors() {
   const api = useRef<GranumGridApi<Reading>>(null);
+  const [summary, setSummary] = useState<Bucket | null>(null);
   return (
     <section aria-label="Sensor lesson">
       <p>1,440 generated minute readings. Inspect the 20-minute warm interval.</p>
       <button
-        onClick={() => {
-          api.current?.setSelection({ start: 720, end: 740 });
-          api.current?.scrollToIndex(720, { align: 'start' });
+        onClick={async () => {
+          api.current?.setSelection(WARM);
+          api.current?.scrollToIndex(WARM.start, { align: 'start' });
+          const signal = new AbortController().signal;
+          const buckets = await sensors.fetchAggregates?.({ ...WARM, buckets: 1 }, signal);
+          setSummary(buckets?.[0] ?? null);
         }}
       >
         Inspect warm interval
       </button>
+      {summary && (
+        <p role="status">
+          Rows {WARM.start + 1}–{WARM.end} · {summary.count} readings · {summary.accuracy} · mean{' '}
+          {summary.avg} °C · min {summary.min} °C · max {summary.max} °C
+        </p>
+      )}
       <GranumGrid
         provider={sensors}
         apiRef={api}
         ariaLabel="Sensor readings"
         style={{ height: 680, marginTop: 16 }}
-        hints={false}
         renderRow={({ row }) => (
           <span role="gridcell">
             Minute {row.minute} · {row.celsius} °C
@@ -144,26 +155,25 @@ export default function Sensors() {
 }
 ```
 
-The dataset map covers the whole day. `setSelection` records the
-half-open range for summaries and comparison; `scrollToIndex` inspects its beginning.
-The provider owns the data operations, so these same controls also work with a
-remote provider.
+The dataset map covers the whole day. `setSelection` marks the half-open range on the
+rows and the map; `scrollToIndex` inspects its beginning. The summary is one
+`fetchAggregates` call with a single bucket: the explorer does not compute or draw range
+statistics, so your page decides how to show them. The provider owns the data
+operations, so the same calls work with a remote provider.
 
 ## 4. Check the result
 
 1. Read the rows beside the whole-day map. The map shows a temperature change
    near the middle.
-2. Choose **Inspect warm interval**. The selected rows are **721–740**, with
-   **20 rows selected**.
-3. Expand **Show summary**. It says **Exact summary**, with mean, minimum, and
-   maximum of **40 °C**.
-4. Choose **Compare ranges**, select a second interval outside the warm section,
-   then **Show comparison**. Its temperature should be 20 °C.
+2. Choose **Inspect warm interval**. Rows **721–740** are selected on the rows and the
+   map.
+3. The summary line reads **20 readings · exact**, with mean, minimum, and maximum of
+   **40 °C**.
 
 ## 5. Change the experiment
 
-**Exercise:** change the selected range to `{ start: 719, end: 721 }`. It contains
-one 20 °C reading and one 40 °C reading, so the exact mean should be 30 °C.
+**Exercise:** change `WARM` to `{ start: 719, end: 721 }`. It contains one 20 °C
+reading and one 40 °C reading, so the exact mean should be 30 °C.
 
 When replacing generated readings with sensor measurements, decide how to represent
 missing minutes and invalid readings. Row addresses refer to the ordered records;

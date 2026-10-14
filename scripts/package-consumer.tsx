@@ -16,14 +16,23 @@ import {
   type Features,
 } from 'granum-grid';
 import { useGranumGrid as useHeadlessGrid, type Marker } from 'granum-grid/headless';
-import { createEngine, type NavigationController } from 'granum-grid/core';
-import { PageCache, acceptServerRevision, rangeProvider } from 'granum-grid/data';
+import { createEngine, readView, type NavigationController } from 'granum-grid/core';
+import { PageCache, checkBuckets, rangeProvider } from 'granum-grid/data';
 import { createRef, useMemo, useState } from 'react';
 // @ts-expect-error The engine and its adapters live in granum-grid/core, not the root entry.
 import type { GranumGridEngine } from 'granum-grid';
-// @ts-expect-error Server validation helpers live in granum-grid/data.
-import { serverActionIssue } from 'granum-grid';
-export const unusedRootImports: unknown[] = [serverActionIssue];
+// @ts-expect-error Cursor validation helpers live in granum-grid/data.
+import { acceptCursorWindow } from 'granum-grid';
+export const unusedRootImports: unknown[] = [acceptCursorWindow];
+export const removedRegions = (
+  <GranumGrid
+    provider={null!}
+    ariaLabel=""
+    renderRow={() => null}
+    // @ts-expect-error Bookmarks, range comparison, and hints are host features, not props.
+    tools
+  />
+);
 export type UnusedEngine = GranumGridEngine;
 // @ts-expect-error Map layers are AtlasRailOptions, not hook features.
 export const mapFeature: Partial<Features> = { overview: false };
@@ -69,7 +78,7 @@ export const example = (
     provider={provider}
     ariaLabel="Consumer fixture"
     {...appearance}
-    rail={atlas}
+    rail={{ ...atlas, selecting: false, onSelectingChange: (on) => on }}
     unstyled
     layout="embedded"
     initialView={{
@@ -81,11 +90,9 @@ export const example = (
     }}
     onSelectionChange={(range) => range?.start}
     onRowActivate={({ row, index, rowNumber }) => row.value + index + rowNumber}
-    tools={{
-      storageKey: 'consumer-bookmarks',
-      formatRange: ({ start, end }) => `${start + 1}–${end}`,
-    }}
-    hints={{ storageKey: 'consumer-hints' }}
+    panel={({ api }) => (
+      <button onClick={() => api.setSelection(api.getVisibleRange())}>Select visible rows</button>
+    )}
     stickyChapters
     dataMode="follow"
     cache={{ requestTimeoutMs: 5000 }}
@@ -247,5 +254,6 @@ const view: SavedView = {
 export const restored = decodeView(encodeView(view), provider);
 export const range = rangeProvider(provider, { start: 100, end: 200 });
 engine.appendRows(provider.rowCount + 10, true);
-export const accepted = acceptServerRevision;
+export const validated = readView(view, provider);
+export const buckets = checkBuckets([], { start: 0, end: 0, buckets: 1 });
 export const cursor = createCursorProvider;

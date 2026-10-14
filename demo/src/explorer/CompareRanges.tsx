@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useModalDialog } from './useModalDialog.js';
-import type { RowRange } from '../data/types.js';
-import type { GranumGridEngine } from '../core/engine.js';
-import { engineOf, type GranumGridApi } from '../core/api.js';
-import { rangeProvider } from '../data/range.js';
-import { GranumGrid, type GranumGridProps } from './GranumGrid.js';
-import { RangeSummary } from './RangeSummary.js';
+import { GranumGrid, type GranumGridApi, type GranumGridProps, type RowRange } from 'granum-grid';
+import { rangeProvider } from 'granum-grid/data';
+import { useModalDialog } from './hooks';
+import { RangeSummary } from './RangeSummary';
 
 /** The host explorer settings both comparison panes reuse. */
-type ComparisonHost<Row> = Pick<
+export type ComparisonHost<Row> = Pick<
   GranumGridProps<Row>,
   | 'provider'
   | 'rowHeight'
@@ -46,18 +43,24 @@ export function CompareRanges<Row>({
   );
   useModalDialog(dialog, true);
   useEffect(() => {
-    const l = left.current && engineOf(left.current),
-      r = right.current && engineOf(right.current);
+    const l = left.current,
+      r = right.current;
     if (!linked || !l || !r) return;
     let syncing = false;
-    const sync = (from: GranumGridEngine, to: GranumGridEngine) => {
+    const sync = (from: GranumGridApi<Row>, to: GranumGridApi<Row>) => {
       if (syncing) return;
       syncing = true;
       try {
-        // Unclamped, so a tall final row's fractional end carries over to the other pane.
+        // A saved view is the public way to place a pane at a fractional row address.
         const s = from.getSnapshot();
+        const count = to.getSnapshot().rowCount;
+        if (!count) return;
         const progress = s.position / Math.max(1, s.rowCount - 1);
-        to.scrub(progress * Math.max(0, to.getSnapshot().rowCount - 1));
+        const view = to.getView();
+        // A tall final row can end at a fractional address; a saved view stays below the count.
+        const position = Math.min(progress * Math.max(0, count - 1), count - 0.001);
+        if (view.location.position !== position)
+          to.restoreView({ ...view, location: { position }, selection: null });
       } finally {
         syncing = false;
       }
@@ -112,10 +115,8 @@ export function CompareRanges<Row>({
               classNames={host.classNames}
               styles={host.styles}
               toolbar={false}
-              tools={false}
               rail={false}
               footer={false}
-              hints={false}
               features={{ flight: false, automaticAggregation: false, prefetch: false }}
               reducedMotion
               header="Records in selected range"

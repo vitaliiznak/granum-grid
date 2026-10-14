@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { Bucket, DataProvider, RowRange } from '../data/types.js';
-import { checkBuckets } from '../data/bounds.js';
-import { formatMetric, rangeAddress, rangeCount } from '../visuals/format.js';
+import type { Bucket, DataProvider, RowRange } from 'granum-grid';
+import { checkBuckets } from 'granum-grid/data';
+import { formatMetric, rangeAddress, rangeCount } from './format';
 
 /** Exact or estimated statistics for one range, loaded from the provider's aggregates. */
 function useSummary<Row>(provider: DataProvider<Row>, range: RowRange | null) {

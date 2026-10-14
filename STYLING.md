@@ -68,7 +68,7 @@ Use CSS Modules, utility class strings, ordinary classes, or inline styles:
 />
 ```
 
-`classNames` and `styles` accept `toolbar`, `header`, `body`, `viewport`, `row`, `rail`, `footer`, `jump`, and `hint`. Types are exported as `GranumGridPart` and `GranumGridAppearance`. The corresponding elements have stable `data-ds-part` attributes. Rows expose `data-focused` and `data-status="ready|loading|error"`. The root exposes `data-theme`, `data-motion`, and `data-unstyled`.
+`classNames` and `styles` accept `toolbar`, `header`, `body`, `viewport`, `row`, `rail`, `footer`, and `jump`. Types are exported as `GranumGridPart` and `GranumGridAppearance`. The corresponding elements have stable `data-ds-part` attributes. Rows expose `data-focused` and `data-status="ready|loading|error"`. The root exposes `data-theme`, `data-motion`, and `data-unstyled`.
 
 The virtualizer owns row position, transform, height, minimum height, and border-box sizing. These are inline geometry styles; style the row's content instead of overriding them. Enable `dynamicRowHeight` for content-driven heights and put padding inside rows. Always give the explorer or headless viewport a bounded height.
 
@@ -138,19 +138,18 @@ Compact layout shows numbers instead of marker names (a marker's place in row or
 
 These options are the only switches for map layers; the hook's `features` cover motion and data, not the map. Hiding a layer does not disable provider metadata loading. The current-row handle and explicit range selection stay visible independently of these layer options.
 
-For composition, pass the same options straight to the widget: `<AtlasRail grid={grid} {...mapOptions} />`. The rail is controlled: `highlights` draws extra places such as search results, and `selecting` with `onSelectingChange` turns a drag into a range selection. Configuration changes preserve the current row and history. `rail={false}` hides the map; a function as `rail`, or the headless hook, replaces it entirely.
+For composition, pass the same options straight to the widget: `<AtlasRail grid={grid} {...mapOptions} />`. The rail is controlled: `highlights` draws extra places such as search results, and `selecting` with `onSelectingChange` turns a drag into a range selection; on the component, pass them as `rail` options from your own "Select rows" control. Configuration changes preserve the current row and history. `rail={false}` hides the map; a function as `rail`, or the headless hook, replaces it entirely.
 
 ## Use your React controls
 
-Every explorer region is one prop with one rule: `false` hides it, an options object configures the built-in part, and a function renders your own. `toolbar`, `rail`, and `footer` accept functions, which receive the hook state (`GranumGridState<Row>`) with its `api` handle; `tools` and `hints` accept `false` or options.
+Every explorer region is one prop with one rule: `false` hides it, an options object configures the built-in part, and a function renders your own. `toolbar`, `rail`, and `footer` accept functions, which receive the hook state (`GranumGridState<Row>`) with its `api` handle. `panel` has no built-in part: it holds your own content between the toolbar and the rows, such as selection or bookmark tools.
 
 | Region    | Options object                          | Function                                    |
 | --------- | --------------------------------------- | ------------------------------------------- |
 | `toolbar` | `{ actions, fullPageUrl }`              | `(grid) => ReactNode`                       |
-| `tools`   | `{ storageKey, formatRange }`           | —                                           |
+| `panel`   | Your element                            | `(grid) => ReactNode`, called every frame   |
 | `rail`    | `AtlasRailOptions`, including `actions` | `(grid, rail: AtlasRailProps) => ReactNode` |
 | `footer`  | —                                       | `(grid) => ReactNode`                       |
-| `hints`   | `{ storageKey }`                        | —                                           |
 
 Open the built-in search dialog with `api.openSearch()`. A `rail` function also receives the built-in map's props as a second argument; spread them to wrap or adjust the map while keeping search highlights and map selection: `rail={(_, rail) => <AtlasRail {...rail} layout="expanded" />}`. The example `Button` below is your application's component; it can come from a React UI library or wrap a native button.
 

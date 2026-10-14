@@ -10,7 +10,7 @@ import {
   type RowRenderContext,
   type RowActivationContext,
 } from 'granum-grid';
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { MapSettings } from './MapSettings';
 import { DEMO_SWITCHES, DebugTools, switchFeatures, switchMap } from './DebugTools';
 import { DemoLimitations } from './DemoLimitations';
@@ -26,6 +26,7 @@ import { findDataset } from './datasets';
 import { stopWorker } from './data/worker-client';
 import { DEFAULT_LATENCY, setLatency } from './data/latency';
 import { TraceImport } from './TraceImport';
+import { useExplorerTools } from './explorer';
 import { performance as bundledPerformance } from './datasets/performance';
 import type { DemoDataset } from './datasets';
 
@@ -117,6 +118,29 @@ export default function App() {
       }),
     [dataset, dynamic, expanded, toggleExpanded, showRow],
   );
+  const rowClassNames = useMemo(
+    () => ({ row: isSignal ? 'signal-row' : `demo-row ${dataset.id}-row` }),
+    [isSignal, dataset.id],
+  );
+  const dynamicRowHeight = isSignal && dynamic;
+  const comparison = useMemo(
+    () => ({
+      provider,
+      rowHeight: dataset.rowHeight,
+      dynamicRowHeight,
+      theme,
+      classNames: rowClassNames,
+      renderRow,
+    }),
+    [provider, dataset.rowHeight, dynamicRowHeight, theme, rowClassNames, renderRow],
+  );
+  // Selection, bookmarks, comparison, and hints are playground features on the public API.
+  const tools = useExplorerTools(provider, {
+    comparison,
+    storageKey: isImported ? undefined : `deepscroll-demo:${providerKey}`,
+    formatRange: dataset.formatRange,
+    hints: switches.hints && { storageKey: 'deepscroll-hints-v1' },
+  });
   const atlasSettings = datasetMapSettings[dataset.id] ?? {};
   const changeMapSettings = (patch: AtlasRailOptions) =>
     setDatasetMapSettings((current) => ({
@@ -252,11 +276,8 @@ export default function App() {
           if (pageMode && api.current)
             history.replaceState(null, '', pageUrl(dataset.id, encodeView(api.current.getView())));
         }}
-        tools={{
-          storageKey: isImported ? undefined : `deepscroll-demo:${providerKey}`,
-          formatRange: dataset.formatRange,
-        }}
-        hints={switches.hints && { storageKey: 'deepscroll-hints-v1' }}
+        panel={tools.panel}
+        markers={tools.markers}
         stickyChapters
         toolbar={{
           fullPageUrl:
@@ -317,6 +338,7 @@ export default function App() {
         cache={dataset.cache}
         rail={{
           ...switchMap(atlas, switches),
+          ...tools.rail,
           actions: (
             <MapSettings
               value={atlas}
@@ -329,7 +351,7 @@ export default function App() {
         ariaLabel={dataset.ariaLabel}
         header={dataset.header}
         rowHeight={dataset.rowHeight}
-        dynamicRowHeight={isSignal && dynamic}
+        dynamicRowHeight={dynamicRowHeight}
         initialIndex={dataset.initialIndex}
         initialView={initialView}
         apiRef={api}
@@ -338,7 +360,7 @@ export default function App() {
         reducedMotion={reduced ? true : 'system'}
         onStats={setStats}
         className={`demo-explorer dataset-${dataset.id}`}
-        classNames={{ row: isSignal ? 'signal-row' : `demo-row ${dataset.id}-row` }}
+        classNames={rowClassNames}
         renderRow={renderRow}
         onRowActivate={
           dataset.renderDetails ? (record) => setInspected({ providerKey, record }) : undefined

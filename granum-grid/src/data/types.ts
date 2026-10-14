@@ -67,45 +67,6 @@ export interface SearchHelp {
   }[];
 }
 /**
- * A column the server is willing to sort, filter, or edit. The library does not read
- * these fields from row values. `sortable`, `filterable`, and `editable` are opt-in.
- */
-export interface ServerColumn {
-  id: string;
-  label: string;
-  type: 'text' | 'number' | 'time' | 'boolean';
-  sortable?: boolean;
-  filterable?: boolean;
-  editable?: boolean;
-}
-export interface SortKey {
-  columnId: string;
-  direction: 'asc' | 'desc';
-}
-export type FilterOperator = '>' | '>=' | '<' | '<=' | '=' | '!=' | 'contains';
-/** A constraint the server applies by publishing a new ordered revision. */
-export interface ColumnFilter {
-  columnId: string;
-  operator: FilterOperator;
-  value: string | number | boolean;
-}
-/** Replace the opaque row at one address. The server decides whether addresses move. */
-export interface RowEdit<Row> {
-  index: number;
-  row: Row;
-}
-/** Change one server-declared editable column at one address. */
-export interface ColumnEdit {
-  index: number;
-  columnId: string;
-  value: string | number | boolean;
-}
-export type ServerAction<Row> =
-  | { kind: 'sort'; keys: readonly SortKey[] }
-  | { kind: 'filter'; filters: readonly ColumnFilter[] }
-  | { kind: 'edit'; edit: RowEdit<Row> | ColumnEdit };
-
-/**
  * One server page. `cursor` is an opaque position in the current revision; null asks
  * for the first row. `windowSize` is the maximum number of rows, not a request to
  * read the dataset.
@@ -124,28 +85,22 @@ export interface CursorWindow<Row> {
 }
 
 /**
- * Server-owned operations for a large ordered dataset. The explorer does not call
- * these methods and does not reorder or scan rows. Reads return one cursor window.
- * Sort, filter, and edit return the next ordered revision: the same `id` and a new
- * `revision`.
+ * A server that pages with an opaque cursor. `createCursorProvider` seeks with `cursorAt`
+ * and reads windows until a requested slice is full; it never walks the revision.
  */
-export interface ServerDataset<Row> {
-  columns(signal: AbortSignal): Promise<readonly ServerColumn[]> | readonly ServerColumn[];
+export interface CursorSource<Row> {
   /** Opaque cursor that opens a window at this address. Null is valid only at address 0. */
   cursorAt(index: number, signal: AbortSignal): Promise<string | null>;
   fetchWindow(query: CursorWindowQuery, signal: AbortSignal): Promise<CursorWindow<Row>>;
-  sort?(keys: readonly SortKey[], signal: AbortSignal): Promise<DataProvider<Row>>;
-  filter?(filters: readonly ColumnFilter[], signal: AbortSignal): Promise<DataProvider<Row>>;
-  edit?(edit: RowEdit<Row> | ColumnEdit, signal: AbortSignal): Promise<DataProvider<Row>>;
 }
 
 /**
  * An ordered, index-addressable dataset. Row is opaque to the library: no required
  * fields, numeric values, timestamps, or JSON representation. The host renders it.
  * Only identity, revision, a known row count, and ordered slice fetching are required.
- * Sorting, filtering, and editing are `ServerDataset` operations: the server publishes
- * the next revision, and this provider only fetches slices of that order. A server
- * that pages with a cursor and a window size can satisfy `fetchRows` through
+ * Sorting, filtering, and editing belong to the server: it publishes a new provider with
+ * the same `id` and a new `revision`, and this provider only fetches slices of one order.
+ * A server that pages with a cursor and a window size can satisfy `fetchRows` through
  * `createCursorProvider`.
  */
 export interface DataProvider<Row> {

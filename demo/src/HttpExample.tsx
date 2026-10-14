@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import {
   GranumGrid,
   decodeView,
   encodeView,
   type DataProvider,
   type GranumGridApi,
+  type RowRenderContext,
   type SavedView,
 } from 'granum-grid';
 import { connectHttpTrace, type RequestMeasurement } from './data/http-trace';
 import type { TraceRow } from './data/trace';
+import { useExplorerTools } from './explorer';
 
 export function HttpExample() {
   const [provider, setProvider] = useState<DataProvider<TraceRow> | null>(null);
@@ -106,44 +108,68 @@ export function HttpExample() {
               This saved view does not match the recording. Showing the beginning.
             </p>
           )}
-          <GranumGrid
-            provider={provider}
-            apiRef={api}
-            ariaLabel="HTTP recording events"
-            rowHeight={40}
-            initialView={shared}
-            tools={{ storageKey: 'http-trace-views' }}
-            hints={false}
-            reducedMotion
-            header={
-              <>
-                <span>Event</span>
-                <span>Start (ms)</span>
-                <span>Duration (ms)</span>
-              </>
-            }
-            className="http-explorer"
-            styles={{
-              row: {
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 2fr) 1fr 1fr',
-                gap: 12,
-                padding: '8px 12px',
-              },
-            }}
-            renderRow={({ row }) => (
-              <>
-                <span role="gridcell" title={row.name}>
-                  {row.name}
-                </span>
-                <span role="gridcell">{row.time.toFixed(2)}</span>
-                <span role="gridcell">{row.duration.toFixed(2)}</span>
-              </>
-            )}
-          />
+          <HttpExplorer provider={provider} api={api} initialView={shared} />
         </>
       )}
       <a href="./tutorials.html?lesson=compose">Continue to the next lesson →</a>
     </main>
+  );
+}
+
+const rowStyles: { row: CSSProperties } = {
+  row: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 2fr) 1fr 1fr',
+    gap: 12,
+    padding: '8px 12px',
+  },
+};
+const renderTraceRow = ({ row }: RowRenderContext<TraceRow>) => (
+  <>
+    <span role="gridcell" title={row.name}>
+      {row.name}
+    </span>
+    <span role="gridcell">{row.time.toFixed(2)}</span>
+    <span role="gridcell">{row.duration.toFixed(2)}</span>
+  </>
+);
+
+/** The explorer with the playground's selection, bookmark, and comparison tools. */
+function HttpExplorer({
+  provider,
+  api,
+  initialView,
+}: {
+  provider: DataProvider<TraceRow>;
+  api: RefObject<GranumGridApi<TraceRow> | null>;
+  initialView: SavedView | null;
+}) {
+  const comparison = useMemo(
+    () => ({ provider, rowHeight: 40, styles: rowStyles, renderRow: renderTraceRow }),
+    [provider],
+  );
+  const tools = useExplorerTools(provider, { comparison, storageKey: 'http-trace-views' });
+  return (
+    <GranumGrid
+      provider={provider}
+      apiRef={api}
+      ariaLabel="HTTP recording events"
+      rowHeight={40}
+      initialView={initialView}
+      panel={tools.panel}
+      markers={tools.markers}
+      rail={tools.rail}
+      reducedMotion
+      header={
+        <>
+          <span>Event</span>
+          <span>Start (ms)</span>
+          <span>Duration (ms)</span>
+        </>
+      }
+      className="http-explorer"
+      styles={rowStyles}
+      renderRow={renderTraceRow}
+    />
   );
 }

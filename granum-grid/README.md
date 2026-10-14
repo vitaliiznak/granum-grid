@@ -2,6 +2,8 @@
 
 A React + TypeScript explorer for very large indexed datasets. A floating row address drives a bounded viewport, avoiding browser element-height limits. A dataset map shows the shape of the data, chapters, events, and your position.
 
+It is a reading surface, not a spreadsheet. There is no column model, sorting, filtering, editing, bookmark store, or range comparison: ordering belongs to your server, and app features belong to your app. The [playground](https://vitaliiznak.github.io/granum-grid/) builds bookmarks, range comparison, and selection summaries on this API in [`demo/src/explorer`](https://github.com/vitaliiznak/granum-grid/tree/main/demo/src/explorer).
+
 ## Install
 
 React and React DOM 18.2–19 are peer dependencies; there are no other runtime dependencies. The package ships ESM JavaScript and TypeScript declarations; use an ESM-capable bundler and TypeScript 5+ for typed consumers. CommonJS `require()` is not supported.
@@ -44,7 +46,7 @@ No stylesheet is imported automatically: choose `granum-grid/styles.css` for the
 
 1. **A provider describes the data.** `{ id, revision, rowCount, fetchRows }` is enough; optional methods add the overview, markers, chapters, and search. `createArrayProvider` and `createCursorProvider` build one from an array or a cursor-paged server.
 2. **The component needs three props.** `provider`, `ariaLabel`, and `renderRow`. Everything else has a default.
-3. **Each explorer region follows one rule.** `toolbar`, `tools`, `rail`, `footer`, and `hints` take `false` to hide the region, an options object to configure it, or, for `toolbar`, `rail`, and `footer`, a function that renders your own:
+3. **Each explorer region follows one rule.** `toolbar`, `rail`, and `footer` take `false` to hide the region, an options object to configure it, or a function that renders your own. `panel`, between the toolbar and the rows, is empty until you fill it:
 
    ```tsx
    <GranumGrid
@@ -53,12 +55,12 @@ No stylesheet is imported automatically: choose `granum-grid/styles.css` for the
      renderRow={renderRow}
      toolbar={{ actions: <ExportButton /> }} // configure the built-in toolbar
      rail={{ variant: 'markers', layout: 'compact' }} // configure the dataset map
-     tools={false} // hide selection, bookmarks, and comparison
+     panel={<SavedFilters />} // your own controls above the rows
      footer={({ snapshot }) => <MyStatus rows={snapshot.rowCount} />} // replace
    />
    ```
 
-4. **One handle acts on the mounted explorer.** `apiRef` on the component and `api` on the hook hold the same `GranumGridApi`: `goTo`, `scrollToIndex`, `back`/`forward`, marker and chapter steps, `getSelection`/`setSelection`, `getView`/`restoreView`, `openSearch`, `retry`, plus `getSnapshot`, `subscribe`, and `onNavigate` for continuous state. Pass a decoded view back as `initialView` to reopen a shared place.
+4. **One handle acts on the mounted explorer.** `apiRef` on the component and `api` on the hook hold the same `GranumGridApi`: `goTo`, `scrollToIndex`, `back`/`forward`, marker and chapter steps, `getSelection`/`setSelection`, `getVisibleRange`, `getView`/`restoreView`, `openSearch`, `retry`, plus `getSnapshot`, `subscribe`, and `onNavigate` for continuous state. Pass a decoded view back as `initialView` to reopen a shared place.
 
 ```tsx
 function Readings() {
@@ -83,7 +85,7 @@ function Readings() {
 | Data                | `dataMode` (`snapshot`, `append`, `follow`), `cache`                                                    |
 | Place and selection | `apiRef`, `initialIndex`, `initialView`, `selection`, `onSelectionChange`, `markers`                    |
 | Events              | `onNavigate`, `onRowActivate`, `onStats`                                                                |
-| Regions             | `toolbar`, `tools`, `rail`, `footer`, `hints`, `stickyChapters`                                         |
+| Regions             | `toolbar`, `panel`, `rail`, `footer`, `stickyChapters`                                                  |
 | Behavior            | `layout` (`embedded`, `page`), `features`, `reducedMotion`                                              |
 | Appearance          | `theme`, `unstyled`, `className`, `style`, `classNames`, `styles`                                       |
 
@@ -106,8 +108,8 @@ Widgets take the hook's result as `grid`: `<AtlasRail grid={grid} />` accepts th
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `granum-grid`            | `GranumGrid`, `useGranumGrid`, `AtlasRail`, `JumpBar`, `ViewCanvas`, `createArrayProvider`, `createCursorProvider`, `encodeView`, `decodeView`, `defaultFeatures`, and public types                                           |
 | `granum-grid/headless`   | `useGranumGrid`, `defaultFeatures`, and the hook, handle, provider, and navigation types; no components or CSS                                                                                                                |
-| `granum-grid/core`       | Framework-independent engine (`createEngine`), coordinate mappings, saved-view encoding, and `validRange`                                                                                                                     |
-| `granum-grid/data`       | Provider types, `PageCache`, `DataSession`, `rangeProvider`, `createArrayProvider`, `createCursorProvider`, and the server helpers `acceptServerRevision`, `acceptCursorWindow`, `cursorWindowIssue`, and `serverActionIssue` |
+| `granum-grid/core`       | Framework-independent engine (`createEngine`), coordinate mappings, saved-view encoding and validation (`readView`), and `validRange`                                                                                        |
+| `granum-grid/data`       | Provider types, `PageCache`, `DataSession`, `rangeProvider`, `createArrayProvider`, `createCursorProvider`, `checkBuckets`, and the cursor helpers `acceptCursorWindow` and `cursorWindowIssue`                              |
 | `granum-grid/base.css`   | Structural layout only                                                                                                                                                                                                        |
 | `granum-grid/styles.css` | Optional skin and `--ds-*` theme variables; includes base layout                                                                                                                                                              |
 
@@ -123,7 +125,7 @@ Chrome and Edge 100+, Firefox 104+, and Safari/iOS Safari 15.4+. This is the flo
 ## Documentation
 
 - [Quick start](https://github.com/vitaliiznak/granum-grid/blob/main/docs/QUICK_START.md): install, first explorer, array and HTTP providers, custom controls.
-- [Integration guide](https://github.com/vitaliiznak/granum-grid/blob/main/docs/GUIDE.md): provider rules, server actions, search, dynamic heights, selection statistics, saved views, page layout, live feeds, limits and defaults, and the host integration API.
+- [Integration guide](https://github.com/vitaliiznak/granum-grid/blob/main/docs/GUIDE.md): provider rules, server-owned ordering, search, dynamic heights, selection and host tools, saved views, page layout, live feeds, limits and defaults, and the host integration API.
 - [Styling](https://github.com/vitaliiznak/granum-grid/blob/main/STYLING.md): themes, CSS hooks, the dataset map, custom controls, and headless layouts.
 - [Scope and current limits](https://github.com/vitaliiznak/granum-grid/blob/main/README.md#scope-and-current-limits) and the [documentation home](https://github.com/vitaliiznak/granum-grid/blob/main/docs/README.md).
 - [Live demo](https://vitaliiznak.github.io/granum-grid/) and [tutorial wiki](https://github.com/vitaliiznak/granum-grid/wiki).
