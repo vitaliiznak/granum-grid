@@ -8,7 +8,8 @@
       "granum-grid/headless": ["./granum-grid/src/headless.ts"],
       "granum-grid/core": ["./granum-grid/src/core/index.ts"],
       "granum-grid/data": ["./granum-grid/src/data/index.ts"],
-      "@granum/parquet": ["./packages/parquet/src/index.ts"]
+      "@granum/parquet": ["./packages/parquet/src/index.ts"],
+      "@granum/sql": ["./packages/sql/src/index.ts"]
     }
   }
 }

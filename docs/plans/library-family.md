@@ -279,8 +279,13 @@ Exit: no behavior change besides the cuts, and budgets enforced.
    object, and `file.largestRowGroupBytes` and `file.pageIndex` let the playground say
    what a jump costs. `test:package` installs its tarball beside `granum-grid` and reads
    the fixture through it; its budget is 3.3 KiB with hyparquet external.
-3. `@granum/sql`, with unit tests against DuckDB on Node (`@duckdb/node-api`) and a
-   browser test that uses a fixture file.
+3. Done 2026-10-14 (browser test pending with the demo): `@granum/sql` in `packages/sql`.
+   `createSqlSource({ query, id, from })` describes columns; `open(view)` builds a revision
+   table and returns a provider addressed by `rowid`, with exact overview and aggregates,
+   wrapping search (text, predicates, dates), peaks, and chapters only when each period is
+   contiguous. Ten unit tests run against DuckDB 1.5 on Node (`@duckdb/node-api`
+   1.5.6-r.1, pinned); `test:package` checks the tarball with a stand-in database. Budget
+   3.8 KiB.
 4. Demo: Open anything, filter and sort as revisions, links to a row, show the provider.
 
 Exit: a local file shows rows and an exact map with ten lines of host code or fewer, SQL

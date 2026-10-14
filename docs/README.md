@@ -17,6 +17,8 @@ has working code and checkpoints. For a direct setup recipe, use the
 | Learn through different datasets                | [Lessons](wiki/Home.md)                                                                                                                             |
 | Adapt an existing array                         | [Array recipe](QUICK_START.md#use-your-own-array)                                                                                                   |
 | Load data from my server                        | [HTTP provider recipe](QUICK_START.md#connect-an-http-api) and [provider rules](GUIDE.md#provider-contract)                                         |
+| Read a Parquet file with no server              | [`@granum/parquet`](../packages/parquet/README.md)                                                                                                  |
+| Query SQL or a local file with an exact map     | [`@granum/sql`](../packages/sql/README.md)                                                                                                          |
 | Sort, filter, or edit on the server             | [Server-owned ordering](GUIDE.md#server-owned-ordering)                                                                                             |
 | Add search or dataset summaries                 | [Provider capabilities](GUIDE.md#provider-capabilities), [search](GUIDE.md#search), and [host tools](GUIDE.md#selection-and-host-tools)             |
 | Navigate from my own buttons                    | [Custom controls](QUICK_START.md#build-custom-controls) and the [integration interface](GUIDE.md#integration-interface)                             |

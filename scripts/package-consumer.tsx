@@ -19,6 +19,7 @@ import { useGranumGrid as useHeadlessGrid, type Marker } from 'granum-grid/headl
 import { createEngine, readView, type NavigationController } from 'granum-grid/core';
 import { PageCache, checkBuckets, rangeProvider } from 'granum-grid/data';
 import { createParquetProvider, type ParquetRow } from '@granum/parquet';
+import { createSqlSource, type SqlProvider, type SqlRow } from '@granum/sql';
 import { createRef, useMemo, useState } from 'react';
 // @ts-expect-error The engine and its adapters live in granum-grid/core, not the root entry.
 import type { GranumGridEngine } from 'granum-grid';
@@ -266,3 +267,13 @@ export const parquetRows = (
     renderRow={({ row }: { row: ParquetRow }) => String(row.id)}
   />
 );
+export const sqlSource = createSqlSource({ query: async () => [], id: 'items', from: 'items' });
+export function SqlRows({ provider }: { provider: SqlProvider }) {
+  return (
+    <GranumGrid
+      provider={provider}
+      ariaLabel="SQL rows"
+      renderRow={({ row }: { row: SqlRow }) => String(row.id)}
+    />
+  );
+}

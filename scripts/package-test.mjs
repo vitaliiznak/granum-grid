@@ -19,6 +19,7 @@ const manifest = JSON.parse(readFileSync(join(root, 'granum-grid/package.json'),
 const parquetManifest = JSON.parse(
   readFileSync(join(root, 'packages/parquet/package.json'), 'utf8'),
 );
+const sqlManifest = JSON.parse(readFileSync(join(root, 'packages/sql/package.json'), 'utf8'));
 const temporary = mkdtempSync(join(tmpdir(), 'granum-grid-package-'));
 
 function npm(args, cwd = root) {
@@ -81,19 +82,25 @@ try {
     assert.ok(!/(^|\/)(?:tests?|node_modules|demo|media)(\/|\.)/.test(path), path);
   }
 
-  const parquetPacked = pack('packages/parquet');
-  assert.equal(parquetPacked.name, parquetManifest.name);
-  assert.equal(parquetPacked.version, parquetManifest.version);
-  assert.deepEqual(Object.keys(parquetManifest.exports), ['.']);
-  for (const { path } of parquetPacked.files)
-    assert.match(
-      path,
-      /^(?:package\.json|README\.md|LICENSE|(?:dist|src)\/[^.].*\.(?:js|map|ts))$/,
-      `Unexpected packed file in ${parquetManifest.name}: ${path}`,
-    );
+  // Adapters ship only their entry, declarations, maps, and source.
+  const adapters = [parquetManifest, sqlManifest].map((adapter) => {
+    const adapterPacked = pack(`packages/${adapter.name.split('/')[1]}`);
+    assert.equal(adapterPacked.name, adapter.name);
+    assert.equal(adapterPacked.version, adapter.version);
+    assert.deepEqual(Object.keys(adapter.exports), ['.']);
+    for (const { path } of adapterPacked.files)
+      assert.match(
+        path,
+        /^(?:package\.json|README\.md|LICENSE|(?:dist|src)\/[^.].*\.(?:js|map|ts))$/,
+        `Unexpected packed file in ${adapter.name}: ${path}`,
+      );
+    return adapterPacked;
+  });
+  const [parquetPacked, sqlPacked] = adapters;
 
   const archive = join(temporary, packed.filename);
   const parquetArchive = join(temporary, parquetPacked.filename);
+  const sqlArchive = join(temporary, sqlPacked.filename);
   const installedVersion = (name) => lock.packages[`node_modules/${name}`].version;
   const consumers = [
     {
@@ -123,6 +130,7 @@ try {
         dependencies: {
           [manifest.name]: `file:${archive}`,
           [parquetManifest.name]: `file:${parquetArchive}`,
+          [sqlManifest.name]: `file:${sqlArchive}`,
           hyparquet: installedVersion('hyparquet'),
           'hyparquet-compressors': installedVersion('hyparquet-compressors'),
           react: consumer.react,
@@ -169,6 +177,7 @@ try {
     for (const fixture of [
       'package-smoke.mjs',
       'package-parquet-smoke.mjs',
+      'package-sql-smoke.mjs',
       'package-consumer.tsx',
     ]) {
       copyFileSync(join(root, 'scripts', fixture), join(cwd, fixture));
@@ -179,6 +188,7 @@ try {
     );
     execFileSync(process.execPath, ['package-smoke.mjs'], { cwd, stdio: 'inherit' });
     execFileSync(process.execPath, ['package-parquet-smoke.mjs'], { cwd, stdio: 'inherit' });
+    execFileSync(process.execPath, ['package-sql-smoke.mjs'], { cwd, stdio: 'inherit' });
     for (const mode of [
       ['--module', 'NodeNext'],
       ['--module', 'ESNext', '--moduleResolution', 'Bundler'],
@@ -205,7 +215,7 @@ try {
   }
   const output = join(root, 'output');
   mkdirSync(output, { recursive: true });
-  for (const verified of [packed, parquetPacked]) {
+  for (const verified of [packed, ...adapters]) {
     copyFileSync(join(temporary, verified.filename), join(output, verified.filename));
     console.log(
       `Verified output/${verified.filename}: ${verified.files.length} files, ${Math.ceil(verified.size / 1024)} KiB packed.`,

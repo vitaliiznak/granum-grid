@@ -23,6 +23,7 @@ browser debugging, and handoffs. No API key, backend, or AI service is needed.
 | DOM input, keys, event targets          | `granum-grid/src/dom/` (framework-free)                                                    |
 | Map drawing, peaks, number formats      | `granum-grid/src/map/` (framework-free)                                                    |
 | React, layout, styles                   | `granum-grid/src/react/`, `granum-grid/src/base.css`, `styles.css`, `STYLING.md`           |
+| Data adapter packages                   | `packages/parquet/` (`@granum/parquet`), `packages/sql/` (`@granum/sql`)                   |
 | Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                 |
 | Screenshots and video                   | `media/README.md`, `media/scripts/capture.mjs`                                             |
 | Packaging, consumers, size budgets      | `scripts/build-package.mjs`, `package-test.mjs`, `size.mjs`, `docs/PUBLISHING.md`          |

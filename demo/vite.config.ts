@@ -18,7 +18,7 @@ export const granumGridSource = [
   { find: /^granum-grid\/(core|data)$/, replacement: source('$1/index.ts') },
   { find: /^granum-grid\/headless$/, replacement: source('headless.ts') },
   { find: /^granum-grid\/(base|styles)\.css$/, replacement: source('$1.css') },
-  { find: /^@granum\/parquet$/, replacement: packageSource('parquet') },
+  { find: /^@granum\/(parquet|sql)$/, replacement: packageSource('$1') },
 ];
 
 export default defineConfig({

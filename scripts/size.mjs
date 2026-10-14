@@ -14,6 +14,7 @@ const BUDGETS = {
   'granum-grid/core': 3_700,
   'granum-grid/data': 4_100,
   '@granum/parquet': 3_500,
+  '@granum/sql': 4_000,
   'base.css': 16_100,
   'styles.css': 19_500,
 };
@@ -25,6 +26,7 @@ const scripts = {
   'granum-grid/core': `${dist}core/index.js`,
   'granum-grid/data': `${dist}data/index.js`,
   '@granum/parquet': `${workspace}packages/parquet/dist/index.js`,
+  '@granum/sql': `${workspace}packages/sql/dist/index.js`,
 };
 const sizes = {};
 for (const [entry, file] of Object.entries(scripts)) {

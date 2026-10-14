@@ -14,7 +14,7 @@
     "media:screenshots": "node media/scripts/capture.mjs screenshots",
     "media:video": "node media/scripts/capture.mjs video",
     "media:all": "node media/scripts/capture.mjs all",
-    "build": "npm run build -w granum-grid && npm run build -w packages/parquet && npm run build -w demo",
+    "build": "npm run build -w granum-grid && npm run build -w packages/parquet -w packages/sql && npm run build -w demo",
     "ai:doctor": "node scripts/ai-doctor.mjs",
     "record:trace": "node scripts/record-demo-trace.mjs",
     "typecheck": "tsc -p tsconfig.check.json",

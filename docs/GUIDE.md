@@ -148,6 +148,18 @@ with very large row groups and no page index costs far more per jump. The map's 
 come exact from the footer's statistics; its line reads one row group per map group and
 is labeled sampled.
 
+### SQL with an exact map: `@granum/sql`
+
+[`@granum/sql`](../packages/sql/README.md) turns any relation DuckDB can read (a table, a
+Parquet or CSV file, a query) into providers. The host passes one `query(sql, params,
+signal)` function; the package builds every statement. Each view (filters, a trusted
+`whereSql`, and a sort order) becomes a revision: its rows are copied in order into a
+temporary table, so `fetchRows` is a `rowid` range scan, the overview and range statistics
+are exact, and search reads every row, wrapping from the current row. Opening a view is
+the expensive step (one read and sort of the source); keep the number of kept revisions
+small (`keepRevisions`, default 3). With DuckDB-WASM this needs no server; with a server,
+expose a narrow endpoint rather than raw SQL.
+
 ## Search
 
 **Go to…** (Cmd/Ctrl+K inside the explorer, or `/` in the viewport) resolves some input
