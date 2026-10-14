@@ -1,5 +1,5 @@
 import type { AtlasRailOptions } from 'granum-grid';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { DemoDataset } from './datasets';
 
 export function MapSettings({
@@ -37,8 +37,15 @@ export function MapSettings({
     panel.current?.hidePopover();
     trigger.current?.focus();
   };
+  // A setting such as the width moves the trigger; follow it in the same frame instead of
+  // jumping on the next scroll.
+  useLayoutEffect(() => {
+    if (open) positionPanel();
+  });
   useEffect(() => {
-    const reposition = () => {
+    const reposition = (event: Event) => {
+      // Scrolling the panel's own content does not move its trigger.
+      if (event.target instanceof Node && panel.current?.contains(event.target)) return;
       if (panel.current?.matches(':popover-open')) positionPanel();
     };
     window.addEventListener('resize', reposition);
