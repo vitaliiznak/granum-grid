@@ -81,13 +81,19 @@ their own files.
 On 2026-10-14, after steps 1, 2, and the step 4 changes: `npm run format:check`,
 `npm run lint`, `npm run check` (140 unit tests, including 8 for the Parquet reader),
 `npm run release:check` (builds and React 18.2 and 19 tarball consumers, with new
-assertions that three props render no toolbar, heading row, or footer), `npm run
-media:build`, `npm run build:wiki`, the full Chromium browser suite, and the new
-`defaults` and `parquet` specs in Firefox and WebKit. The `defaults` spec fails on the
-previous library code. `npm publish --dry-run` lists 237 files, 176 kB, library only.
-The Parquet browser tests serve a fixture through `page.route`; the FineWeb numbers come
-from manual runs against Hugging Face. Not run: native Safari, physical touch devices, a
-screen reader, hosted CI, or npm publication.
+assertions that three props render no toolbar, heading row, or footer),
+`npm run media:build`, `npm run build:wiki`, and the whole browser suite in Chromium,
+Firefox, and WebKit (174 passed, 4 skipped by configuration). The `defaults` spec fails
+on the previous library code. `npm publish --dry-run` lists 237 files, 176 kB, library
+only. The Parquet browser tests serve a fixture through `page.route`; the FineWeb numbers
+come from manual runs against Hugging Face. Not run: native Safari, physical touch
+devices, a screen reader, or npm publication.
+
+Hosted CI had failed on every push since before this work: three Firefox `map-gravity`
+tests timed out because the Config panel moved under the pointer, and their retries ran
+the suite past its 10-minute limit, so WebKit never ran and Pages never deployed. The run
+for the rewritten `main` failed the same way; the panel fix after it passes those tests
+locally in all three browsers.
 
 ## Next action
 
