@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GranumGrid, type DataProvider } from 'granum-grid';
+import { DetailsIndicator } from './Showcase';
 
 function Feed() {
   const [count, setCount] = useState(200),
@@ -57,7 +58,10 @@ export function LiveExample() {
   return (
     <details className="integration" onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary>
-        Try a live feed <small>Append rows while preserving your place</small>
+        <span className="integration-title">
+          Try a live feed <small>Append rows while preserving your place</small>
+        </span>
+        <DetailsIndicator />
       </summary>
       {open && (
         <div className="playground-inner">

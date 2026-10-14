@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import type { Bucket, RowRange } from '../data/types.js';
 import type { GranumGridState } from './useGranumGrid.js';
-import { formatDecimal, rangeAddress, rangeCount } from '../visuals/format.js';
+import { rangeAddress, rangeCount } from '../visuals/format.js';
+import { atlasDomain } from '../visuals/atlas.js';
+import { AggregatePlot } from './AggregatePlot.js';
 
 export interface AggregateRenderContext {
   /** Provider-supplied summary. Accuracy and missing values must remain visible. */
@@ -23,6 +25,7 @@ export function AggregateLayer<Row>({
   formatBucketSize?(rows: number): string;
 }) {
   const { session, snapshot, visibleRange, mapping } = scroll;
+  const domain = atlasDomain(session.aggregates);
   const ready =
     session.aggregates[0]?.start === visibleRange.start &&
     session.aggregates.at(-1)?.end === visibleRange.end &&
@@ -45,14 +48,6 @@ export function AggregateLayer<Row>({
         const address = rangeAddress(bucket);
         const rowsInGroup = bucket.end - bucket.start;
         const fillsView = bucket.start === visibleRange.start && bucket.end === visibleRange.end;
-        const average = bucket.avg;
-        const missing = bucket.accuracy === 'unavailable' || average == null;
-        const unit = scroll.provider.metric?.unit;
-        const metric = scroll.provider.metric?.label?.toLowerCase() ?? 'value';
-        const spread =
-          !missing && bucket.min != null && bucket.max != null && rowsInGroup > 1
-            ? `${formatDecimal(bucket.min, 2)}–${formatDecimal(bucket.max, 2)}`
-            : null;
         const accuracy =
           bucket.accuracy === 'estimated'
             ? {
@@ -62,7 +57,7 @@ export function AggregateLayer<Row>({
             : bucket.accuracy === 'exact'
               ? {
                   label: 'Exact summary',
-                  title: 'This summary includes every row in the group.',
+                  title: 'The provider reports this group statistic as exact.',
                 }
               : {
                   label: 'Summary unavailable',
@@ -85,42 +80,42 @@ export function AggregateLayer<Row>({
             data-range-end={bucket.end}
             style={{ top, height: bottom - top }}
           >
-            <div className="ds-summary-content" role="gridcell">
+            <div
+              className="ds-summary-content"
+              data-chart={!renderAggregate || undefined}
+              role="gridcell"
+            >
+              <div className="ds-summary-heading">
+                <strong title={label === address ? label : `${label} · ${address}`}>{label}</strong>
+              </div>
               <div className="ds-summary-meta">
-                <span>
+                <span className="ds-summary-group">
                   Group {index + 1} of {session.aggregates.length}
                 </span>
-                <span>
-                  {formatBucketSize && `${formatBucketSize(rowsInGroup)} · `}
-                  {rangeCount(bucket)}
-                </span>
-                {label !== address && (
-                  <span className="ds-summary-address" title="Where these rows sit in the dataset">
-                    {address}
-                  </span>
-                )}
+                <span>{formatBucketSize?.(rowsInGroup) ?? rangeCount(bucket)}</span>
                 <span className="ds-summary-accuracy" title={accuracy.title}>
                   {accuracy.label}
                 </span>
               </div>
-              <div className="ds-summary-heading">
-                <strong title={label === address ? label : `${label} · ${address}`}>{label}</strong>
-              </div>
+              {label !== address && (
+                <div className="ds-summary-address" title="Where these rows sit in the dataset">
+                  {address}
+                </div>
+              )}
               {renderAggregate ? (
                 renderAggregate({ bucket, visibleRange, rowsPerPixel: snapshot.rowsPerPixel })
               ) : (
-                <p className="ds-summary-metric">
-                  <strong>
-                    {missing
-                      ? 'Unavailable'
-                      : `${formatDecimal(average, 2)}${unit ? ` ${unit}` : ''}`}
-                  </strong>
-                  <span>{spread ? `Average ${metric} · ${spread}` : `Average ${metric}`}</span>
-                </p>
+                <AggregatePlot
+                  bucket={bucket}
+                  domain={domain}
+                  metric={scroll.provider.metric?.label ?? 'value'}
+                  unit={scroll.provider.metric?.unit}
+                />
               )}
               <div className="ds-summary-actions">
                 <button
                   className="ds-button"
+                  aria-label="Zoom into group"
                   title={
                     rowsInGroup <= 1
                       ? 'This group is one row. Inspect rows to read it.'
@@ -131,7 +126,7 @@ export function AggregateLayer<Row>({
                   disabled={rowsInGroup <= 1 || fillsView}
                   onClick={() => navigate(false)}
                 >
-                  Zoom into group
+                  Zoom in
                 </button>
                 <button
                   className="ds-button"
@@ -143,10 +138,11 @@ export function AggregateLayer<Row>({
                 </button>
                 <button
                   className="ds-button ds-summary-select"
+                  aria-label="Select this group"
                   title="Select every row in this group"
                   onClick={() => scroll.setSelection({ start: bucket.start, end: bucket.end })}
                 >
-                  Select this group
+                  Select
                 </button>
               </div>
             </div>

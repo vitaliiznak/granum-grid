@@ -1,13 +1,13 @@
 import { expect, test, MOBILE } from './fixtures';
 
 for (const pageMode of [false, true]) {
-  test(`developer controls share one Debug panel in ${pageMode ? 'full-page' : 'embedded'} layout`, async ({
+  test(`developer controls share one debug panel in ${pageMode ? 'full-page' : 'embedded'} layout`, async ({
     page,
   }) => {
     if (pageMode) await page.setViewportSize(MOBILE);
     await page.goto(`/?dataset=signal${pageMode ? '&page=1' : ''}`);
-    const trigger = page.getByRole('button', { name: 'Debug', exact: true });
-    const dialog = page.getByRole('dialog', { name: 'Debug', exact: true });
+    const trigger = page.getByRole('button', { name: 'debug', exact: true });
+    const dialog = page.getByRole('dialog', { name: 'debug', exact: true });
     const latency = page.getByRole('slider', { name: 'Simulated server latency' });
     await expect(trigger).toHaveCount(1);
     await expect(latency).toHaveCount(0);
@@ -55,10 +55,10 @@ for (const pageMode of [false, true]) {
   });
 }
 
-test('recorded traces expose Debug without artificial server latency', async ({ page }) => {
+test('recorded traces expose debug without artificial server latency', async ({ page }) => {
   await page.goto('/?dataset=performance');
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Debug', exact: true });
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'debug', exact: true });
   await expect(dialog.getByRole('slider', { name: 'Simulated server latency' })).toHaveCount(0);
   await expect(dialog.getByRole('checkbox', { name: 'Emulate reduced motion' })).toBeVisible();
   await expect(dialog.getByRole('region', { name: 'Performance', exact: true })).toBeVisible();

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { DataProvider, GranumGridApi, ProviderQuery } from 'granum-grid';
 import { createTableTools } from './table-tools';
+import { DetailsIndicator } from '../Showcase';
 import './tools-demo.css';
 
 const searches: Record<string, ProviderQuery> = {
@@ -11,6 +12,7 @@ const searches: Record<string, ProviderQuery> = {
   logs: { kind: 'predicate', field: 'status', operator: '>=', value: 500 },
   stars: { kind: 'predicate', field: 'mag', operator: '<', value: 6 },
   bitcoin: { kind: 'predicate', field: 'high', operator: '>=', value: 100_000 },
+  hackernews: { kind: 'predicate', field: 'points', operator: '>', value: 3000 },
 };
 const labels: Record<string, string> = {
   describe_table: 'Describe the table',
@@ -85,7 +87,10 @@ export function ToolsDemo<Row>({
   return (
     <details className="integration ai-tools-demo">
       <summary>
-        Try AI-callable tools <small>Example integration using the public table API</small>
+        <span className="integration-title">
+          Try AI-callable tools <small>Example integration using the public table API</small>
+        </span>
+        <DetailsIndicator />
       </summary>
       <div className="playground-inner">
         <p>

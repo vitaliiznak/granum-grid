@@ -79,6 +79,7 @@ export const logs: DemoDataset<LogLine> = {
     'Four billion synthetic request logs from six fictional services across September 2026, with deploys, rollbacks, and five incidents. Rows are generated on demand.',
   facts: ['6 services', 'September 2026'],
   icon: <LogsIcon />,
+  origin: 'synthetic',
   provider,
   ariaLabel: 'Synthetic server logs',
   rowHeight: 34,

@@ -54,7 +54,7 @@ test('performance: sustained navigation remains bounded at 100M rows', async ({ 
   expect(report.maxMountedRows).toBeLessThan(256);
   expect(report.p95FrameMs).toBeLessThan(50); // Regression ceiling, not a 60fps assertion.
   expect(work.medianEventMs).toBeLessThan(8); // Half a 60 Hz frame; local dev builds measure 2-3 ms.
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   await expect(page.locator('.debug-stats')).toContainText('0 in flight', { timeout: 8000 });
   const result = {
     browser: info.project.name,

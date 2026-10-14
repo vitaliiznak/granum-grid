@@ -71,6 +71,7 @@ export function performanceDataset(
       'Explore recorded browser activity. Zoom from activity windows into event groups, then inspect individual events without losing your place.',
     facts: [elapsed(recording.duration), filename],
     icon: <SignalIcon />,
+    origin: 'real',
     profileValues: traceBuckets(recording, { start: 0, end: provider.rowCount, buckets: 96 }).map(
       (bucket) => bucket.max,
     ),

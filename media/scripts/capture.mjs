@@ -94,7 +94,7 @@ async function prepare(page, url, scene, filming) {
   await explorer(page).locator('[role="row"][data-status="ready"]').first().waitFor();
   if (embedded) await page.getByRole('button', { name: 'Toggle color theme' }).click();
   if (scene.action === 'expand') {
-    await page.getByRole('button', { name: 'Debug', exact: true }).click();
+    await page.getByRole('button', { name: 'debug', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Dynamic row heights', exact: true }).check();
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     await settled(page);
@@ -553,7 +553,7 @@ try {
     await rename(path.join(scratch, filename), path.join(output, filename));
     await writeFile(
       path.join(output, filename.replace('.mp4', '-description.txt')),
-      `Turn data into clarity with Granum Grid. Explore, search, compare, and save useful views.\n\nGenerated demonstration data; sampled summaries and partial search are labeled.\n\n${soundtrack.credit}\nTrack: ${soundtrack.source}\nLicense: ${soundtrack.licenseUrl}\nMusic edited to picture with fades and loudness adjustment.\n\nKeep this music credit in the description when publishing the video.\n`,
+      `Granum Grid is a playground for data too large to open as a file. Explore, search, compare, and save a view.\n\nGenerated demonstration data; sampled summaries and partial search are labeled. Bitcoin and Hacker News are live public sources.\n\n${soundtrack.credit}\nTrack: ${soundtrack.source}\nLicense: ${soundtrack.licenseUrl}\nMusic edited to picture with fades and loudness adjustment.\n\nKeep this music credit in the description when publishing the video.\n`,
     );
     const cueTime = (seconds) => {
       const ms = Math.round(seconds * 1000);

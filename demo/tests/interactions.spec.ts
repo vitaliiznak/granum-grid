@@ -25,7 +25,7 @@ test('date and predicate search are honest, cancellable, and do not jump while t
   await expect(page.getByText('Enter a valid date, such as 2017-03.')).toBeVisible();
 });
 test('slow-server jumps keep meaningful estimates and bounded cache', async ({ page }) => {
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   const latency = page.getByRole('slider', { name: 'Simulated server latency' });
   await latency.focus();
   await latency.press('End');
@@ -36,7 +36,7 @@ test('slow-server jumps keep meaningful estimates and bounded cache', async ({ p
   await expect(page.locator('[role=row][aria-rowindex="61700000"]')).toContainText('SPIKE', {
     timeout: 15_000,
   });
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   const footer = await page.locator('.debug-stats').innerText();
   expect(Number(footer.match(/([\d,]+) cached/)![1].replaceAll(',', ''))).toBeLessThan(4096);
 });
@@ -150,7 +150,7 @@ test('view guidance works with keyboard and stays usable on mobile', async ({ pa
   await expect(page.getByTestId('position')).toHaveText(position);
 });
 test('automatic speed zoom is optional and returns to rows after settling', async ({ page }) => {
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: 'Zoom out at speed' })).not.toBeChecked();
   await page.getByRole('checkbox', { name: 'Zoom out at speed' }).check();
   await page.getByRole('button', { name: 'Close', exact: true }).click();
@@ -159,7 +159,7 @@ test('automatic speed zoom is optional and returns to rows after settling', asyn
   await grid.dispatchEvent('wheel', { deltaY: 1800, deltaMode: 0 });
   await expect(page.locator('.ds-aggregate-label')).toBeVisible();
   await expect(page.locator('.ds-aggregate-label')).not.toBeVisible({ timeout: 4000 });
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Zoom out at speed' }).uncheck();
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await grid.dispatchEvent('wheel', { deltaY: 1800, deltaMode: 0 });

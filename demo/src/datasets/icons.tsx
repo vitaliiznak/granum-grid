@@ -49,3 +49,9 @@ export const StarsIcon = () => (
     <path d="M15 12.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6Z" strokeWidth="1.1" />
   </svg>
 );
+export const NewsIcon = () => (
+  <svg {...props}>
+    <path d="M3 4.5h14v9H9l-3.5 3v-3H3Z" />
+    <path d="M6 7.5h8M6 10.5h5" strokeWidth="1.2" />
+  </svg>
+);

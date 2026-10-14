@@ -76,12 +76,12 @@ export function DebugTools({
           dialog.current?.showModal();
         }}
       >
-        <BugIcon /> Debug
+        <BugIcon /> debug
       </button>
-      <dialog ref={dialog} className="debug-dialog" aria-label="Debug">
+      <dialog ref={dialog} className="debug-dialog" aria-label="debug">
         <div className="debug-heading">
           <h2>
-            <BugIcon /> Debug
+            <BugIcon /> debug
           </h2>
           <button className="ds-button" onClick={() => dialog.current?.close()}>
             Close
@@ -103,7 +103,7 @@ export function DebugTools({
               <output>{latency / 1000} s</output>
             </label>
             <p className="debug-help">
-              Artificial delay for new requests. Cached rows stay instant. Close Debug to try
+              Artificial delay for new requests. Cached rows stay instant. Close debug to try
               scrolling or jumping to another row.
             </p>
           </section>

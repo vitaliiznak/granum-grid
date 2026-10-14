@@ -174,6 +174,14 @@ describe('Binance BTC/USDT provider', () => {
       kind: 'event',
     });
     expect(markers.find((marker) => marker.id === 'highest')!.label).toContain('$1,000,000.00');
+    expect(markers.find((marker) => marker.id === 'rise-1')).toMatchObject({
+      kind: 'spike',
+      label: expect.stringMatching(/^Largest daily rise · \+/),
+    });
+    expect(markers.find((marker) => marker.id === 'fall-2')!.label).toMatch(
+      /^2nd-largest daily fall · /,
+    );
+    expect(markers.some((marker) => marker.label.startsWith('#'))).toBe(false);
     const requests = urls.length;
     await provider.fetchMarkers!(signal);
     expect(urls).toHaveLength(requests);

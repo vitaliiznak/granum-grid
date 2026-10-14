@@ -21,24 +21,24 @@ export const titleCards = [
     id: 'capabilities',
     seconds: 10,
     title:
-      'Built for your data. Designed for your app. React + TypeScript, custom providers, row renderers, themes, cancellation, and bounded rendering.',
+      'A playground for large data. Jump to a row, read the shape, compare two stretches, and come back.',
   },
   {
     id: 'outro',
     seconds: 8,
     title:
-      'Make your data make sense. See the pattern. Understand the detail. Build with Granum Grid.',
+      'Make your data make sense. See the pattern. Understand the detail. Open the playground.',
   },
 ] as const;
 export type FilmCard = (typeof titleCards)[number]['id'];
 
 const capabilities = [
-  ['React + TypeScript', 'A typed component and headless engine.'],
-  ['Bring your provider', 'Connect indexed data and fetch pages on demand.'],
-  ['Render your own rows', 'Domain-specific cells, details, and interactions.'],
-  ['Make it look like you', 'CSS variables, custom styles, and themes.'],
-  ['Stay in sync', 'Abortable requests and revision-aware caches.'],
-  ['Keep the work bounded', 'Render the viewport. Cache nearby pages.'],
+  ['Pick a dataset', 'Logs, a genome, a market, stars, Bitcoin, or Hacker News.'],
+  ['Jump to a row', 'An address, a percent, or a named event.'],
+  ['See the shape', 'Summaries and a map of the whole set.'],
+  ['Read the records', 'Zoom into a group, then open its rows.'],
+  ['Compare two stretches', 'Two panes that keep their relative place.'],
+  ['Come back', 'Back restores the view you left.'],
 ];
 
 function Brand() {
@@ -49,7 +49,7 @@ function Brand() {
         <i />
         <i />
       </span>
-      Granum Grid<span className="film-brand-tag">THE REACT DATA EXPLORER</span>
+      Granum Grid<span className="film-brand-tag">A DATA PLAYGROUND</span>
     </div>
   );
 }
@@ -109,11 +109,11 @@ export function Marketing({
       {card === 'capabilities' ? (
         <>
           <div className="film-capabilities-copy">
-            <p className="film-kicker">MADE TO BECOME PART OF YOUR PRODUCT</p>
+            <p className="film-kicker">A PLAYGROUND FOR LARGE DATA</p>
             <h1>
-              Built for your data.
+              Pick a dataset.
               <br />
-              <em>Designed for your app.</em>
+              <em>Look at the shape.</em>
             </h1>
           </div>
           <div className="film-capability-grid">
@@ -126,8 +126,8 @@ export function Marketing({
             ))}
           </div>
           <footer className="film-card-footer">
-            <span>YOUR DATA. YOUR COMPONENTS. YOUR EXPERIENCE.</span>
-            <span>Core engine + data layer + React bindings</span>
+            <span>OPEN THE PAGE. NOTHING TO INSTALL.</span>
+            <span>Generated sets and live public data</span>
           </footer>
         </>
       ) : card ? (
@@ -170,7 +170,7 @@ export function Marketing({
             </p>
             {card === 'outro' && (
               <div className="film-cta">
-                Build with Granum Grid <span>↗</span>
+                Open the playground <span>↗</span>
               </div>
             )}
           </div>

@@ -19,7 +19,7 @@ async function assertAdjacent(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/?dataset=signal');
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Dynamic row heights' }).check();
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Expand row 1', exact: true })).toBeVisible();
@@ -63,7 +63,7 @@ test('distant jumps honor each alignment, auto is stable, and location restores'
   const grid = page.getByRole('grid');
   const target = grid.locator('[aria-rowindex="73500000"]');
   for (const align of ['start', 'center', 'end']) {
-    await page.getByRole('button', { name: 'Debug', exact: true }).click();
+    await page.getByRole('button', { name: 'debug', exact: true }).click();
     await page.getByRole('combobox', { name: 'Row alignment' }).selectOption(align);
     await page.getByRole('button', { name: 'Go to row', exact: true }).click();
     await page.getByRole('button', { name: 'Close', exact: true }).click();
@@ -84,7 +84,7 @@ test('distant jumps honor each alignment, auto is stable, and location restores'
     await assertAdjacent(page);
   }
   const position = await page.getByTestId('position').innerText();
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   await page.getByRole('combobox', { name: 'Row alignment' }).selectOption('auto');
   await page.getByRole('button', { name: 'Go to row', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText(position);
@@ -92,7 +92,7 @@ test('distant jumps honor each alignment, auto is stable, and location restores'
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await grid.press('Home');
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   await page.getByRole('button', { name: 'Restore position', exact: true }).click();
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText(position);

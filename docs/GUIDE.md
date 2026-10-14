@@ -75,7 +75,8 @@ aggregates, Range summaries keeps the canvas overview and the **Inspect rows** a
 and does not imply finer detail. Without any overview, row navigation still works with
 a neutral map. Regional requests are debounced. Markers closer than 28 px on screen share
 one button named after the most severe marker, with a +N count of the others; a searchable,
-paged dialog lists the individual markers. The reader's bookmarks join the same layer as
+paged dialog lists the individual markers. On a compact map the button's number is that
+named marker's place in the Bookmarks list, not the number of markers in the button. The reader's bookmarks join the same layer as
 `bookmark` markers (★), ranked after errors and spikes. No capability falls back
 to a browser scan of the dataset. Resolutions and counts are listed under
 [limits and defaults](#limits-and-defaults); map presentation is in
@@ -131,7 +132,7 @@ disclose that more matching bases exist.
 
 ## Dynamic heights and standard list APIs
 
-Open **Debug** and enable **Dynamic row heights** in the signal demo to try wrapped notes, expansion, scroll alignment, and save/restore at 100 million rows.
+Open **debug** and enable **Dynamic row heights** in the signal demo to try wrapped notes, expansion, scroll alignment, and save/restore at 100 million rows.
 
 ```tsx
 import { useRef } from 'react';
@@ -182,7 +183,7 @@ Rows retain the leading row address and pixel offset while content changes, clam
 - Use **Go to…**, Cmd/Ctrl+K inside the component, or `/` in the viewport. See [search](#search) for the accepted input.
 - Arrows move one row; PageUp/PageDown move a visible span; Home/End reach the endpoints. N/P visit markers. Cmd/Ctrl+Up/Down visit chapter boundaries.
 - Back/Forward and Alt+Left/Right restore committed jumps. Wheel motion is not a history entry. Mouse back/forward interception depends on the browser.
-- **Rows** (API: `rows`) is the default: one record per line. **Range summaries** (API: `zoom`) groups rows into summary bands; zoom in to read individual records. Choosing Range summaries from the built-in menu zooms out from row detail to one row per pixel, capped by dataset size, and preserves the current row. An existing summary scale is retained; the public `setView` method continues to preserve zoom. Use **Fit dataset** for the whole dataset, **Zoom in** to narrow a range, and **Inspect rows** to return to a list. **Compare views** opens an illustrated guide; the separate dataset map always covers the whole dataset.
+- **Rows** (API: `rows`) is the default: one record per line. The current address is the first visible row, so the final row can rest at the top of the viewport; the space below it is marked as the end of the dataset. Pulling past either end resists and springs back while elastic edges are on. **Range summaries** (API: `zoom`) groups rows into summary bands; zoom in to read individual records. Summaries keep the current row centered, so near either end the space without rows is marked as the start or end of the dataset. Choosing Range summaries from the built-in menu zooms out from row detail to one row per pixel, capped by dataset size, and preserves the current row. An existing summary scale is retained; the public `setView` method continues to preserve zoom. Use **Fit dataset** for the whole dataset, **Zoom in** to narrow a range, and **Inspect rows** to return to a list. **Compare views** opens an illustrated guide; the separate dataset map always covers the whole dataset.
 - Reduced motion follows the system preference or `reducedMotion={true}`. The component retains direct navigation while suppressing flights, touch inertia, elastic edges, and automatic speed zoom.
 
 `goTo(index)` accepts a safe integer, clamps it to the dataset, chooses an animated or
@@ -197,11 +198,16 @@ changes, so React subscribes through `useSyncExternalStore`.
 ## Range summaries and custom bands
 
 With `fetchAggregates`, **Range summaries** shows bounded, interactive summary bands.
-Each card is one group. It shows the group number, how much it covers, its row
-boundaries, and an exact, estimated, or unavailable summary. **Zoom into group**
+Each band is one group. The default view compares averages with horizontal bars on a
+shared scale that includes zero, with min–max whiskers when both values are supplied.
+The scale is computed from the current groups; it can change when navigating. Negative
+values extend left of zero. Missing values have no bar, and estimated bars use a dashed
+outline. Range labels, coverage, row boundaries, units, and accuracy remain available;
+the chart's accessible description includes the numeric average and available extremes.
+**Zoom in**
 fills the view with that group and splits it into smaller groups; **Inspect rows**
-reads the records, and **Select this group** selects every row in it. The accuracy
-label stays visible with a custom renderer. While a new range loads, stale cards are
+reads the records, and **Select** selects every row in it. The accuracy
+label stays visible with a custom renderer. While a new range loads, stale bands are
 replaced by a loading state. The library never fetches all rows to build a summary.
 
 ```tsx
@@ -251,13 +257,13 @@ The selection card identifies the selected rows and offers **View selection**, *
 
 **Save bookmark** asks for a name only when saving. **Bookmarks** lists your saved locations and also lets you save your current position without selecting rows. Bookmarks save the current location, view, zoom, and selection, but no row data. They remain in memory unless the host supplies `bookmarkStorageKey`; the demo opts into local storage. Restore validates the dataset ID, revision, and row bounds. A blocked/full browser store leaves bookmarks usable for the current session.
 
-Bookmarks and provider markers form one set of places. Each bookmark appears on the dataset map as a ★ marker at its selection start or saved row, and N/P, magnetic snapping, and named-marker search in **Go to…** include it. Clicking it on the map jumps to that row; choosing it in **Bookmarks** also restores the saved view and selection. The **Bookmarks** panel lists the provider's markers under **From this dataset**, 40 at a time. Custom tools can publish their own saved places with `setBookmarkMarkers`; the hook's `markers` holds provider markers and bookmarks in row order.
+Bookmarks and provider markers form one set of places. Each bookmark appears on the dataset map as a ★ marker at its selection start or saved row, and N/P, magnetic snapping, and named-marker search in **Go to…** include it. Clicking it on the map jumps to that row; choosing it in **Bookmarks** also restores the saved view and selection. The **Bookmarks** panel lists the provider's markers under **From this dataset**, 40 at a time, and numbers every saved place and dataset marker in that shared row order. Custom tools can publish their own saved places with `setBookmarkMarkers`; the hook's `markers` holds provider markers and bookmarks in row order.
 
-`selection`, `initialSelection`, and `onSelectionChange` support controlled or internal range state; the hook also exposes `selection`, `setSelection`, `selectionMode`, and `setSelectionMode`. API ranges are zero-based and half-open (`{ start: 99, end: 200 }` selects rows 100–200). Set `exploration={false}` to hide these controls. `stickyChapters` keeps the current provider chapter above the rows. Normal navigation shows **Back**, a **View** menu, and **Go to…**; diagnostics are under **Debug** in the demo or enabled by `showStats` in the component. Automatic aggregation while scrolling is opt-in with `features={{ automaticAggregation: true }}`.
+`selection`, `initialSelection`, and `onSelectionChange` support controlled or internal range state; the hook also exposes `selection`, `setSelection`, `selectionMode`, and `setSelectionMode`. API ranges are zero-based and half-open (`{ start: 99, end: 200 }` selects rows 100–200). Set `exploration={false}` to hide these controls. `stickyChapters` keeps the current provider chapter above the rows. Normal navigation shows **Back**, a **View** menu, and **Go to…**; diagnostics are under **debug** in the demo or enabled by `showStats` in the component. Automatic aggregation while scrolling is opt-in with `features={{ automaticAggregation: true }}`.
 
 ## Open in a separate tab and scroll the window
 
-The demo's **Open full page** link opens the same location and selected range in a separate tab. Its URL updates while navigating and restores after reload. **Back to normal view** returns to the embedded demo in that tab, keeping the dataset, position, view, selection, and current debug and simulation settings. The **Debug** button opens one panel in both layouts for behavior switches, reduced-motion emulation, row-height testing, and performance statistics. Generated datasets also expose simulated server latency from 0–10 seconds (default: 1 second); changes apply to new requests while cached rows remain instant. Recorded traces do not expose simulated latency. For a host application, add a route that renders one `GranumGrid` with `layout="page"`, then pass a URL builder to the embedded instance:
+The demo's **Open full page** link opens the same location and selected range in a separate tab. Its URL updates while navigating and restores after reload. **Back to normal view** returns to the embedded demo in that tab, keeping the dataset, position, view, selection, and current debug and simulation settings. The **debug** button opens one panel in both layouts for behavior switches, reduced-motion emulation, row-height testing, and performance statistics. Generated datasets also expose simulated server latency from 0–10 seconds (default: 1 second); changes apply to new requests while cached rows remain instant. Recorded traces do not expose simulated latency. For a host application, add a route that renders one `GranumGrid` with `layout="page"`, then pass a URL builder to the embedded instance:
 
 ```tsx
 import { encodeView, decodeView } from 'granum-grid';

@@ -77,6 +77,12 @@ results describe the test machine; 60 fps is a target, not a claim.
 
 ## Decisions
 
+- **Compare range summaries visually.** Default bands plot provider averages on one
+  shared scale including zero, with optional min–max whiskers. They use only the
+  current bounded aggregates, preserving missing values and estimated accuracy.
+  The chart replaces oversized cards; range navigation and custom renderers retain
+  their existing contracts. Provider date labels remain labels, not a time axis.
+
 - **Bucket size is a zoom target.** Presets and custom row counts fit a bounded
   number of buckets around the current address, shifting the range inside dataset
   edges. Cards show actual boundaries, size and accuracy. The reading UI calls each

@@ -123,6 +123,7 @@ export function drawAtlas(
   domain: readonly [number, number],
   kind: 'value' | 'density' = 'value',
   showRange = false,
+  ink: 'overview' | 'lens' = 'overview',
 ) {
   const target = prepareCanvas(canvas);
   if (!target || total < 1) return;
@@ -132,9 +133,10 @@ export function drawAtlas(
   const scale = (value: number) =>
     Math.max(0, Math.min(1, (value - domain[0]) / (domain[1] - domain[0]))) * width;
   const baseline = scale(0);
+  const lens = ink === 'lens';
   ctx.fillStyle = accent;
   ctx.strokeStyle = accent;
-  ctx.lineWidth = 1.25;
+  ctx.lineWidth = lens ? 1.75 : 1.25;
   let previous: { x: number; end: number } | null = null;
   for (const bucket of buckets) {
     const value = profileValue(bucket, kind);
@@ -146,7 +148,7 @@ export function drawAtlas(
       bottom = (bucket.end / total) * height;
     const x = scale(value);
     if (showRange && kind === 'value' && bucket.min !== null && bucket.max !== null) {
-      ctx.globalAlpha = 0.18;
+      ctx.globalAlpha = lens ? 0.28 : 0.18;
       ctx.fillRect(
         scale(bucket.min),
         y,
@@ -154,9 +156,9 @@ export function drawAtlas(
         bottom - y,
       );
     }
-    ctx.globalAlpha = 0.1;
+    ctx.globalAlpha = lens ? 0.42 : 0.1;
     ctx.fillRect(Math.min(baseline, x), y, Math.abs(x - baseline), bottom - y);
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = lens ? 1 : 0.9;
     ctx.beginPath();
     if (previous && previous.end === bucket.start) {
       ctx.moveTo(previous.x, y);

@@ -1,5 +1,6 @@
 import { GranumGrid, useGranumGrid, type DataProvider } from 'granum-grid';
 import { useState } from 'react';
+import { DetailsIndicator } from './Showcase';
 
 const rows = [
   { name: 'North channel', note: 'Primary signal', value: '37.0 mV' },
@@ -89,12 +90,10 @@ export function StylingExamples() {
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary>
-        <span>
+        <span className="integration-title">
           Use it in your app <small>Your design system, your controls</small>
         </span>
-        <span className="details-indicator" aria-hidden="true">
-          +
-        </span>
+        <DetailsIndicator />
       </summary>
       {open && (
         <div className="integration-content">

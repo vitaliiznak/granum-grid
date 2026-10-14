@@ -1,6 +1,26 @@
 import { clamp, wheelPixels } from '../core/mappings.js';
 import type { GranumGridEngine } from '../core/engine.js';
 import { isControl, isTextEntry } from './dom.js';
+
+/** Largest rubber-band shift. Further pull barely moves, so the edge reads as a wall. */
+const EDGE_LIMIT = 48;
+
+/** Signed visual offset for accumulated overscroll. Positive is past the end. */
+export function edgeVisual(pull: number): number {
+  if (!pull) return 0;
+  return Math.sign(pull) * EDGE_LIMIT * (1 - Math.exp(-Math.abs(pull) / 170));
+}
+
+/**
+ * Opposite motion releases the rubber band before rows move, so the return
+ * and the scroll stay one gesture.
+ */
+export function splitEdgeDelta(pull: number, pixels: number): { pull: number; pan: number } {
+  if (!pull || Math.sign(pixels) === Math.sign(pull)) return { pull, pan: pixels };
+  const release = Math.min(Math.abs(pull), Math.abs(pixels));
+  const sign = Math.sign(pixels);
+  return { pull: pull + sign * release, pan: pixels - sign * release };
+}
 /** Feature switches are final: reduced motion has already turned off the motion ones. */
 export interface InputOptions {
   windowScroll?: boolean;
@@ -25,6 +45,8 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
     settleTimer: ReturnType<typeof setTimeout> | undefined;
   let speed = 0,
     edge = 0,
+    pull = 0,
+    edgeFrame = 0,
     moved = false,
     suppressClick = false;
   // Whether a wheel target scrolls natively. Reused within a gesture to skip layout reads.
@@ -48,44 +70,72 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
     cancelAnimationFrame(inertiaFrame);
     inertiaFrame = 0;
   };
+  const showEdge = () => {
+    const next = options.elasticity ? -edgeVisual(pull) : 0;
+    if (next === edge) return;
+    edge = next;
+    options.onEdge(edge);
+  };
+  const releaseEdge = () => {
+    cancelAnimationFrame(edgeFrame);
+    let previous = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(34, now - previous);
+      previous = now;
+      pull *= Math.exp(-dt / 130);
+      if (Math.abs(pull) < 0.4) pull = 0;
+      showEdge();
+      if (pull) edgeFrame = requestAnimationFrame(step);
+    };
+    if (pull) edgeFrame = requestAnimationFrame(step);
+  };
   const settle = () => {
     engine.visit();
     cancelAnimationFrame(speedFrame);
+    releaseEdge();
     const decay = () => {
       speed *= 0.64;
-      edge *= 0.66;
       if (speed < 1) speed = 0;
-      if (Math.abs(edge) < 0.2) edge = 0;
       options.onSpeed(speed);
-      options.onEdge(edge);
-      if (speed || edge) speedFrame = requestAnimationFrame(decay);
+      if (speed) speedFrame = requestAnimationFrame(decay);
     };
     speedFrame = requestAnimationFrame(decay);
   };
   const pan = (pixels: number, time: number, measure = true) => {
+    cancelAnimationFrame(speedFrame);
+    cancelAnimationFrame(edgeFrame);
     const state = engine.getSnapshot();
     const scale = state.view === 'zoom' ? state.rowsPerPixel : 1 / state.rowHeight;
-    const overflow = engine.pan(pixels) ?? 0;
-    if (measure) {
+    const split = options.elasticity ? splitEdgeDelta(pull, pixels) : { pull: 0, pan: pixels };
+    if (options.elasticity) pull = split.pull;
+    const before = state.position;
+    const overflow = split.pan ? (engine.pan(split.pan) ?? 0) : 0;
+    const movedRows = engine.getSnapshot().position !== before;
+    if (options.elasticity) pull += overflow;
+    else pull = 0;
+    showEdge();
+    if (movedRows && measure) {
       const elapsed = lastTime ? clamp(time - lastTime, 8, 64) : 16;
       velocity = 0.5 * velocity + (0.5 * pixels) / elapsed;
       lastTime = time;
       options.onVelocity(velocity * scale);
     }
-    if (options.elasticity) {
-      edge = clamp(-overflow * 0.12, -36, 36);
-      options.onEdge(edge);
-    }
-    if (options.automaticAggregation && Math.abs(velocity) > 1.8 && state.view !== 'zoom') {
+    if (
+      movedRows &&
+      options.automaticAggregation &&
+      Math.abs(velocity) > 1.8 &&
+      state.view !== 'zoom'
+    ) {
       speed = Math.min(
         state.rowCount,
         ((Math.abs(velocity) * state.height) / state.rowHeight) * 14,
       );
       options.onSpeed(speed);
     }
-    cancelAnimationFrame(speedFrame);
     clearTimeout(settleTimer);
-    settleTimer = setTimeout(settle, 140);
+    // A blocked edge should start returning as soon as the gesture pauses.
+    // Real row movement keeps the longer pause so speed zoom can still engage.
+    if (movedRows || pull) settleTimer = setTimeout(settle, movedRows ? 140 : 60);
   };
   const wheel = (event: WheelEvent) => {
     if (event.defaultPrevented || isTextEntry(event.target)) return;
@@ -108,24 +158,24 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
         event.clientY - viewport.getBoundingClientRect().top,
       );
     } else {
-      const state = engine.getSnapshot();
-      if (
-        (state.position <= 0 && event.deltaY < 0) ||
-        (state.position >= Math.max(0, state.rowCount - 1) && event.deltaY > 0)
-      ) {
-        if (options.windowScroll) event.preventDefault();
-        return;
+      const pixels = wheelPixels(
+        event.deltaY,
+        event.deltaMode,
+        viewport.clientHeight,
+        engine.getSnapshot().rowHeight,
+      );
+      if (!options.elasticity) {
+        const state = engine.getSnapshot();
+        if (
+          (state.position <= 0 && pixels < 0) ||
+          (state.position >= Math.max(0, state.rowCount - 1) && pixels > 0)
+        ) {
+          if (options.windowScroll) event.preventDefault();
+          return;
+        }
       }
       event.preventDefault();
-      pan(
-        wheelPixels(
-          event.deltaY,
-          event.deltaMode,
-          viewport.clientHeight,
-          engine.getSnapshot().rowHeight,
-        ),
-        performance.now(),
-      );
+      pan(pixels, performance.now());
     }
   };
   const down = (event: PointerEvent) => {
@@ -230,7 +280,9 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
   return () => {
     cancelInertia();
     cancelAnimationFrame(speedFrame);
+    cancelAnimationFrame(edgeFrame);
     clearTimeout(settleTimer);
+    pull = 0;
     options.onSpeed(0);
     options.onEdge(0);
     wheelSurface.removeEventListener('wheel', wheel);

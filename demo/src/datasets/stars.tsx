@@ -108,6 +108,7 @@ export const stars: DemoDataset<Star> = {
     'A whole-sky catalog ordered by right ascension. The Milky Way crosses twice, so dense hours take more rows. Named stars use real coordinates; the rest are synthetic.',
   facts: ['24 hours of sky', `${NAMED_STARS.length} named stars`],
   icon: <StarsIcon />,
+  origin: 'synthetic',
   provider,
   ariaLabel: 'Synthetic star catalog',
   rowHeight: 42,

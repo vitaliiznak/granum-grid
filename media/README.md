@@ -48,7 +48,8 @@ Available scene IDs are in [src/scenes.ts](src/scenes.ts). Exports freeze a prod
 | `scripts/capture.mjs`                      | Interaction choreography, readiness checks, screenshots, and video encoding                                     |
 | `scripts/soundtrack.mjs`                   | Licensed-track metadata, verified download, trimming, and fades                                                 |
 | `images/*.png`                             | Versioned PNGs cropped to the app, table, or comparison dialog                                                  |
-| `output/granum-grid-launch.mp4`             | Generated film; intentionally ignored by Git                                                                    |
+| `granum-grid-launch.mp4`                    | The film linked from the playground README                                                                      |
+| `output/granum-grid-launch.mp4`             | The same film as generated; `output/` stays ignored, so copy a keeper into `media/`                             |
 | `output/granum-grid-launch.srt`             | Scene-title captions with generated timing                                                                      |
 | `output/granum-grid-launch-description.txt` | Publishing description with required music attribution                                                          |
 | `output/manifest-*.json`                   | Capture date, dimensions, scene IDs, and actual durations                                                       |
@@ -78,7 +79,7 @@ The full cut opens with **Turn data into clarity** (7 s), plays twelve scenes in
 2. Edit the matching action in `scripts/capture.mjs` if the interaction should change.
 3. Preview with `npm run media:dev`. `?scene=genome` opens a scene; `?capture=1&scene=genome` opens the actual demo with that starting view. `?artwork=scene&scene=genome` previews its film layout; `?artwork=intro`, `?artwork=capabilities`, and `?artwork=outro` show the title cards.
 4. Run `npm run media:build` and export. Inspect every changed image and the video before sharing.
-5. Keep README links in sync if you add or rename scenes. PNGs can be committed; attach the MP4 to a release or upload it to your chosen video host separately.
+5. Keep README links in sync if you add or rename scenes. PNGs can be committed. Copy a keeper of the launch film to `granum-grid-launch.mp4` so the README can play it; the `output/` export stays ignored.
 
 The studio deliberately stays outside `granum-grid/`. It adds no runtime dependency, media assets, or capture interface to the published library surface. Playwright and Vite come from the workspace's development dependencies. `playwright` is available through the existing `@playwright/test` dependency.
 
@@ -90,4 +91,4 @@ The studio deliberately stays outside `granum-grid/`. It adds no runtime depende
 - New captures use the demo's default simulated request latency of 1 second. These recordings make no cross-device frame-rate or latency guarantee.
 - The package is an initial local release. Do not add npm availability, purchase, production adoption, accessibility certification, or performance claims without new evidence.
 
-See the [library README](../README.md), [integration guide](../docs/GUIDE.md), and [styling guide](../STYLING.md).
+See the [playground README](../README.md), [marketing notes](MARKETING.md), [integration guide](../docs/GUIDE.md), and [styling guide](../STYLING.md).

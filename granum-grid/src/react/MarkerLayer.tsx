@@ -44,6 +44,14 @@ export function leadMarker(group: readonly Marker[]) {
     KIND_RANK[marker.kind] < KIND_RANK[lead.kind] ? marker : lead,
   );
 }
+/**
+ * Compact rail index. `first` is the one-based place of the group's earliest marker
+ * and `leadOffset` is the named marker's step within the group. The group size stays
+ * on the +N badge; painting the size here makes a group of 3 followed by place 4 read as 3, 4.
+ */
+export function railGroupNumber(first: number, leadOffset: number) {
+  return first + leadOffset;
+}
 const count = (n: number) => `${n.toLocaleString()} ${n === 1 ? 'marker' : 'markers'}`;
 export const MarkerLayer = memo(function MarkerLayer({
   markers,
@@ -94,7 +102,7 @@ export const MarkerLayer = memo(function MarkerLayer({
                 : []),
             ].join('\n')
           : lead.label;
-        const number = clustered ? items.length : first;
+        const number = railGroupNumber(first, items.indexOf(lead));
         return (
           <button
             key={`${marker.id}:${marker.index}`}

@@ -3,6 +3,9 @@ import {
   useCallback,
   useImperativeHandle,
   useMemo,
+  useRef,
+  useState,
+  type HTMLAttributes,
   type CSSProperties,
   type ReactNode,
   type Ref,
@@ -26,6 +29,7 @@ import { overviewAccuracy } from '../visuals/atlas.js';
 import { rangeAddress } from '../visuals/format.js';
 import { chapterAt } from '../core/navigation.js';
 import { isTextEntry, isWithin } from './dom.js';
+import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import type { SavedView } from '../core/exploration.js';
 import type { PendingRowSlot, RowRange } from '../data/types.js';
 export interface RowRenderContext<Row> {
@@ -93,6 +97,34 @@ const LoadedRow = memo(function LoadedRow<Row>({
     content
   );
 }) as <Row>(props: LoadedRowProps<Row>) => ReactNode;
+
+function DatasetRow({
+  status,
+  rowProps,
+  children,
+}: {
+  status: string;
+  rowProps: HTMLAttributes<HTMLDivElement>;
+  children: ReactNode;
+}) {
+  const wasReady = useRef(status === 'ready');
+  const [arrival, setArrival] = useState(false);
+  useClientLayoutEffect(() => {
+    if (status !== 'ready') {
+      wasReady.current = false;
+      setArrival(false);
+      return;
+    }
+    if (wasReady.current) return;
+    wasReady.current = true;
+    setArrival(true);
+  }, [status]);
+  return (
+    <div {...rowProps} data-arrival={arrival || undefined}>
+      {children}
+    </div>
+  );
+}
 
 export function GranumGrid<Row>(props: GranumGridProps<Row>) {
   const scroll = useGranumGrid({
@@ -170,6 +202,22 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
     !snapshot.moving &&
     !!props.provider.fetchAggregates;
   const chapter = chapterAt(scroll.session.chapters, snapshot.position);
+  // Summary bands keep the current row at the center, so either end of the dataset can leave
+  // part of the viewport without rows. Mark that space rather than leaving it blank.
+  const contentStart =
+    summaryCards && snapshot.rowCount > 0
+      ? Math.min(snapshot.height, Math.max(0, scroll.mapping.toPixel(0)))
+      : 0;
+  const contentEnd =
+    snapshot.view === 'rows' && !scroll.aggregateMode && snapshot.rowCount > 0
+      ? scroll.mapping.toPixel(snapshot.rowCount)
+      : summaryCards && snapshot.rowCount > 0
+        ? Math.max(
+            contentStart,
+            Math.min(snapshot.height, scroll.mapping.toPixel(snapshot.rowCount)),
+          )
+        : snapshot.height;
+  const endGap = snapshot.height - contentEnd;
   return (
     <section
       className={`ds-root ${props.className ?? ''}`}
@@ -227,16 +275,26 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
       )}
       <div {...partProps('header', props, 'ds-legend')}>
         <span>
-          {summaryCards ? 'Zoom into a group, or inspect its rows' : (props.header ?? 'RECORDS')}
+          {summaryCards
+            ? props.renderAggregate
+              ? 'Zoom into a group, or inspect its rows'
+              : `${props.provider.metric?.label ?? 'Value'} by range · shared scale`
+            : (props.header ?? 'RECORDS')}
         </span>
         <span>
-          <i />
-          {props.provider.metric?.label ?? 'Dataset'} ·{' '}
-          {overviewAccuracy(scroll.session.overview, props.provider.metric?.kind ?? 'value', {
-            supported: !!props.provider.fetchOverview,
-            failed: !!scroll.session.metadataErrors.overview,
-          })}{' '}
-          overview
+          {summaryCards && !props.renderAggregate ? (
+            <>Bar: average · line: min–max when available</>
+          ) : (
+            <>
+              <i />
+              {props.provider.metric?.label ?? 'Dataset'} ·{' '}
+              {overviewAccuracy(scroll.session.overview, props.provider.metric?.kind ?? 'value', {
+                supported: !!props.provider.fetchOverview,
+                failed: !!scroll.session.metadataErrors.overview,
+              })}{' '}
+              overview
+            </>
+          )}
         </span>
       </div>
       {scroll.dataMode === 'append' && (
@@ -303,14 +361,35 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
                   <span>Focus: row {((snapshot.activeIndex ?? 0) + 1).toLocaleString()}</span>
                 </div>
               )}
-              {scroll.rows.map((slot) => (
+              {contentStart > 0.5 && (
                 <div
+                  className="ds-dataset-start"
+                  data-compact={contentStart < 28 ? '' : undefined}
+                  style={{ height: contentStart }}
+                  aria-hidden="true"
+                >
+                  <span>Start of dataset</span>
+                </div>
+              )}
+              {endGap > 0.5 && (
+                <div
+                  className="ds-dataset-end"
+                  data-compact={endGap < 28 ? '' : undefined}
+                  style={{ top: contentEnd, height: endGap }}
+                  aria-hidden="true"
+                >
+                  <span>End of dataset</span>
+                </div>
+              )}
+              {scroll.rows.map((slot) => (
+                <DatasetRow
                   key={
                     slot.status === 'ready' && props.getRowKey
                       ? `row:${props.getRowKey(slot.row, slot.index)}`
                       : `index:${slot.index}`
                   }
-                  {...scroll.getRowProps(slot, {
+                  status={slot.status}
+                  rowProps={scroll.getRowProps(slot, {
                     className: props.classNames?.row,
                     style: props.styles?.row,
                   })}
@@ -327,7 +406,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
                       <RowPlaceholder slot={slot} retry={scroll.session.retry} />
                     ))
                   )}
-                </div>
+                </DatasetRow>
               ))}
             </ViewLayer>
           </div>

@@ -386,12 +386,16 @@ export function bitcoinProvider(
       { candle, change }: (typeof moves)[number],
       kind: 'fall' | 'rise',
       rank: number,
-    ): Marker => ({
-      id: `${kind}-${rank}`,
-      index: Math.max(0, indexAt(candle.time)),
-      label: `${rank === 1 ? 'Largest' : `#${rank}`} daily ${kind} · ${percent(change)} · ${iso(candle.time).slice(0, 10)}`,
-      kind: 'spike',
-    });
+    ): Marker => {
+      const rankWord = rank === 1 ? 'Largest' : rank === 2 ? '2nd-largest' : '3rd-largest';
+      return {
+        id: `${kind}-${rank}`,
+        index: Math.max(0, indexAt(candle.time)),
+        label: `${rankWord} daily ${kind} · ${percent(change)} · ${iso(candle.time).slice(0, 10)}`,
+        // Rank 1 outranks the runners-up, so a crowded stretch is named for its biggest move.
+        kind: rank === 1 ? 'spike' : 'event',
+      };
+    };
     const result = [
       ...moves.slice(0, 3).map((m, i) => move(m, 'fall', i + 1)),
       ...moves

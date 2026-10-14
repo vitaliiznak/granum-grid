@@ -11,6 +11,13 @@ test('bucket sizes, drill-down and Back keep their boundaries explicit', async (
   await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
   const buckets = page.locator('[data-ds-part="aggregate"]');
   await expect(buckets.first()).toBeVisible();
+  const plots = buckets.getByRole('img');
+  await expect(plots.first()).toHaveAccessibleName(
+    /Average signal amplitude:.*mV.*Estimated summary/,
+  );
+  expect(await plots.count()).toBe(await buckets.count());
+  const axes = await buckets.locator('.ds-summary-axis').allTextContents();
+  expect(new Set(axes).size).toBe(1);
   const size = page.getByRole('combobox', { name: 'Group size' });
   await size.selectOption('10000');
   await expect(buckets.first().locator('.ds-summary-meta')).toContainText('10,000 rows');
@@ -74,6 +81,7 @@ test('bucket sizes, drill-down and Back keep their boundaries explicit', async (
   expect(await fitsViewportWidth(page)).toBe(true);
   const first = buckets.first();
   await expect(first.getByRole('button', { name: 'Inspect these rows' })).toBeVisible();
+  await expect(first.getByRole('img')).toBeVisible();
   expect(
     await first.evaluate((el) => {
       const content = el.querySelector('.ds-summary-content')!;
@@ -81,5 +89,25 @@ test('bucket sizes, drill-down and Back keep their boundaries explicit', async (
       return actions.getBoundingClientRect().bottom <= content.getBoundingClientRect().bottom;
     }),
   ).toBe(true);
+  expect(pageErrors).toEqual([]);
+});
+
+test('summaries at the first row mark the space before the dataset', async ({
+  page,
+  pageErrors,
+}) => {
+  await page.setViewportSize(DESKTOP);
+  await page.goto('/?dataset=market');
+  await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
+  await page.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
+  const first = page.locator('[data-ds-part="aggregate"]').first();
+  await expect(first).toBeVisible();
+  const start = page.locator('.ds-dataset-start');
+  await expect(start).toContainText('Start of dataset');
+  const [edge, band] = await Promise.all([start.boundingBox(), first.boundingBox()]);
+  // The marker fills exactly the space above row 1's group.
+  expect(Math.abs(edge!.y + edge!.height - band!.y)).toBeLessThan(2);
+  await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
+  await expect(start).toHaveCount(0);
   expect(pageErrors).toEqual([]);
 });

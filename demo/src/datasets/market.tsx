@@ -56,6 +56,7 @@ export const market: DemoDataset<Trade> = {
     'Ten years of tick-by-tick trades in DSX, a fictional 24/7 composite. Crashes, a rate shock, and block trades are all in the tape.',
   facts: ['10 years', '2016–2025'],
   icon: <MarketIcon />,
+  origin: 'synthetic',
   provider,
   ariaLabel: 'Synthetic trades',
   rowHeight: 38,

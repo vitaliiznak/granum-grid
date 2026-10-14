@@ -1,0 +1,10 @@
+Granum Grid is a playground for data too large to open as a file. Explore, search, compare, and save a view.
+
+Generated demonstration data; sampled summaries and partial search are labeled. Bitcoin and Hacker News are live public sources.
+
+'Firefly' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au
+Track: https://www.scottbuckley.com.au/library/firefly/
+License: https://creativecommons.org/licenses/by/4.0/
+Music edited to picture with fades and loudness adjustment.
+
+Keep this music credit in the description when publishing the video.

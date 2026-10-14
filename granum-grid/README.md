@@ -55,7 +55,7 @@ No stylesheet is imported automatically: choose `granum-grid/styles.css` for the
 Chrome and Edge 100+, Firefox 104+, and Safari/iOS Safari 15.4+. This is the floor the code needs (for example `Array.prototype.findLast`, `AbortSignal.throwIfAborted`, `<dialog>`, and CSS cascade layers); it is declared as `browserslist` in `package.json`, and `npm run lint` checks JavaScript and Web APIs against it. Browsers without cascade layers ignore the stylesheets entirely, so there is no partial-layout fallback. The optional skin in `styles.css` tints some borders and highlights with `color-mix()` (Chrome 111, Firefox 113, Safari 16.2); earlier browsers show them untinted. Dynamic viewport units fall back to `vh`.
 
 - Trackpad pinch zooms a focused explorer: Ctrl+wheel in Chrome, Edge, and Firefox, and gesture events in desktop Safari. An unfocused explorer leaves pinch to the browser's page zoom.
-- On touch screens the viewport captures vertical swipes to pan rows (`touch-action: none`). Unlike the mouse wheel, a swipe that reaches either end of the dataset does not continue into the page. Leave page area outside an embedded explorer on phones, or use `layout="page"`.
+- On touch screens the viewport captures vertical swipes to pan rows (`touch-action: none`). A swipe that reaches either end of the dataset does not continue into the page. With elastic edges on, the wheel resists and springs back at either end as well. With elastic edges off, the wheel continues into the page. Leave page area outside an embedded explorer on phones, or use `layout="page"`.
 
 ## Documentation
 

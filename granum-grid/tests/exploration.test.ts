@@ -10,7 +10,7 @@ import {
 } from '../src/core/exploration';
 import { createEngine } from '../src/core/engine';
 import type { Marker } from '../src/data/types';
-import { clusterMarkers, leadMarker } from '../src/react/MarkerLayer';
+import { clusterMarkers, leadMarker, railGroupNumber } from '../src/react/MarkerLayer';
 
 it('restores only valid locations and selections from the same ordered revision', () => {
   const provider = { id: 'a', revision: '1', rowCount: 100 };
@@ -78,6 +78,11 @@ it('names a rail group after its most severe marker', () => {
   const saved = marker('Before the stampede', 'bookmark');
   expect(leadMarker([deploy, saved])).toBe(saved);
   expect(leadMarker([saved, incident])).toBe(incident);
+});
+it('numbers a rail group by the marker that names it, not by how many it holds', () => {
+  // A group of three that starts at place 1 and is named for its second marker is 2, then 4.
+  expect(railGroupNumber(1, 1)).toBe(2);
+  expect(railGroupNumber(4, 0)).toBe(4);
 });
 it('places bookmarks on the map at their selection or saved position', () => {
   const bookmark = (id: string, position: number, selection: Bookmark['selection']): Bookmark => ({

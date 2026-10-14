@@ -76,6 +76,11 @@ function ExplorerToolsView<Row>({
     const own = new Set(savedMarkers.map((marker) => marker.id));
     return markers.filter((marker) => !own.has(marker.id));
   }, [markers, savedMarkers]);
+  // Same row order as the scrollbar, so a compact number matches this list.
+  const placeNumber = useMemo(() => {
+    const ordered = [...datasetMarkers, ...savedMarkers].sort((a, b) => a.index - b.index);
+    return new Map(ordered.map((marker, index) => [`${marker.id}:${marker.index}`, index + 1]));
+  }, [datasetMarkers, savedMarkers]);
   const previousIdentity = useRef(identity);
   const bookmarkInput = useRef<HTMLInputElement>(null);
   const selectionButton = useRef<HTMLButtonElement>(null);
@@ -420,6 +425,11 @@ function ExplorerToolsView<Row>({
                       }
                     }}
                   >
+                    <span className="ds-place-index" aria-hidden="true">
+                      {placeNumber.get(
+                        `bookmark:${bookmark.id}:${bookmark.selection?.start ?? Math.floor(bookmark.location.position)}`,
+                      )}
+                    </span>
                     <strong>{bookmark.name}</strong>
                     <span>
                       {bookmark.selection
@@ -459,6 +469,9 @@ function ExplorerToolsView<Row>({
                         returnFocus();
                       }}
                     >
+                      <span className="ds-place-index" aria-hidden="true">
+                        {placeNumber.get(`${marker.id}:${marker.index}`)}
+                      </span>
                       <strong>{marker.label}</strong>
                       <span>Row {(marker.index + 1).toLocaleString()}</span>
                     </button>

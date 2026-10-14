@@ -1,6 +1,6 @@
 import type { GranumGridApi, ScrollStats } from 'granum-grid';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { datasets, type DemoDataset, type TourContext } from './datasets';
+import { datasetGroups, type DemoDataset, type TourContext } from './datasets';
 import { compact, formatCount, showAll } from './datasets/types';
 import { models } from './data/models';
 
@@ -51,33 +51,71 @@ export function DatasetGallery({
 }) {
   const strip = useRef<HTMLElement>(null);
   useEffect(() => {
-    // On narrow screens the gallery scrolls sideways; keep the chosen card in view.
-    const card = strip.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    if (strip.current && card && strip.current.scrollWidth > strip.current.clientWidth)
-      strip.current.scrollTo({ left: card.offsetLeft - strip.current.offsetLeft - 16 });
+    // The gallery scrolls sideways when it is wider than the page. Fade the edges that hide
+    // more cards so the overflow reads as scrollable rather than cut off.
+    const element = strip.current;
+    if (!element) return;
+    const sync = () => {
+      const end = element.scrollWidth - element.clientWidth;
+      element.toggleAttribute('data-more-start', element.scrollLeft > 1);
+      element.toggleAttribute('data-more-end', element.scrollLeft < end - 1);
+    };
+    sync();
+    element.addEventListener('scroll', sync, { passive: true });
+    const observer = new ResizeObserver(sync);
+    observer.observe(element);
+    return () => {
+      element.removeEventListener('scroll', sync);
+      observer.disconnect();
+    };
+  }, []);
+  useEffect(() => {
+    // Keep the chosen card in view without scrolling a card that is already visible.
+    const element = strip.current;
+    const card = element?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!element || !card) return;
+    const box = element.getBoundingClientRect(),
+      rect = card.getBoundingClientRect(),
+      margin = 48;
+    if (rect.left < box.left + margin)
+      element.scrollBy({ left: rect.left - box.left - margin, behavior: 'instant' });
+    else if (rect.right > box.right - margin)
+      element.scrollBy({ left: rect.right - box.right + margin, behavior: 'instant' });
   }, [current.id]);
   return (
     <nav ref={strip} className="dataset-gallery" aria-label="Datasets">
-      {datasets.map((item) => {
-        const dataset = item.id === current.id ? current : item;
-        return (
-          <button
-            key={dataset.id}
-            className={`dataset-card dataset-${dataset.id}`}
-            aria-pressed={dataset.id === current.id}
-            onClick={() => onChange(dataset.id)}
-          >
-            <span className="dataset-card-icon">{dataset.icon}</span>
-            <span className="dataset-card-text">
-              <strong>{dataset.name}</strong>
-              <span>
-                {compact(dataset.provider.rowCount)} {dataset.unit}
-              </span>
-            </span>
-            <Sparkline id={dataset.id} values={dataset.profileValues} />
-          </button>
-        );
-      })}
+      {datasetGroups.map((group) => (
+        <div
+          key={group.origin}
+          role="group"
+          className="dataset-group"
+          aria-labelledby={`dataset-group-${group.origin}`}
+        >
+          <span id={`dataset-group-${group.origin}`} className="dataset-group-label">
+            {group.label}
+          </span>
+          {group.datasets.map((item) => {
+            const dataset = item.id === current.id ? current : item;
+            return (
+              <button
+                key={dataset.id}
+                className={`dataset-card dataset-${dataset.id}`}
+                aria-pressed={dataset.id === current.id}
+                onClick={() => onChange(dataset.id)}
+              >
+                <span className="dataset-card-icon">{dataset.icon}</span>
+                <span className="dataset-card-text">
+                  <strong>{dataset.name}</strong>
+                  <span>
+                    {compact(dataset.provider.rowCount)} {dataset.unit}
+                  </span>
+                </span>
+                <Sparkline id={dataset.id} values={dataset.profileValues} />
+              </button>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }
@@ -91,18 +129,27 @@ export function DatasetSwitcher({
 }) {
   return (
     <nav className="dataset-switcher" aria-label="Datasets">
-      {datasets.map((dataset) => (
-        <button
-          key={dataset.id}
-          type="button"
-          className={`dataset-switcher-button dataset-${dataset.id}`}
-          aria-label={dataset.name}
-          title={dataset.name}
-          aria-pressed={dataset.id === value}
-          onClick={() => onChange(dataset.id)}
+      {datasetGroups.map((group) => (
+        <div
+          key={group.origin}
+          role="group"
+          className="dataset-switcher-group"
+          aria-label={`${group.label} datasets`}
         >
-          {dataset.icon}
-        </button>
+          {group.datasets.map((dataset) => (
+            <button
+              key={dataset.id}
+              type="button"
+              className={`dataset-switcher-button dataset-${dataset.id}`}
+              aria-label={dataset.name}
+              title={`${dataset.name} · ${group.label.toLowerCase()}`}
+              aria-pressed={dataset.id === value}
+              onClick={() => onChange(dataset.id)}
+            >
+              {dataset.icon}
+            </button>
+          ))}
+        </div>
       ))}
     </nav>
   );
@@ -117,9 +164,12 @@ const bytes = (value: number) =>
 export function DatasetIntro({
   dataset,
   stats,
+  children,
 }: {
   dataset: DemoDataset;
   stats: ScrollStats | null;
+  /** Notes about the data source, shown under the description. */
+  children?: ReactNode;
 }) {
   const total = dataset.provider.rowCount,
     cached = stats?.cachedRows ?? 0;
@@ -128,6 +178,7 @@ export function DatasetIntro({
       <div className="intro-text">
         <h1>{dataset.title}</h1>
         <p className="intro-description">{dataset.description}</p>
+        {children}
       </div>
       <dl className="scale-stats">
         <div>
@@ -233,6 +284,26 @@ export function FeatureTour({
         {children && <div className="explorer-options">{children}</div>}
       </div>
     </div>
+  );
+}
+
+/** Chevron for the page's disclosure sections; it turns when the section opens. */
+export function DetailsIndicator() {
+  return (
+    <svg
+      className="details-indicator"
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m4 6 4 4 4-4" />
+    </svg>
   );
 }
 

@@ -3,21 +3,23 @@ import { useRef } from 'react';
 export function DemoLimitations({
   recording,
   imported,
-  live = false,
+  live,
   compact = false,
 }: {
   recording: boolean;
   imported: boolean;
-  /** Rows come from a public third-party API. */
-  live?: boolean;
+  /** Rows come from this public third-party API. */
+  live?: 'binance' | 'hackernews';
   compact?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const summary = recording
     ? 'Local recording · up to 100 search results'
-    : live
+    : live === 'binance'
       ? 'Live public API · shared rate limit'
-      : 'Generated data · search may miss matches';
+      : live === 'hackernews'
+        ? 'Live public API · one request per item'
+        : 'Generated data · search may miss matches';
   return (
     <aside className={`demo-limitations${compact ? ' demo-limitations-compact' : ''}`}>
       {!compact && (
@@ -53,6 +55,28 @@ export function DemoLimitations({
                 ? 'Imported files and their bookmarks last only for this session. Reloading returns to the bundled recording; import your file again to explore it.'
                 : 'Bookmarks stay in this browser. Full-page links restore position, zoom, and selection for the same recording revision.'}{' '}
               Search input and results are not saved across reloads.
+            </p>
+          </>
+        ) : live === 'hackernews' ? (
+          <>
+            <p>
+              <strong>Live third-party data.</strong> Rows come from the official Hacker News API,
+              one request per item; search, dates, and markers come from Algolia’s public HN index.
+              The demo needs a network connection. Nothing is generated. Deleted and dead items keep
+              their place but show no text, as on Hacker News.
+            </p>
+            <p>
+              <strong>Request volume.</strong> A screen of rows costs about 50 small requests, and
+              every summary reads one item time per group, at most 24 requests at a time. A search,
+              date jump, or marker load is one or two Algolia requests; Algolia may refuse an
+              address that sends too many.
+            </p>
+            <p>
+              <strong>Summaries and search.</strong> Activity is items posted per hour, exact for
+              each group but without a per-item range. Search returns Algolia’s top-ranked matches
+              from your position, not every match, and Algolia does not index deleted or dead items.
+              Row addresses are item IDs, so bookmarks and links keep working while later visits add
+              rows.
             </p>
           </>
         ) : live ? (

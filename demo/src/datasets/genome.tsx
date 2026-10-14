@@ -102,6 +102,7 @@ export const genome: DemoDataset<Locus> = {
     'One row per base pair: 24 chromosomes at GRCh38 lengths, with well-known genes at their approximate positions. The sequence itself is synthetic.',
   facts: ['24 chromosomes', `${GENES.length} landmark genes`],
   icon: <GenomeIcon />,
+  origin: 'synthetic',
   provider,
   ariaLabel: 'Synthetic genome bases',
   rowHeight: 40,

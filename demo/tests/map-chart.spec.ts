@@ -8,7 +8,7 @@ for (const layout of ['expanded', 'compact', 'mobile'] as const) {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?dataset=logs');
     await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
-    await page.getByRole('button', { name: 'Scrollbar settings', exact: true }).click();
+    await page.getByRole('button', { name: 'Config', exact: true }).click();
     await page
       .getByRole('combobox', { name: 'Scrollbar width' })
       .selectOption(layout === 'mobile' ? 'auto' : layout);
@@ -19,6 +19,13 @@ for (const layout of ['expanded', 'compact', 'mobile'] as const) {
     // Coordinate clicks need the whole track on screen, even when its settings button is visible.
     await rail.locator('.ds-track').scrollIntoViewIfNeeded();
     const track = (await rail.locator('.ds-track').boundingBox())!;
+    const viewport = (await page.locator('.ds-viewport').boundingBox())!;
+    if (layout !== 'expanded') {
+      expect(Math.abs(track.y - viewport.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(track.y + track.height - (viewport.y + viewport.height))).toBeLessThanOrEqual(
+        1,
+      );
+    }
     const plot = (await rail.locator('.ds-map-plot').boundingBox())!;
     const thumb = (await slider.boundingBox())!;
     expect(thumb.x).toBeGreaterThan(plot.x + plot.width);
@@ -44,7 +51,7 @@ for (const layout of ['expanded', 'compact', 'mobile'] as const) {
     await page.mouse.up();
     await page.keyboard.up('Shift');
     await expect.poll(progress).toBeCloseTo(0.5, 2);
-    await page.getByRole('button', { name: 'Scrollbar settings', exact: true }).hover();
+    await page.getByRole('button', { name: 'Config', exact: true }).hover();
     await expect(rail).not.toHaveAttribute('data-scrolling');
     await rail.screenshot({ path: testInfo.outputPath(`scrollbar-${layout}.png`) });
     await slider.press('End');
@@ -63,7 +70,7 @@ test('one named chart uses its own scale and preview without moving the current 
   await expect(page.getByRole('grid', { name: 'Synthetic server logs' })).toBeVisible();
   await page.getByRole('button', { name: /^Open the incident/ }).click();
   const position = await page.getByTestId('position').innerText();
-  const settings = page.getByRole('button', { name: 'Scrollbar settings', exact: true });
+  const settings = page.getByRole('button', { name: 'Config', exact: true });
   await settings.click();
   await page.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
   await page.getByRole('checkbox', { name: 'Show latency track' }).check();

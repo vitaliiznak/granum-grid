@@ -53,26 +53,13 @@ export function MapSettings({
         ref={trigger}
         type="button"
         className="map-settings-trigger"
-        aria-label="Scrollbar settings"
+        aria-label="Config"
         aria-expanded={open}
-        title="Scrollbar settings"
+        title="Configure this scrollbar"
         popoverTarget={panelId}
         onClick={positionPanel}
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          aria-hidden="true"
-        >
-          <path d="M4 7h3m4 0h9M4 17h9m4 0h3" />
-          <circle cx="9" cy="7" r="2" />
-          <circle cx="15" cy="17" r="2" />
-        </svg>
+        Config
       </button>
       <div
         ref={panel}
@@ -83,7 +70,7 @@ export function MapSettings({
         aria-labelledby={`${panelId}-title`}
         className="map-settings-panel"
       >
-        <strong id={`${panelId}-title`}>Scrollbar settings</strong>
+        <strong id={`${panelId}-title`}>Config</strong>
         <p>Changes apply now and stay with this dataset while you explore.</p>
         <fieldset className="map-settings-group">
           <legend>Layout</legend>

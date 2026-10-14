@@ -1,0 +1,71 @@
+1
+00:00:00,000 --> 00:00:07,000
+Turn data into clarity. Transform rows of information into a visual experience people can explore and understand.
+
+2
+00:00:07,000 --> 00:00:14,000
+Millions of rows. A clear way through.
+Explore 100 million synthetic readings. Load only nearby pages.
+
+3
+00:00:14,000 --> 00:00:23,000
+Skip the endless scroll.
+Go directly to row 73,500,000.
+
+4
+00:00:23,000 --> 00:00:34,167
+Explore freely. Find your way back.
+Jump to a new location, go back, then move forward again.
+
+5
+00:00:34,167 --> 00:00:42,167
+Make the big picture clear.
+Zoom out to sampled summaries of the dataset.
+
+6
+00:00:42,167 --> 00:00:50,633
+Complex data. Familiar landmarks.
+Jump to BRCA1 in a 3.1-billion-row synthetic genome.
+
+7
+00:00:50,633 --> 00:01:00,633
+Find a match. See the context.
+Search for status >= 500, then inspect a matching log entry.
+
+8
+00:01:00,633 --> 00:01:09,600
+Go where the story is.
+Navigate to a named event in the market tape.
+
+9
+00:01:09,600 --> 00:01:18,133
+Your data. Your universe.
+Find Sirius in a custom-rendered, dark-themed catalog.
+
+10
+00:01:18,133 --> 00:01:26,133
+Give every detail room.
+Expand a record. Row heights adjust automatically.
+
+11
+00:01:26,133 --> 00:01:36,133
+From rows to useful information.
+Select 101 rows and open their sampled summary.
+
+12
+00:01:36,133 --> 00:01:48,133
+Make differences visible.
+Compare two ranges with linked relative scrolling.
+
+13
+00:01:48,133 --> 00:02:00,133
+Pick up where you left off.
+Bookmark a location, navigate away, and return to it.
+
+14
+00:02:00,133 --> 00:02:10,133
+A playground for large data. Jump to a row, read the shape, compare two stretches, and come back.
+
+15
+00:02:10,133 --> 00:02:18,133
+Make your data make sense. See the pattern. Understand the detail. Open the playground.

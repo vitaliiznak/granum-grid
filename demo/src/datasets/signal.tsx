@@ -52,6 +52,7 @@ export const signal: DemoDataset<Reading> = {
     'Twenty years of readings from four synthetic channels, with regime changes and four numbered spikes. The original Granum Grid demo.',
   facts: ['4 channels', '2010–2030'],
   icon: <SignalIcon />,
+  origin: 'synthetic',
   provider,
   ariaLabel: 'Synthetic signal readings',
   rowHeight: 40,

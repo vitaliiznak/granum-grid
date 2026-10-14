@@ -286,7 +286,7 @@ export function AtlasRail<Row>({
         start: Math.max(start, b.start) - start,
         end: Math.min(end, b.end) - start,
       }));
-    drawAtlas(magnifier.current, buckets, end - start, domain, kind, showRange);
+    drawAtlas(magnifier.current, buckets, end - start, domain, kind, showRange, 'lens');
   }, [hoverIndex, overview, showMagnifier, helpOpen, showRange, domain, kind, total]);
   const atPointer = (clientY: number, attract = false) => {
     const rect = track.current!.getBoundingClientRect();

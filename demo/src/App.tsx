@@ -9,6 +9,7 @@ import {
   type NavigationLocation,
   type ScrollAlignment,
   type RowRenderContext,
+  type View,
 } from 'granum-grid';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { LiveExample } from './LiveExample';
@@ -52,7 +53,8 @@ export default function App() {
   );
   const provider = dataset.provider;
   const isRecording = dataset.id === 'performance';
-  const isLive = dataset.id === 'bitcoin';
+  const live =
+    dataset.id === 'bitcoin' ? 'binance' : dataset.id === 'hackernews' ? 'hackernews' : undefined;
   const [recordingDataset, setRecordingDataset] = useState(bundledPerformance);
   const isImported = isRecording && provider.revision.startsWith('local-');
   const [shared] = useState(() =>
@@ -103,6 +105,7 @@ export default function App() {
     }));
   const atlas: AtlasRailOptions = {
     layout: 'compact',
+    showMagnifier: true,
     ...dataset.atlas,
     ...atlasSettings,
     axisLabel: atlasSettings.axis === 'rows' ? 'Row' : dataset.atlas.axisLabel,
@@ -145,6 +148,23 @@ export default function App() {
     };
     // A replaced recording keeps the dataset id; its revision creates a new controller.
   }, [pageMode, dynamic, dataset.id, provider.id, provider.revision]);
+  // A live source learns its current row count after mount; append mode keeps every address.
+  const grow = dataset.grow;
+  useEffect(() => {
+    if (!grow) return;
+    const controller = new AbortController();
+    grow(controller.signal).then(
+      (next) =>
+        setDataset((current) =>
+          current.id === next.id && next.provider.rowCount > current.provider.rowCount
+            ? next
+            : current,
+        ),
+      // The estimated count stays usable; row requests report their own failures.
+      () => {},
+    );
+    return () => controller.abort();
+  }, [grow]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
@@ -181,8 +201,9 @@ export default function App() {
         <>
           <SiteHeader theme={theme} onTheme={setTheme} />
           <DatasetGallery current={dataset} onChange={chooseDataset} />
-          <DatasetIntro dataset={dataset} stats={stats} />
-          <DemoLimitations recording={isRecording} imported={isImported} live={isLive} />
+          <DatasetIntro dataset={dataset} stats={stats}>
+            <DemoLimitations recording={isRecording} imported={isImported} live={live} />
+          </DatasetIntro>
           {isRecording && <TraceImport imported={isImported} onLoad={loadRecording} />}
           <FeatureTour dataset={dataset} api={api}>
             {isSignal && (
@@ -238,7 +259,7 @@ export default function App() {
                 <DemoLimitations
                   recording={isRecording}
                   imported={isImported}
-                  live={isLive}
+                  live={live}
                   compact
                 />
               </>
@@ -246,7 +267,7 @@ export default function App() {
             <DebugTools
               latency={latency}
               onLatency={changeLatency}
-              simulateLatency={!isRecording && !isLive}
+              simulateLatency={!isRecording && !live}
               features={features}
               onFeatures={setFeatures}
               reduced={reduced}
@@ -264,14 +285,19 @@ export default function App() {
           </>
         }
         provider={provider}
+        dataMode={grow ? 'append' : undefined}
+        cache={dataset.cache}
         atlas={atlas}
         railActions={
-          <MapSettings
-            value={atlas}
-            onChange={changeMapSettings}
-            onReset={() => setDatasetMapSettings((current) => ({ ...current, [dataset.id]: {} }))}
-            labels={dataset.map}
-          />
+          <>
+            <RailView api={api} resetKey={providerKey} />
+            <MapSettings
+              value={atlas}
+              onChange={changeMapSettings}
+              onReset={() => setDatasetMapSettings((current) => ({ ...current, [dataset.id]: {} }))}
+              labels={dataset.map}
+            />
+          </>
         }
         ariaLabel={dataset.ariaLabel}
         header={dataset.header}
@@ -308,6 +334,66 @@ export default function App() {
         </>
       )}
     </main>
+  );
+}
+
+/** Row detail is one row per 22px or closer. Summaries from that scale open grouped. */
+const ROW_DETAIL_MAX_ROWS_PER_PIXEL = 1 / 22;
+
+function RailView({ api, resetKey }: { api: Api; resetKey: string }) {
+  const [view, setView] = useState<View>('rows');
+  const [describedBy, setDescribedBy] = useState<string>();
+  const select = useRef<HTMLSelectElement>(null);
+  // A passive effect: the explorer attaches `api` during layout, after this nested control's
+  // own layout effects would run.
+  useEffect(() => {
+    const controller = api.current?.controller;
+    if (!controller) return;
+    const sync = () => {
+      const next = controller.getSnapshot().view;
+      setView((current) => (current === next ? current : next));
+    };
+    sync();
+    // Describe the choice with the explorer's own view guidance, as its built-in menu does.
+    setDescribedBy(
+      select.current?.closest('[data-ds-root]')?.querySelector('.ds-view-guide > summary > [id]')
+        ?.id,
+    );
+    return controller.subscribe(sync);
+  }, [api, resetKey]);
+  return (
+    <label className="rail-view">
+      <span>View</span>
+      {/* The narrow rail shows a short name; the native select keeps the full option names. */}
+      <span className="rail-view-control">
+        <span className="rail-view-value" aria-hidden="true">
+          {view === 'zoom' ? 'Summaries' : 'Rows'}
+        </span>
+        <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+          <path d="m2.5 4 2.5 2.5L7.5 4" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        </svg>
+        <select
+          ref={select}
+          className="ds-input"
+          aria-label="View"
+          aria-describedby={describedBy}
+          title="Change view"
+          value={view}
+          onChange={(event) => {
+            const next = event.target.value as View;
+            const controller = api.current?.controller;
+            if (!controller) return;
+            const scale = controller.getSnapshot().rowsPerPixel;
+            controller.setView(next);
+            if (next === 'zoom' && scale <= ROW_DETAIL_MAX_ROWS_PER_PIXEL) controller.setZoom(1);
+            setView(next);
+          }}
+        >
+          <option value="rows">Rows</option>
+          <option value="zoom">Range summaries</option>
+        </select>
+      </span>
+    </label>
   );
 }
 

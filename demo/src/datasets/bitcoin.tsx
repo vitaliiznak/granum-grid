@@ -21,6 +21,7 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
     'Every second of BTC/USDT trading on Binance since the pair opened in August 2017. Real candles arrive on demand from Binance’s public API; nothing is generated.',
   facts: ['1 row per second', 'since 2017-08-17', 'Binance API'],
   icon: <BitcoinIcon />,
+  origin: 'real',
   provider,
   ariaLabel: 'Binance BTC/USDT seconds',
   rowHeight: 38,
@@ -40,13 +41,15 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
   ],
   formatBucketSize: (rows) => {
     const [unit, seconds] =
-      rows >= 86400
-        ? ['days', 86400]
-        : rows >= 3600
-          ? ['hours', 3600]
-          : rows >= 60
-            ? ['minutes', 60]
-            : ['seconds', 1];
+      rows >= 31_536_000
+        ? ['years', 31_536_000]
+        : rows >= 86400
+          ? ['days', 86400]
+          : rows >= 3600
+            ? ['hours', 3600]
+            : rows >= 60
+              ? ['minutes', 60]
+              : ['seconds', 1];
     const value = rows / seconds;
     return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })} ${value === 1 ? unit.slice(0, -1) : unit}`;
   },

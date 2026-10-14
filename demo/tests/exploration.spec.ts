@@ -205,7 +205,7 @@ test('map selection can be canceled and optional channel tracks stay bounded', a
   await page.mouse.up();
   await expect(page.locator('.ds-map-selection')).toHaveCount(0);
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
-  await page.getByRole('button', { name: 'Scrollbar settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Config', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Show channel tracks' }).check();
   await page.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
   await page.getByRole('button', { name: 'Done', exact: true }).click();

@@ -185,6 +185,39 @@
     padding: 30px;
     color: var(--ds-muted);
   }
+  :where(.ds-root:not([data-unstyled]) .ds-dataset-end) {
+    border-top: 1px solid var(--ds-line);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--ds-muted) 16%, var(--ds-bg)),
+      transparent 140px
+    );
+    color: var(--ds-text);
+    font-size: 13px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-dataset-start) {
+    border-bottom: 1px solid var(--ds-line);
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--ds-muted) 16%, var(--ds-bg)),
+      transparent 140px
+    );
+    color: var(--ds-text);
+    font-size: 13px;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-dataset-start[data-compact] span,
+    .ds-root:not([data-unstyled]) .ds-dataset-end[data-compact] span
+  ) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   :where(.ds-root:not([data-unstyled]) .ds-rail) {
     background: var(--ds-panel);
     border-left: 1px solid var(--ds-line);
@@ -240,8 +273,8 @@
   }
   :where(.ds-root:not([data-unstyled]) .ds-preview) {
     padding: 14px;
-    background: var(--ds-panel);
-    border: 1px solid var(--ds-line);
+    background: color-mix(in srgb, var(--ds-panel) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ds-line) 80%, transparent);
     border-radius: 6px;
     box-shadow: 0 6px 24px #00000018;
   }
@@ -276,7 +309,12 @@
   :where(.ds-root:not([data-unstyled]) .ds-magnifier) {
     border-top: 1px solid var(--ds-line);
     margin-top: 10px;
-    padding-top: 6px;
+    padding-top: 8px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-magnifier canvas) {
+    background: color-mix(in srgb, var(--ds-bg) 78%, transparent);
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-accent) 35%, var(--ds-line));
   }
   :where(
     .ds-root:not([data-unstyled]) .ds-magnifier span,
@@ -414,7 +452,7 @@
     border-radius: 5px;
     font-size: 12px;
   }
-  :where(.ds-root:not([data-unstyled])[data-motion='on'] .ds-row[data-status='ready']) {
+  :where(.ds-root:not([data-unstyled])[data-motion='on'] .ds-row[data-arrival]) {
     animation: ds-refine 0.14s ease-out;
   }
   @keyframes ds-refine {
@@ -507,6 +545,20 @@
     font-size: 9px;
     line-height: 1.4;
   }
+  :where(.ds-root:not([data-unstyled]) .ds-rail[data-layout='compact'] .ds-selection-hint) {
+    margin-bottom: 0;
+    padding: 1px 4px;
+    background: color-mix(in srgb, var(--ds-panel) 88%, transparent);
+    border-radius: 4px;
+  }
+  @media (max-width: 650px) {
+    :where(.ds-root:not([data-unstyled]) .ds-rail[data-layout='auto'] .ds-selection-hint) {
+      margin-bottom: 0;
+      padding: 1px 4px;
+      background: color-mix(in srgb, var(--ds-panel) 88%, transparent);
+      border-radius: 4px;
+    }
+  }
   :where(.ds-root:not([data-unstyled]) .ds-map-metric) {
     font-size: 11px;
     color: var(--ds-text);
@@ -544,12 +596,19 @@
     border-inline-width: 3px;
     border-radius: 999px;
     cursor: grab;
+    opacity: 0.72;
+    transition:
+      background-color 180ms ease,
+      opacity 180ms ease;
   }
   :where(
+    .ds-root:not([data-unstyled]) .ds-rail:hover .ds-thumb,
+    .ds-root:not([data-unstyled]) .ds-rail:focus-within .ds-thumb,
     .ds-root:not([data-unstyled]) .ds-thumb:hover,
     .ds-root:not([data-unstyled]) .ds-thumb:focus-visible
   ) {
     background-color: var(--ds-accent);
+    opacity: 1;
   }
   :where(.ds-root:not([data-unstyled]) .ds-thumb:active) {
     cursor: grabbing;
@@ -715,6 +774,10 @@
     color: var(--ds-muted);
     font-size: 12px;
   }
+  :where(.ds-root:not([data-unstyled]) .ds-saved-view > .ds-place-index) {
+    color: var(--ds-mark);
+    font-weight: 600;
+  }
   :where(.ds-root:not([data-unstyled]) .ds-selection-description .ds-selection-kicker) {
     color: var(--ds-accent);
     font-weight: 600;
@@ -811,7 +874,26 @@
     outline: 1px solid var(--ds-mark);
   }
   :where(.ds-root:not([data-unstyled]) .ds-visible-range) {
-    background: color-mix(in srgb, var(--ds-accent) 18%, transparent);
+    background: color-mix(in srgb, var(--ds-accent) 16%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-accent) 24%, transparent);
+    transition:
+      background-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-rail:hover .ds-visible-range,
+    .ds-root:not([data-unstyled]) .ds-rail:focus-within .ds-visible-range
+  ) {
+    background: color-mix(in srgb, var(--ds-accent) 32%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-accent) 70%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :where(
+      .ds-root:not([data-unstyled]) .ds-thumb,
+      .ds-root:not([data-unstyled]) .ds-visible-range
+    ) {
+      transition: none;
+    }
   }
   :where(.ds-root:not([data-unstyled]) .ds-sticky-chapter) {
     background: var(--ds-panel);
@@ -865,8 +947,55 @@
     background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
   }
   :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-summary-select) {
-    margin-left: auto;
     border-color: transparent;
     color: var(--ds-muted);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-content[data-chart]) {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--ds-line);
+    border-radius: 0;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-content[data-chart]:focus-within) {
+    background: color-mix(in srgb, var(--ds-accent) 5%, transparent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-plot) {
+    color: var(--ds-accent);
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-metric > span) {
+    color: var(--ds-muted);
+    font-size: 11px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-axis) {
+    color: var(--ds-muted);
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-gridline) {
+    stroke: var(--ds-line);
+    stroke-dasharray: 2 3;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-zero) {
+    stroke: var(--ds-muted);
+    stroke-opacity: 0.5;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-bar) {
+    fill: var(--ds-accent);
+    fill-opacity: 0.5;
+  }
+  :where(
+    .ds-root:not([data-unstyled]) .ds-summary-plot[data-accuracy='estimated'] .ds-summary-bar
+  ) {
+    fill-opacity: 0.22;
+    stroke: var(--ds-accent);
+    stroke-dasharray: 3 2;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-spread) {
+    stroke: var(--ds-text);
+    stroke-width: 1.5;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-average) {
+    stroke: var(--ds-accent);
+    stroke-width: 3;
   }
 }

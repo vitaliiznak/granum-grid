@@ -20,7 +20,7 @@ async function openMap(page: Page) {
   await page.goto('/?dataset=logs');
   await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
   await expect(page.locator('.ds-legend')).toContainText('sampled overview');
-  await page.getByRole('button', { name: 'Scrollbar settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Config', exact: true }).click();
   await page.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
   await page.getByRole('combobox', { name: 'Scrollbar hover details' }).selectOption('summary');
   await page.getByRole('checkbox', { name: 'Snap to events while dragging' }).uncheck();
@@ -67,7 +67,7 @@ test('hover attracts to a peak without navigating; click agrees and Shift bypass
 
   await page.mouse.move(x, y + 18);
   await expect(hover).toHaveAttribute('data-attracted', 'false');
-  await page.getByRole('button', { name: 'Scrollbar settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Config', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Attract pointer to chart peaks' }).uncheck();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.mouse.move(x, nearY);
@@ -117,7 +117,7 @@ test('hidden profiles, disabled magnetism, and range selection bypass peak attra
 }) => {
   const { x, y } = await openMap(page);
   const hover = page.locator('.ds-map-hover');
-  const settings = page.getByRole('button', { name: 'Scrollbar settings', exact: true });
+  const settings = page.getByRole('button', { name: 'Config', exact: true });
   await settings.click();
   await page.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('markers');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
@@ -128,12 +128,12 @@ test('hidden profiles, disabled magnetism, and range selection bypass peak attra
   await page.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('profile');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
 
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Magnetic snapping' }).uncheck();
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.mouse.move(x, y + 2);
   await expect(hover).toHaveAttribute('data-attracted', 'false');
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  await page.getByRole('button', { name: 'debug', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Magnetic snapping' }).check();
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.mouse.move(x, y + 2);
