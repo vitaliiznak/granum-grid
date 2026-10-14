@@ -1,22 +1,33 @@
 # Film music
 
-The film uses **Firefly** by Scott Buckley, a recorded piano, synth, and drum
-arrangement licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
-[`scripts/soundtrack.mjs`](scripts/soundtrack.mjs) holds the track page, download URL,
-license link, SHA-256 checksum, and credit text.
+The film uses **Gear** by Andrew Ev, a positive, driving electronic house track
+from Mixkit. Its embedded tempo is 127 BPM. The edit opens on the rhythmic hook,
+keeps a build and drop, then returns to the full arrangement for the closing pitch.
+[`scripts/soundtrack.mjs`](scripts/soundtrack.mjs) holds the source, license,
+SHA-256 checksum, credit, and reproducible edit.
 
-- Artist usage guidance: https://www.scottbuckley.com.au/library/using-this-music/
-- Verified: 2026-10-13
-- Original duration: 157.356 seconds; stereo MP3 at 44.1 kHz
+- Track listing: https://mixkit.co/free-stock-music/tag/corporate/ (Gear, Andrew Ev)
+- Recording: https://assets.mixkit.co/music/180/180.mp3
+- License: https://mixkit.co/license/#musicFree
+- License text: https://mixkit.co/license/modal/musicFree/
+- Verified: 2026-10-14 against Mixkit's track metadata, music license, and terms
+- Original duration: 245.734 seconds; stereo MP3 at 44.1 kHz
 
-The artist permits synchronized commercial use with attribution. This film trims
-and fades the track and adjusts its loudness. The outro credits the track; each
-export also writes a `-description.txt` file with attribution for publication.
-For YouTube, the artist specifically requires the credit in the video description.
-Copy the credit and links from that file when publishing.
+The Mixkit Stock Music Free License permits commercial web and social media
+videos, including online marketing ads. Attribution is optional; the film's outro
+and exported `-description.txt` retain the artist and source. The music license
+is separate from this repository's software license. It excludes TV/radio
+broadcasts, CDs/DVDs, video games, standalone music redistribution, and registering
+the recording with a rights-management service. See the linked terms for details.
+
+The film uses source sections starting at 0:00, 1:00.472, and 3:16.535. These cuts
+follow the track's 8- and 16-bar structure, with 25 ms crossfades. The long quiet
+passages are omitted. The final section is trimmed to picture, with a 4-second
+fade out; extended captures can loop the source. Single-scene exports use the
+opening hook. The mix targets -16 LUFS with a -2.5 dBTP master ceiling before AAC.
 
 Download once with `node media/scripts/soundtrack.mjs fetch`. The script validates
 the checksum before caching the source in Git-ignored `output/music/`. Captures
 validate it again, work offline, and fail early if it is missing or changed.
-Do not commit or publish the standalone cached recording or submit it to an audio
-fingerprinting service. The output intended for sharing is the synchronized film.
+Keep the standalone cached recording out of version control. The output intended
+for sharing is the synchronized film.

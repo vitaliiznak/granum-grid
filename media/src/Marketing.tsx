@@ -15,19 +15,19 @@ export const titleCards = [
     id: 'intro',
     seconds: 7,
     title:
-      'Turn data into clarity. Transform rows of information into a visual experience people can explore and understand.',
+      'Turn data into clarity. A frontend explorer built with React and TypeScript. Explore huge datasets directly in the browser.',
   },
   {
     id: 'capabilities',
     seconds: 10,
     title:
-      'A playground for large data. Jump to a row, read the shape, compare two stretches, and come back.',
+      'A frontend-only playground. No Granum Grid backend. Jump to a row, read the shape, compare two stretches, and come back. Live examples call external public APIs.',
   },
   {
     id: 'outro',
     seconds: 8,
     title:
-      'Make your data make sense. See the pattern. Understand the detail. Open the playground.',
+      'Make your data make sense. Bring clear navigation to your React frontend. Connect your own data provider. Open the playground.',
   },
 ] as const;
 export type FilmCard = (typeof titleCards)[number]['id'];
@@ -49,7 +49,7 @@ function Brand() {
         <i />
         <i />
       </span>
-      Granum Grid<span className="film-brand-tag">A DATA PLAYGROUND</span>
+      Granum Grid<span className="film-brand-tag">FRONTEND · REACT + TYPESCRIPT</span>
     </div>
   );
 }
@@ -109,7 +109,7 @@ export function Marketing({
       {card === 'capabilities' ? (
         <>
           <div className="film-capabilities-copy">
-            <p className="film-kicker">A PLAYGROUND FOR LARGE DATA</p>
+            <p className="film-kicker">RUNS IN YOUR BROWSER</p>
             <h1>
               Pick a dataset.
               <br />
@@ -126,8 +126,8 @@ export function Marketing({
             ))}
           </div>
           <footer className="film-card-footer">
-            <span>OPEN THE PAGE. NOTHING TO INSTALL.</span>
-            <span>Generated sets and live public data</span>
+            <span>FRONTEND-ONLY PLAYGROUND · NO GRANUM GRID BACKEND</span>
+            <span>Live examples call external public APIs</span>
           </footer>
         </>
       ) : card ? (
@@ -156,15 +156,15 @@ export function Marketing({
             <p className="film-card-promise">
               {card === 'intro' ? (
                 <>
-                  Turn rows of information into a visual experience
+                  A frontend explorer built with React and TypeScript.
                   <br />
-                  people can explore and understand.
+                  Explore huge datasets directly in the browser.
                 </>
               ) : (
                 <>
-                  See the pattern. Understand the detail.
+                  Bring clear navigation to your React frontend.
                   <br />
-                  Give people a clearer way to explore your data.
+                  Connect your own data provider.
                 </>
               )}
             </p>
@@ -182,7 +182,7 @@ export function Marketing({
             <span>
               {card === 'intro'
                 ? 'Generated demo data · real product interactions'
-                : 'Music: Firefly by Scott Buckley · CC-BY 4.0 · scottbuckley.com.au'}
+                : 'Music: Gear · Andrew Ev · mixkit.co'}
             </span>
           </footer>
         </>

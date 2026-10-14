@@ -1,10 +1,12 @@
 # Granum Grid
 
+**Turn data into clarity.**
+
 A React component and headless hook for reading ordered datasets too large to load: millions to billions of rows, fetched a page at a time, with a map of the whole dataset beside them. Jump to a row, a date, or a named event, then come back.
 
-[Open the playground](https://vitaliiznak.github.io/granum-grid/) · [Use it in React](#use-it-in-react) · [Watch the film](https://github.com/vitaliiznak/granum-grid/releases/download/media/granum-grid-launch.mp4) · [The datasets](#the-datasets) · [Visual tour](#visual-tour) · [Run it locally](#run-it-locally) · [Scope and current limits](#scope-and-current-limits)
+[Open the playground](https://vitaliiznak.github.io/granum-grid/) · [Use it in React](#use-it-in-react) · [Watch the film](#film) · [The datasets](#the-datasets) · [Visual tour](#visual-tour) · [Run it locally](#run-it-locally) · [Demo limitations](#demo-limitations) · [Scope and current limits](#scope-and-current-limits)
 
-![Granum Grid showing a live table near row 73,500,000 and a map of 100 million synthetic readings](https://github.com/vitaliiznak/granum-grid/releases/download/media/hero.png)
+The UI and navigation run in the browser, with no Granum Grid backend required. Bitcoin and Hacker News call external public APIs directly, and the Parquet set reads a public file with HTTP range requests. The repository also includes a separate [local HTTP teaching example](demo/server/trace.ts); it is not a deployed backend. Integrations supply their own data provider.
 
 ## Use it in React
 
@@ -51,13 +53,23 @@ You never download the full set. The page asks for the slice you are looking at,
 
 ## Film
 
-[![Watch the Granum Grid playground film](https://github.com/vitaliiznak/granum-grid/releases/download/media/hero.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/granum-grid-launch.mp4)
+<video src="https://github.com/user-attachments/assets/68cd80c8-c180-4f81-8c98-89a689c15d69" controls width="100%"></video>
 
-The film records an earlier version of the playground, before the reading controls were simplified: jump to a row, read the shape, compare two stretches, and come back. Generated sets label sampled summaries and partial search. Bitcoin and Hacker News are live public sources.
+The film shows the current playground: a live table near row 73,500,000 and a map of 100 million synthetic readings. Jump to a row, read the shape, compare two stretches, and come back. Generated datasets label sampled summaries and partial search. The playground also offers Bitcoin and Hacker News through external public APIs.
 
-[Play granum-grid-launch.mp4](https://github.com/vitaliiznak/granum-grid/releases/download/media/granum-grid-launch.mp4) · [Captions](media/granum-grid-launch.srt) · [Description](media/granum-grid-launch-description.txt)
+[Open the playground](https://vitaliiznak.github.io/granum-grid/) · [Film file](https://github.com/vitaliiznak/granum-grid/releases/download/media/granum-grid-launch.mp4) · [Captions](media/granum-grid-launch.srt) · [Description](media/granum-grid-launch-description.txt)
 
-Music: 'Firefly' by Scott Buckley, released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). [scottbuckley.com.au](https://www.scottbuckley.com.au) · [track](https://www.scottbuckley.com.au/library/firefly/). The film trims, fades, and levels the recording.
+Music: “Gear” by Andrew Ev, from [Mixkit](https://mixkit.co/free-stock-music/tag/corporate/), under the [Mixkit Stock Music Free License](https://mixkit.co/license/#musicFree). The film edits musical phrases, crossfades, and levels the recording.
+
+## A clear way through
+
+| Move                        | What it feels like                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------- |
+| **Skip the endless scroll** | Type a row, a percent, a date, or a name you already know.                            |
+| **See the shape**           | A map of the whole dataset stays beside the rows you are reading.                     |
+| **Find a match**            | Search, then read the records around the hit.                                         |
+| **Compare two stretches**   | Two panes, side by side, scrolling in proportion.                                     |
+| **Keep your place**         | Back returns you to where you were. A bookmark remembers the place and the selection. |
 
 ## The datasets
 
@@ -77,13 +89,13 @@ Music: 'Firefly' by Scott Buckley, released under [CC BY 4.0](https://creativeco
 
 These are screenshots of the playground. The [media scripts](media/README.md) crop the browser; they do not restyle the page.
 
-### Jump to the row you need
+### Skip the endless scroll
 
 Type `73,500,000`, `50%`, a loaded event name, or a query the dataset understands. A long jump passes through the overview. Back returns you to where you were.
 
 [![Exact navigation to row 73,500,000, with the dataset map showing its global position](https://github.com/vitaliiznak/granum-grid/releases/download/media/jump.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/jump.png)
 
-### See the shape, then read the records
+### Make the big picture clear
 
 Read one record per line. The map on the right always covers the whole dataset; click an event or drag to a new address, then inspect the nearby rows. Back returns to your previous position.
 
@@ -107,13 +119,13 @@ On the generated sets, means and extremes are **sampled estimates**, and the car
 
 Open **Performance** and choose **Inspect longest event**. The recording map shows where longer events occur; the rows show their duration, start time, and thread. Select rows to compare ranges or save a bookmark.
 
-### Rows that grow
+### Give every detail room
 
 Turn on measured heights when a row wraps or expands. The playground measures what is on screen, remembers those heights, and keeps your place while the content changes.
 
 [![An expanded observation with automatically measured row height](https://github.com/vitaliiznak/granum-grid/releases/download/media/dynamic.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/dynamic.png)
 
-### Two stretches, side by side
+### Make differences visible
 
 **Select rows** from the screen, the map, or typed addresses. **Compare ranges** keeps the first stretch while you pick a second. **Show comparison** opens two panes that scroll in proportion to each other, not by matching timestamps.
 

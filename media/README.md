@@ -1,6 +1,6 @@
 # Granum Grid media studio
 
-Create README screenshots and a marketing film by mounting the actual `demo/src/App.tsx`. The capture page uses the demo's existing CSS and controls. Screenshots crop the table or dialog directly. The film surrounds real clicks, typing, scrolling, and navigation with benefit-led headlines, a charcoal, ivory, and cobalt visual treatment, and opening and closing title cards.
+Create README screenshots and a marketing film by mounting the actual `demo/src/App.tsx`. The capture page uses the demo's existing CSS and controls. Screenshots crop the table or dialog directly. The film surrounds real clicks, typing, scrolling, and navigation with benefit-led headlines, a charcoal, ivory, and cobalt visual treatment, and opening and closing title cards. The branding and cards explicitly identify a frontend-only React/TypeScript playground; live examples call external public APIs.
 
 ![The Granum Grid demo](https://github.com/vitaliiznak/granum-grid/releases/download/media/hero.png)
 
@@ -51,7 +51,7 @@ Available scene IDs are in [src/scenes.ts](src/scenes.ts). Exports freeze a prod
 | `granum-grid-launch.mp4`, `.srt`, `-description.txt` | The film (a release asset, ignored by git), and the committed captions and description the README links         |
 | `output/granum-grid-launch.mp4`                      | The same film as generated; `output/` stays ignored, so copy a keeper into `media/`                             |
 | `output/granum-grid-launch.srt`                      | Scene-title captions with generated timing                                                                      |
-| `output/granum-grid-launch-description.txt`          | Publishing description with required music attribution                                                          |
+| `output/granum-grid-launch-description.txt`          | Publishing description with music source and license                                                            |
 | `output/manifest-*.json`                             | Capture date, dimensions, scene IDs, and actual durations                                                       |
 | `output/granum-grid-<scene>.mp4`                     | A single-scene export                                                                                           |
 | `dist/`                                              | Optional production build; ignored by Git                                                                       |
@@ -61,7 +61,7 @@ Available scene IDs are in [src/scenes.ts](src/scenes.ts). Exports freeze a prod
 The full cut opens with **Turn data into clarity** (7 s), plays twelve scenes in the order of `src/scenes.ts` (hero, jump, history, overview, genome, logs, market, stars, dynamic, selection, compare, saved), shows a card of six integration capabilities (10 s), and closes with **Make your data make sense** (8 s). The planned minimum is 136 seconds; the manifest and SRT record actual timings. Each scene names its user benefit and three supporting capabilities; its headline, copy, and minimum seconds live in `src/scenes.ts`, and the cards in `src/Marketing.tsx`.
 
 - Format: H.264, 30 fps, 1920 × 1080, with quick fades, independent headline/diagram reveals on the title cards, and fast-start metadata.
-- Music: **Firefly** by Scott Buckley (piano, synths, and light drums) fades in and out and is mixed in two passes to a -17 LUFS target with a -2 dBTP ceiling, encoded as 192 kb/s stereo AAC. See [MUSIC.md](MUSIC.md) for the CC BY 4.0 source and the credit to keep in published descriptions, especially on YouTube. The cached source and intermediate audio stay Git-ignored.
+- Music: **Gear** by Andrew Ev (127 BPM electronic house) is edited from an immediate hook through a build and drop into the final full arrangement, with short crossfades at phrase boundaries. It is mixed in two passes to a -16 LUFS target with a -2.5 dBTP master ceiling before encoding as 192 kb/s stereo AAC. See [MUSIC.md](MUSIC.md) for the Mixkit source, license, and publishing credit. The cached source and intermediate audio stay Git-ignored.
 - No narration. Headlines and supporting copy are burned in above a dedicated window for the live product recording, with source labels below it. A separate SRT track has each headline and a description of the action. A small recording cursor follows actual pointer events because Chromium screencasts omit the operating-system cursor.
 - Single-scene exports keep the headline layout and their own music fades, without the title cards.
 

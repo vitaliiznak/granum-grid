@@ -1,10 +1,10 @@
-Granum Grid is a playground for data too large to open as a file. Explore, search, compare, and save a view.
+Granum Grid is a frontend-only React/TypeScript playground for exploring large indexed datasets. Jump to a row, search, compare ranges, and save a bookmark. The UI and navigation run in the browser; the playground needs no Granum Grid backend.
 
-Generated demonstration data; sampled summaries and partial search are labeled. Bitcoin and Hacker News are live public sources.
+The film uses generated demonstration data. Sampled summaries and partial search are labeled. The playground's Bitcoin and Hacker News examples call external public APIs directly. The repository also includes a separate local HTTP teaching example; it is not a deployed backend. Integrations supply their own data provider.
 
-'Firefly' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au
-Track: https://www.scottbuckley.com.au/library/firefly/
-License: https://creativecommons.org/licenses/by/4.0/
-Music edited to picture with fades and loudness adjustment.
+Music: "Gear" by Andrew Ev, from Mixkit.
+Mixkit Stock Music Free License: https://mixkit.co/license/#musicFree
+Track: https://mixkit.co/free-stock-music/tag/corporate/
+Music edited to picture at phrase boundaries, with crossfades and loudness adjustment.
 
-Keep this music credit in the description when publishing the video.
+Music credit is included for provenance; Mixkit does not require attribution.

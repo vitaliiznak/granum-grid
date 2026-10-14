@@ -183,7 +183,12 @@ async function perform(page, scene, filming) {
     await hold(700);
     await click(page, table.getByRole('button', { name: /^Bookmarks/ }));
     await hold(900);
-    await click(page, table.getByRole('button', { name: /^Signal investigation/ }));
+    await click(
+      page,
+      table
+        .getByRole('region', { name: 'Bookmarks', exact: true })
+        .getByRole('button', { name: /^Signal investigation/ }),
+    );
     await rowReady(scene.index);
   } else if (scene.action === 'overview') {
     await table.getByTestId('overview').waitFor();
@@ -263,7 +268,10 @@ async function still(page, scene, file) {
     // The restored rows alone look like an ordinary table. Show the bookmark
     // alongside its destination so this still actually explains the feature.
     await click(page, table.getByRole('button', { name: /^Bookmarks/ }));
-    await table.getByRole('button', { name: /^Signal investigation/ }).waitFor();
+    await table
+      .getByRole('region', { name: 'Bookmarks', exact: true })
+      .getByRole('button', { name: /^Signal investigation/ })
+      .waitFor();
     await page.mouse.move(0, 0);
     await table.screenshot({ path: file, animations: 'disabled' });
   } else {
@@ -536,10 +544,10 @@ try {
     manifest.video = `media/output/${filename}`;
     const duration = manifest.sequence.reduce((sum, item) => sum + item.seconds, 0);
     const scoreName = filename.replace('.mp4', '-score.wav');
-    console.log('Mixing Firefly by Scott Buckley…');
+    console.log(`Mixing ${soundtrack.title} by ${soundtrack.artist}…`);
     manifest.audio = {
       ...(await renderSoundtrack(path.join(scratch, scoreName), duration, { encode: run, ffmpeg })),
-      mix: 'AAC stereo, 192 kb/s, two-pass -17 LUFS target, -2 dBTP master ceiling',
+      mix: 'AAC stereo, 192 kb/s, two-pass -16 LUFS target, -2.5 dBTP master ceiling',
     };
     await runFFmpeg(
       concatList(path.join(scratch, 'clips.txt')),
@@ -552,7 +560,7 @@ try {
     await rename(path.join(scratch, filename), path.join(output, filename));
     await writeFile(
       path.join(output, filename.replace('.mp4', '-description.txt')),
-      `Granum Grid is a playground for data too large to open as a file. Explore, search, compare, and save a view.\n\nGenerated demonstration data; sampled summaries and partial search are labeled. Bitcoin and Hacker News are live public sources.\n\n${soundtrack.credit}\nTrack: ${soundtrack.source}\nLicense: ${soundtrack.licenseUrl}\nMusic edited to picture with fades and loudness adjustment.\n\nKeep this music credit in the description when publishing the video.\n`,
+      `Granum Grid is a frontend-only React/TypeScript playground for exploring large indexed datasets. Jump to a row, search, compare ranges, and save a bookmark. The UI and navigation run in the browser; the playground needs no Granum Grid backend.\n\nThe film uses generated demonstration data. Sampled summaries and partial search are labeled. The playground's Bitcoin and Hacker News examples call external public APIs directly. The repository also includes a separate local HTTP teaching example; it is not a deployed backend. Integrations supply their own data provider.\n\n${soundtrack.credit}\nTrack: ${soundtrack.source}\nMusic edited to picture at phrase boundaries, with crossfades and loudness adjustment.\n\nMusic credit is included for provenance; Mixkit does not require attribution.\n`,
     );
     const cueTime = (seconds) => {
       const ms = Math.round(seconds * 1000);
