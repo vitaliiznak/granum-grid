@@ -68,6 +68,14 @@ export interface NavigationController {
   back(): void;
   /** Revisit the location left by `back`. */
   forward(): void;
+  /**
+   * Start, move, and finish a drag, such as from an external scrollbar. Moves are not
+   * announced; a finished drag records one history entry and one `scrub` navigation.
+   */
+  beginScrub(): void;
+  /** Show a float row address during a drag. */
+  scrub(position: number): void;
+  endScrub(cancel?: boolean): void;
   /** Cancel a scrub in progress, returning to where it started. */
   cancel(): void;
   /** Discard measured heights, for example after offscreen content or typography changes. */
@@ -81,10 +89,6 @@ export interface GranumGridEngine extends NavigationController {
   appendRows(rowCount: number, follow?: boolean): void;
   /** Adapter: move by CSS pixels; returns the pixels left over at either end. */
   pan(pixels: number): number | undefined;
-  /** Adapter: start, move, and finish a drag that records one history entry. */
-  beginScrub(): void;
-  scrub(position: number): void;
-  endScrub(cancel?: boolean): void;
   /** Adapter: report the viewport height in CSS pixels. */
   setViewport(height: number): void;
   /** Adapter: change the row height or measuring mode; the current row and history stay. */

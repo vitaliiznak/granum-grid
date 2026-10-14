@@ -470,6 +470,7 @@ function SiteHeader({
         <nav className="header-links" aria-label="Other pages">
           <a href={`${import.meta.env.BASE_URL}tutorials.html`}>Lessons</a>
           <a href={`${import.meta.env.BASE_URL}vanilla.html`}>No framework</a>
+          <a href={`${import.meta.env.BASE_URL}scrollers.html`}>Your own scroller</a>
         </nav>
         <button
           className="theme-toggle"

@@ -52,7 +52,7 @@ It is a reading surface, not a spreadsheet grid. There is no column model, sorti
 | Package                                         | What it gives you                                                                                                                                              |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`@granum/react`](packages/react/README.md)     | The explorer component, its map and search widgets, and the headless hook                                                                                      |
-| [`@granum/core`](packages/core/README.md)       | Framework-free: the navigation engine, the data session, native scrolling for an element or the window, and the map's pieces                                   |
+| [`@granum/core`](packages/core/README.md)       | Framework-free: the navigation engine, the data session, `mount()` for the rows explorer, and `mountMap()` for the dataset map beside any scroller             |
 | [`@granum/parquet`](packages/parquet/README.md) | A Parquet file on any server that answers byte ranges, read one row group per jump, with a map from the footer's statistics                                    |
 | [`@granum/sql`](packages/sql/README.md)         | Any table DuckDB can read: each filter or sort becomes a revision with its own addresses, an exact map, and search that reads every row; bring your own DuckDB |
 

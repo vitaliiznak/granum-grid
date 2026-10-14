@@ -331,22 +331,22 @@ new revision.
 
 ## Limits and defaults
 
-| Setting                 | Default or limit                                                                            | Configure with           |
-| ----------------------- | ------------------------------------------------------------------------------------------- | ------------------------ |
-| Component height        | 600 px                                                                                      | `style` or `className`   |
-| Row height              | 32 px; the estimate for unmeasured rows with `dynamicRowHeight`                             | `rowHeight`              |
-| Overscan                | 2 rows per side; allowed 0–1,000                                                            | `overscan`               |
-| Measured heights        | 4,096 sparse entries; mounted rows are kept beyond the budget                               | Fixed (`createEngine`)   |
-| Page size               | 256 rows                                                                                    | `cache.pageSize`         |
-| Cache budget            | 32 MiB, estimated, including cached metadata                                                | `cache.maxBytes`         |
-| Row size estimate       | 256 bytes per row plus 64 bytes per page; not a heap measurement                            | `cache.estimateRowBytes` |
-| Row request deadline    | 15,000 ms, then the page offers a retry                                                     | `cache.requestTimeoutMs` |
-| Concurrent row requests | 4; at most 8 unsettled transports, including canceled ones                                  | Fixed                    |
-| Overview                | 320 buckets                                                                                 | Fixed                    |
-| Extra map tracks        | Up to 4, with 160 buckets each                                                              | `fetchOverviewTracks`    |
-| Markers and chapters    | At most 4,096 each; markers closer than 28 px are grouped, and group lists show 40 per page | Fixed                    |
-| Search dialog           | 100 matches without pagination; up to 4 examples from `searchHelp`                          | Fixed                    |
-| Saved view text         | 8,192 characters for `decodeView`                                                           | Fixed                    |
+| Setting                 | Default or limit                                                                                   | Configure with           |
+| ----------------------- | -------------------------------------------------------------------------------------------------- | ------------------------ |
+| Component height        | 600 px                                                                                             | `style` or `className`   |
+| Row height              | 32 px; the estimate for unmeasured rows with `dynamicRowHeight`                                    | `rowHeight`              |
+| Overscan                | 2 rows per side; allowed 0–1,000                                                                   | `overscan`               |
+| Measured heights        | 4,096 sparse entries; mounted rows are kept beyond the budget                                      | Fixed (`createEngine`)   |
+| Page size               | 256 rows                                                                                           | `cache.pageSize`         |
+| Cache budget            | 32 MiB, estimated, including cached metadata                                                       | `cache.maxBytes`         |
+| Row size estimate       | 256 bytes per row plus 64 bytes per page; not a heap measurement                                   | `cache.estimateRowBytes` |
+| Row request deadline    | 15,000 ms, then the page offers a retry                                                            | `cache.requestTimeoutMs` |
+| Concurrent row requests | 4; at most 8 unsettled transports, including canceled ones                                         | Fixed                    |
+| Overview                | 320 buckets                                                                                        | Fixed                    |
+| Extra map tracks        | Up to 4, with 160 buckets each                                                                     | `fetchOverviewTracks`    |
+| Markers and chapters    | At most 4,096 each; markers closer than 28 px are grouped, and group lists show 40 per page        | Fixed                    |
+| Search dialog           | 100 matches without pagination; up to 4 examples from `searchHelp`                                 | Fixed                    |
+| Saved view text         | 8,192 characters for `decodeView`                                                                  | Fixed                    |
 | Native scroll range     | Capped at 8,000,000 CSS px; four viewports at each end scroll one to one, the middle is compressed | Both layouts             |
 
 Row requests are scheduled for visible rows first, then map previews, then the predicted
@@ -367,8 +367,10 @@ Granum Grid is a family of packages. `@granum/core` is framework-free: the engin
 it and re-exports what a React app needs, so a React app imports `@granum/react` and its
 stylesheet. Without React, `mount` from `@granum/core/dom` renders the rows explorer into
 any element and returns the same `GranumGridApi` handle; it is built from the same
-`@granum/core/dom` pieces as the hook. The dataset map is React-only for now. `@granum/parquet` and `@granum/sql` are providers that take their types from
-`@granum/core/data`.
+`@granum/core/dom` pieces as the hook. `mountMap` from `@granum/core/map` puts the dataset
+map beside that explorer or any other scroller through a small `MapTarget`; `AtlasRail`
+uses the same drag math. `@granum/parquet` and `@granum/sql` are providers that take their
+types from `@granum/core/data`.
 
 `useGranumGrid` returns the `api` handle, the navigation `snapshot`, bounded row slots,
 viewport, row, and announcement prop getters, and display state: `selection`,

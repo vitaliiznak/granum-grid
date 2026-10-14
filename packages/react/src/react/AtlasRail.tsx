@@ -8,7 +8,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { clamp, progressToRow, rowToProgress } from '@granum/core/internal';
+import { clamp, rowToProgress } from '@granum/core/internal';
 import { bucketAt, chapterAt } from '@granum/core/internal';
 import {
   atlasDomain,
@@ -19,7 +19,14 @@ import {
   profileValue,
 } from '@granum/core/map';
 import { formatCompact, formatMetric } from '@granum/core/map';
-import { atlasPeaks, attractToPeak } from '@granum/core/map';
+import {
+  FULL_SPEED,
+  atlasPeaks,
+  beginScrub,
+  moveScrub,
+  rowAtPointer,
+  type Scrub,
+} from '@granum/core/map';
 import { MarkerLayer } from './MarkerLayer.js';
 import type { Marker, RowRange } from '@granum/core/data';
 import type { GranumGridState } from './useGranumGrid.js';
@@ -80,13 +87,6 @@ interface HoverTarget {
   y: number;
   peak?: number;
 }
-/** Dragging this far sideways (CSS px) slows scrubbing for precise positioning. */
-const PRECISION_STEPS = [
-  { away: 208, rate: 0.05, label: 'Fine · 1/20 speed' },
-  { away: 112, rate: 0.25, label: '¼ speed' },
-  { away: 48, rate: 0.5, label: '½ speed' },
-] as const;
-const FULL_SPEED = 'Full speed';
 /** Default preview: the first three text or number fields of an object row. */
 function previewText(row: unknown) {
   return typeof row === 'object' && row !== null
@@ -155,16 +155,7 @@ export function AtlasRail<Row>({
     );
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [precision, setPrecision] = useState<string>(FULL_SPEED);
-  const drag = useRef<{
-    x: number;
-    y: number;
-    origin: number;
-    position: number;
-    destination: number;
-    rate: number;
-    moved: boolean;
-    snapped?: number;
-  } | null>(null);
+  const drag = useRef<Scrub | null>(null);
   const [dragging, setDragging] = useState(false);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
   // Release the previous dataset's session as well as resetting its chart choice.
@@ -309,16 +300,13 @@ export function AtlasRail<Row>({
       }));
     drawAtlas(magnifier.current, buckets, end - start, domain, kind, showRange, 'lens');
   }, [hoverIndex, overview, showMagnifier, helpOpen, showRange, domain, kind, total]);
-  const atPointer = (clientY: number, attract = false) => {
+  /** The track's place on screen, for the shared pointer math in `@granum/core/map`. */
+  const geometry = () => {
     const rect = track.current!.getBoundingClientRect();
-    const index = Math.round(progressToRow((clientY - rect.top) / rect.height, total));
-    const target = attract ? attractToPeak(index, peaks, total, rect.height) : { position: index };
-    return {
-      index: Math.round(target.position),
-      y: clamp(clientY - rect.top, 0, rect.height),
-      peak: target.peak,
-    };
+    return { top: rect.top, height: rect.height, rowCount: total };
   };
+  const atPointer = (clientY: number, attract = false) =>
+    rowAtPointer(clientY, geometry(), attract ? peaks : []);
   const finish = (cancel = false) => {
     if (rangeDrag.current) {
       if (cancel) setSelection(rangeDrag.current.previous);
@@ -483,10 +471,7 @@ export function AtlasRail<Row>({
             .querySelector<HTMLElement>('[role=slider]')
             ?.focus({ preventScroll: true });
           event.currentTarget.setPointerCapture(event.pointerId);
-          const raw = atPointer(event.clientY),
-            target = atPointer(event.clientY, !event.shiftKey && !selecting),
-            rect = track.current!.getBoundingClientRect();
-          const nearThumb = Math.abs(target.y - snapshot.progress * rect.height) <= 14;
+          const target = atPointer(event.clientY, !event.shiftKey && !selecting);
           if (selecting) {
             rangeDrag.current = { anchor: target.index, previous: selection };
             setSelection({ start: target.index, end: target.index + 1 });
@@ -494,15 +479,12 @@ export function AtlasRail<Row>({
             return;
           }
           engine.beginScrub();
-          drag.current = {
-            x: event.clientX,
-            y: event.clientY,
-            origin: snapshot.position,
-            position: nearThumb ? snapshot.position : raw.index,
-            destination: nearThumb ? snapshot.position : target.index,
-            rate: 1,
-            moved: false,
-          };
+          drag.current = beginScrub(event.clientX, event.clientY, geometry(), {
+            current: snapshot.position,
+            progress: snapshot.progress,
+            peaks,
+            free: event.shiftKey,
+          });
           setDragging(true);
           setPrecision(FULL_SPEED);
           setHover(target);
@@ -520,61 +502,17 @@ export function AtlasRail<Row>({
             setHover(atPointer(event.clientY, !event.shiftKey && !selecting));
             return;
           }
-          const state = drag.current,
-            rect = track.current!.getBoundingClientRect();
-          const away = precisionDrag ? Math.abs(event.clientX - state.x) : 0;
-          const step = PRECISION_STEPS.find((item) => away > item.away);
-          const rate = step?.rate ?? 1;
-          if (rate !== state.rate) {
-            state.position = state.destination;
-            state.rate = rate;
-          }
-          setPrecision(step?.label ?? FULL_SPEED);
-          const delta = event.clientY - state.y;
-          state.position = clamp(
-            state.position + (delta / rect.height) * Math.max(0, total - 1) * rate,
-            0,
-            Math.max(0, total - 1),
-          );
-          state.y = event.clientY;
-          state.moved ||= Math.abs(delta) > 0;
-          let position = delta === 0 ? state.destination : state.position;
-          let peak: number | undefined;
-          let markerSnapped = false;
-          if (
-            delta !== 0 &&
-            showMarkers &&
-            options.snapToMarkers !== false &&
-            !event.shiftKey &&
-            Math.abs(delta) < 40
-          ) {
-            const nearby = grid.markers
-              .filter(
-                (marker) =>
-                  (Math.abs(marker.index - position) / Math.max(1, total - 1)) * rect.height <
-                  (state.snapped === marker.index ? 10 : 6),
-              )
-              .sort((a, b) => Math.abs(a.index - position) - Math.abs(b.index - position))[0];
-            state.snapped = nearby?.index;
-            if (nearby) {
-              position = nearby.index;
-              markerSnapped = true;
-            }
-          } else if (delta !== 0) state.snapped = undefined;
-          if (
-            delta !== 0 &&
-            Math.abs(delta) < 40 &&
-            rate === 1 &&
-            !event.shiftKey &&
-            !markerSnapped
-          ) {
-            const attracted = attractToPeak(position, peaks, total, rect.height);
-            position = attracted.position;
-            peak = attracted.peak;
-          }
-          state.destination = position;
-          engine.scrub(position);
-          setHover({ index: Math.round(position), y: target.y, peak });
+          const snapToMarkers = showMarkers && options.snapToMarkers !== false;
+          const move = moveScrub(drag.current, event.clientX, event.clientY, geometry(), {
+            precision: precisionDrag,
+            markers: snapToMarkers ? grid.markers : [],
+            snapToMarkers,
+            peaks,
+            free: event.shiftKey,
+          });
+          setPrecision(move.precision);
+          engine.scrub(move.position);
+          setHover({ index: Math.round(move.position), y: target.y, peak: move.peak });
         }}
         onPointerUp={(event) => {
           finish();

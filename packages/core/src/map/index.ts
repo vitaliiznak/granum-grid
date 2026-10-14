@@ -1,5 +1,11 @@
-// Framework-free pieces of the dataset map: the overview's scale and accuracy, canvas
-// drawing, peak attraction, marker grouping, and number formats.
+// The dataset map without a framework: `mountMap` drives any scroller through a
+// `MapTarget`. Below it are the pieces `@granum/react`'s AtlasRail shares: the overview's
+// scale and accuracy, canvas drawing, the drag math with precision and snapping, peak
+// attraction, marker grouping, and number formats.
+export { gridTarget, mountMap, scrollerTarget } from './mount.js';
+export type { MapOptions, MapTarget, MountedMap } from './mount.js';
+export { FULL_SPEED, PRECISION_STEPS, beginScrub, moveScrub, rowAtPointer } from './scrub.js';
+export type { Scrub, ScrubMove, TrackGeometry } from './scrub.js';
 export {
   atlasDomain,
   atlasTicks,

@@ -31,6 +31,7 @@ export default defineConfig({
         http: fileURLToPath(new URL('./http.html', import.meta.url)),
         tutorials: fileURLToPath(new URL('./tutorials.html', import.meta.url)),
         vanilla: fileURLToPath(new URL('./vanilla.html', import.meta.url)),
+        scrollers: fileURLToPath(new URL('./scrollers.html', import.meta.url)),
       },
     },
   },

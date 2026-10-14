@@ -116,7 +116,7 @@ it('restores a saved offset inside a measured final row taller than the viewport
   }
 });
 
-it('is the one handle: navigation, detached selection, search, and retry without the engine adapters', () => {
+it('is the one handle: navigation, drags, detached selection, search, and retry without the engine adapters', () => {
   const provider: DataProvider<number> = {
     id: 'handle',
     revision: '1',
@@ -153,8 +153,20 @@ it('is the one handle: navigation, detached selection, search, and retry without
     expect(api.getSelection()).toEqual({ start: 10, end: 20 });
     api.retry();
     expect(retry).toHaveBeenCalledOnce();
+    // An external scrollbar's drag shows each move but becomes one history entry.
+    const scrubs: string[] = [];
+    const offScrub = api.onNavigate((event) => scrubs.push(event.reason));
+    api.beginScrub();
+    api.scrub(600.5);
+    api.scrub(700);
+    expect(api.getSnapshot().position).toBe(700);
+    api.endScrub();
+    offScrub();
+    expect(scrubs).toEqual(['scrub']);
+    api.back();
+    expect(api.getSnapshot().position).toBe(500);
     // Adapters and unvalidated locations stay on the engine.
-    for (const adapter of ['pan', 'scrub', 'measureRows', 'appendRows', 'restore', 'getLocation'])
+    for (const adapter of ['pan', 'measureRows', 'appendRows', 'restore', 'getLocation'])
       expect(adapter in api).toBe(false);
     // The visible range is a detached copy, like the selection.
     const range = api.getVisibleRange();

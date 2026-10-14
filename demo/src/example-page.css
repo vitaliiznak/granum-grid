@@ -84,3 +84,49 @@ body {
   padding: 0 14px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Bring your own scroller */
+.scroller-panel {
+  margin: 24px 0;
+}
+.scroller-panel h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+.scroller-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 12px;
+  height: 360px;
+}
+.scroller-map {
+  height: 360px;
+}
+.plain-scroller {
+  position: relative;
+  overflow-y: auto;
+  border: 1px solid var(--page-line);
+  border-radius: 6px;
+  background: var(--page-panel);
+}
+.plain-scroller .spacer {
+  position: relative;
+}
+.plain-row {
+  position: absolute;
+  font-size: 13px;
+  left: 0;
+  right: 0;
+  height: 28px;
+  padding: 0 12px;
+  line-height: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.plain-static {
+  position: static;
+}
+@media (max-width: 600px) {
+  .scroller-body {
+    grid-template-columns: minmax(0, 1fr) 96px;
+  }
+}

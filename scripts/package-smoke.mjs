@@ -57,6 +57,35 @@ assert.deepEqual(await entryValues('@granum/core/dom'), [
   'rowWindow',
   'scrollMapping',
 ]);
+assert.deepEqual(await entryValues('@granum/core/map'), [
+  'FULL_SPEED',
+  'GROUP_GAP',
+  'PRECISION_STEPS',
+  'atlasDomain',
+  'atlasPeaks',
+  'atlasTicks',
+  'attractToPeak',
+  'beginScrub',
+  'chapterName',
+  'clusterMarkers',
+  'drawAtlas',
+  'formatCompact',
+  'formatCompactTick',
+  'formatDecimal',
+  'formatMetric',
+  'gridTarget',
+  'leadMarker',
+  'mountMap',
+  'moveScrub',
+  'observeCanvas',
+  'overviewAccuracy',
+  'prepareCanvas',
+  'profileValue',
+  'rangeAddress',
+  'rangeCount',
+  'rowAtPointer',
+  'scrollerTarget',
+]);
 const engine = createEngine({ rowCount: 100_000_000 });
 engine.goTo(73_499_999);
 assert.equal(engine.getSnapshot().activeIndex, 73_499_999);
