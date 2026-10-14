@@ -84,6 +84,12 @@ export interface SqlSourceOptions {
   from: string;
   /** Revision tables kept at once; opening another drops the oldest. Default 3. */
   keepRevisions?: number;
+  /**
+   * Build revisions as temporary tables, which only the connection that made them can see.
+   * Use it when every `query` runs on one connection; a pool, such as DuckDB-WASM with a
+   * connection per request, needs the default ordinary tables named `granum_…`.
+   */
+  temporary?: boolean;
 }
 
 export interface SqlProvider extends DataProvider<SqlRow> {
@@ -208,6 +214,7 @@ export function createSqlSource({
   id,
   from,
   keepRevisions = 3,
+  temporary = false,
 }: SqlSourceOptions): SqlSource {
   if (!Number.isSafeInteger(keepRevisions) || keepRevisions < 1)
     throw new RangeError('keepRevisions must be a positive integer');
@@ -230,7 +237,11 @@ export function createSqlSource({
 
   async function build(table: string, select: string, params: SqlParam[], signal: AbortSignal) {
     const started = performance.now();
-    await query(`CREATE OR REPLACE TEMP TABLE ${table} AS ${select}`, params, signal);
+    await query(
+      `CREATE OR REPLACE ${temporary ? 'TEMP ' : ''}TABLE ${table} AS ${select}`,
+      params,
+      signal,
+    );
     const [{ n }] = await query(`SELECT count(*) AS n FROM ${table}`, [], signal);
     const rowCount = number(n);
     if (rowCount === null || !Number.isSafeInteger(rowCount))
@@ -342,10 +353,34 @@ interface ProviderParts {
   peaks: number;
 }
 
+/**
+ * The row select list. Engines disagree on how they hand over times, decimals, and nested
+ * values (DuckDB-WASM's Arrow results turn timestamps into numbers), so the database
+ * converts them: times to its text form, decimals to doubles, binary to a byte count, and
+ * other non-scalar values to their text form.
+ */
+function rowSelect(columns: readonly SqlColumn[]) {
+  const replaced = columns.flatMap((column) => {
+    const name = quoteIdentifier(column.name);
+    const type = column.type.toUpperCase();
+    if (column.kind === 'time') return [`CAST(${name} AS VARCHAR) AS ${name}`];
+    if (type.startsWith('DECIMAL')) return [`CAST(${name} AS DOUBLE) AS ${name}`];
+    if (/^(BLOB|BYTEA|BINARY|VARBINARY|BIT)/.test(type))
+      return [`octet_length(${name}) || ' bytes' AS ${name}`];
+    if (column.kind === 'other' && !/^(BOOLEAN|BOOL)$/.test(type))
+      return [`CAST(${name} AS VARCHAR) AS ${name}`];
+    return [];
+  });
+  return replaced.length ? `* REPLACE (${replaced.join(', ')})` : '*';
+}
+
 function createProvider(parts: ProviderParts): SqlProvider {
   const { query, table, rowCount, view, columns, metric, time, textColumns } = parts;
   const label = textColumns[0] ?? time;
   const labelSql = label ? `left(CAST(${label} AS VARCHAR), ${LABEL_CHARS})` : 'NULL';
+  const select = rowSelect(columns);
+  // Doubles, so every engine hands statistics back as plain numbers (Arrow keeps decimals).
+  const value = metric ? `CAST(${metric} AS DOUBLE)` : 'NULL';
 
   /** Exact statistics of `metric` over `[start, end)` in at most `buckets` equal groups. */
   async function aggregate({ start, end, buckets }: AggregateRequest, signal: AbortSignal) {
@@ -354,7 +389,7 @@ function createProvider(parts: ProviderParts): SqlProvider {
     const groups = Math.max(1, Math.min(buckets, length));
     const rows = await query(
       `SELECT ((rowid - ${int(start)}) * ${int(groups)}) // ${int(length)} AS bucket,
-        count(${metric}) AS count, avg(${metric}) AS avg, min(${metric}) AS min, max(${metric}) AS max
+        count(${value}) AS count, avg(${value}) AS avg, min(${value}) AS min, max(${value}) AS max
       FROM ${table} WHERE rowid >= ${int(start)} AND rowid < ${int(end)}
       GROUP BY bucket ORDER BY bucket`,
       [],
@@ -445,7 +480,7 @@ function createProvider(parts: ProviderParts): SqlProvider {
       if (start < 0 || count < 0 || start + count > rowCount)
         throw new RangeError(`Requested rows ${start}+${count} are outside ${rowCount} rows`);
       const rows = await query(
-        `SELECT * FROM ${table} WHERE rowid >= ${int(start)} AND rowid < ${int(start + count)} ORDER BY rowid`,
+        `SELECT ${select} FROM ${table} WHERE rowid >= ${int(start)} AND rowid < ${int(start + count)} ORDER BY rowid`,
         [],
         signal,
       );
@@ -461,8 +496,8 @@ function createProvider(parts: ProviderParts): SqlProvider {
       metric && parts.peaks
         ? async (signal) => {
             const rows = await query(
-              `SELECT rowid AS address, ${metric} AS value FROM ${table}
-              WHERE ${metric} IS NOT NULL ORDER BY ${metric} DESC, rowid LIMIT ${int(parts.peaks)}`,
+              `SELECT rowid AS address, ${value} AS value FROM ${table}
+              WHERE ${value} IS NOT NULL ORDER BY ${value} DESC, rowid LIMIT ${int(parts.peaks)}`,
               [],
               signal,
             );

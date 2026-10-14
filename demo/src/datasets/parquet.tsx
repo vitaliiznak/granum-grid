@@ -86,7 +86,8 @@ function detailText(value: ParquetValue) {
     : text;
 }
 
-function parquetRows(columns: readonly ParquetColumn[], shown: readonly string[]) {
+/** Header, row, and detail rendering for rows of named columns, shared by Parquet and SQL. */
+export function columnRows(columns: readonly ParquetColumn[], shown: readonly string[]) {
   const types = new Map(columns.map((column) => [column.name, column]));
   return {
     header: (
@@ -238,7 +239,7 @@ function fineweb(): DemoDataset<ParquetRow> {
       },
       ...tour(FINEWEB.rowCount),
     ],
-    ...parquetRows(finewebColumns, ['date', 'url', 'token_count', 'language_score', 'text']),
+    ...columnRows(finewebColumns, ['date', 'url', 'token_count', 'language_score', 'text']),
   };
 }
 export const parquet = fineweb();
@@ -291,7 +292,7 @@ export function parquetDataset(
     atlas: { ...parquet.atlas, showRange: true },
     map: map(provider.metric?.label),
     tour: tour(file.rowCount),
-    ...parquetRows(
+    ...columnRows(
       file.columns,
       file.columns.slice(0, 6).map((column) => column.name),
     ),

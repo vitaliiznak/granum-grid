@@ -7,7 +7,7 @@ depends on no database. Connect it to DuckDB-WASM for files the reader opens in 
 to DuckDB on your server, or to MotherDuck.
 
 Each **view** (filters and a sort order) becomes a **revision**: the matching rows are
-copied, in order, into a temporary table whose insertion order is the row address. Rows
+copied, in order, into a table of its own whose insertion order is the row address. Rows
 are then a range scan on `rowid`, the map's statistics are exact, and search checks every
 row. Sorting and filtering never happen in the browser's memory; they are a new revision,
 which is how Granum Grid expects ordering to work
@@ -64,13 +64,15 @@ const provider = await source.open(
 `other`) so a host can offer filters and sorts. Opening the same view again returns the
 same revision without copying rows. The source keeps three revision tables by default
 (`keepRevisions`) and drops the oldest when another opens; a provider whose table was
-dropped fails its next request. `source.dispose()` drops them all.
+dropped fails its next request. `source.dispose()` drops them all. Revision tables are
+ordinary tables named `granum_…`, so a pool of connections sees them; pass
+`temporary: true` when every query runs on one connection.
 
 ## What each capability costs
 
 | Capability     | Statement                                                       | Cost                                            |
 | -------------- | --------------------------------------------------------------- | ----------------------------------------------- |
-| `open(view)`   | `CREATE TEMP TABLE … AS SELECT * FROM from WHERE … ORDER BY …`  | Reads and sorts the source once                 |
+| `open(view)`   | `CREATE TABLE … AS SELECT * FROM from WHERE … ORDER BY …`       | Reads and sorts the source once                 |
 | `fetchRows`    | `WHERE rowid >= start AND rowid < end`                          | A range scan                                    |
 | Map, magnifier | `GROUP BY` bucket of `rowid`, with `count`, `avg`, `min`, `max` | Scans the requested range, labeled exact        |
 | Search         | `ILIKE` on text columns, a predicate, or a date period; `LIMIT` | Scans until enough matches                      |

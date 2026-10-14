@@ -2714,4 +2714,82 @@ summary::-webkit-details-marker {
   .app:not(.app-page) > :is(.intro, .trace-import, .feature-tour, .shortcut-strip) {
     order: 2;
   }
+  /* Before a file is open there are no rows to read, so its panel comes first. */
+  .app:not(.app-page) > .sql-import[data-empty] {
+    order: 0;
+  }
+}
+
+/* Your file (SQL): open, filter, sort, and switch revisions */
+.sql-import {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+}
+.sql-import[data-dragging] {
+  outline: 2px dashed var(--accent);
+  outline-offset: 6px;
+  border-radius: 6px;
+}
+.sql-open,
+.sql-revisions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sql-view {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px 12px;
+}
+.sql-view label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.sql-view label:first-child {
+  flex: 1 1 280px;
+}
+.sql-view input:not([type='checkbox']),
+.sql-view select {
+  min-width: 0;
+  padding: 7px 10px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--page);
+  font: inherit;
+  font-size: 12px;
+}
+.sql-view input:not([type='checkbox']) {
+  font-family: var(--mono, ui-monospace, monospace);
+}
+.sql-view .sql-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+.sql-view button {
+  color: var(--page);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--accent);
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.sql-view small {
+  width: 100%;
+}
+.sql-revisions button[aria-current] {
+  color: var(--ink);
+  border-color: var(--accent);
+  opacity: 1;
+}
+.sql-import button:disabled {
+  cursor: default;
+  opacity: 0.6;
 }

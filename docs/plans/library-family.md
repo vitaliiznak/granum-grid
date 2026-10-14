@@ -286,7 +286,16 @@ Exit: no behavior change besides the cuts, and budgets enforced.
    contiguous. Ten unit tests run against DuckDB 1.5 on Node (`@duckdb/node-api`
    1.5.6-r.1, pinned); `test:package` checks the tarball with a stand-in database. Budget
    3.8 KiB.
-4. Demo: Open anything, filter and sort as revisions, links to a row, show the provider.
+4. Demo, partly done 2026-10-14: the **Your file (SQL)** card opens a dropped or chosen
+   Parquet, CSV, or JSON file, or a generated million-request sample, in DuckDB-WASM
+   1.32.0 (DuckDB v1.4.3, pinned; only the `eh` build ships, about 7.7 MB gzipped and
+   loaded on first use). A Where / Order by / Map bar opens revisions, and the last three
+   are kept to switch between. Filtering and sorting the million-row sample took about
+   30 ms. `demo/tests/sql.spec.ts` passes in Chromium, Firefox, and WebKit and on the
+   production build. Found on the way: DuckDB-WASM downloads its Parquet, JSON, and ICU
+   readers (signed extensions) from extensions.duckdb.org, so the page says so instead of
+   "nothing leaves the page"; self-hosting them at build time, with checksums, is a
+   follow-up. Still to do: links to a row for URL sources, and show the provider.
 
 Exit: a local file shows rows and an exact map with ten lines of host code or fewer, SQL
 search reports complete results, and browser tests pass in all three engines.
@@ -344,6 +353,12 @@ Custom elements, Vue or Svelte packages, server recipes (DuckDB over HTTP, Click
 Arrow IPC, and a minimal column header with widths.
 
 ## Risks
+
+- **Third-party code at run time.** DuckDB-WASM fetches its extensions from
+  extensions.duckdb.org for the pinned engine version. DuckDB checks their signatures, but
+  the playground still depends on that host and tells it a file is being opened. Fix:
+  download the extensions at build time with recorded checksums and point
+  `custom_extension_repository` at the deployed copy.
 
 - **Native scrolling with variable heights at billions of rows is unproven.** HighTable
   supports fixed heights only. Fallback: ship native scrolling for fixed heights and keep

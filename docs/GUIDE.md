@@ -154,7 +154,7 @@ is labeled sampled.
 Parquet or CSV file, a query) into providers. The host passes one `query(sql, params,
 signal)` function; the package builds every statement. Each view (filters, a trusted
 `whereSql`, and a sort order) becomes a revision: its rows are copied in order into a
-temporary table, so `fetchRows` is a `rowid` range scan, the overview and range statistics
+table of its own, so `fetchRows` is a `rowid` range scan, the overview and range statistics
 are exact, and search reads every row, wrapping from the current row. Opening a view is
 the expensive step (one read and sort of the source); keep the number of kept revisions
 small (`keepRevisions`, default 3). With DuckDB-WASM this needs no server; with a server,

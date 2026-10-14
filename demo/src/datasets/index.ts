@@ -7,9 +7,11 @@ import { signal } from './signal';
 import { stars } from './stars';
 import { performance } from './performance';
 import { parquet } from './parquet';
+import { fileStart } from './sql';
 import type { DemoDataset } from './types';
 
 const datasets: DemoDataset[] = [
+  fileStart,
   parquet,
   bitcoin,
   hackernews,

@@ -55,7 +55,15 @@ describe('SQL source', () => {
     expect(provider).toMatchObject({ id: 'sql:logs', rowCount: ROWS });
     const rows = await provider.fetchRows(ROWS - 3, 3, signal());
     expect(rows.map((row) => row.id)).toEqual([9997, 9998, 9999]);
-    expect(rows[0]).toMatchObject({ service: 'api', status: 200, message: 'request 9997' });
+    // Times arrive as the database's text, decimals as numbers, on every engine.
+    expect(rows[0]).toEqual({
+      id: 9997,
+      ts: '2026-09-04 00:12:02',
+      service: 'api',
+      status: 200,
+      latency: 145.5,
+      message: 'request 9997',
+    });
     expect(JSON.parse(JSON.stringify(rows))).toEqual(rows);
     expect(await provider.fetchRows(0, 0, signal())).toEqual([]);
     await expect(provider.fetchRows(ROWS - 1, 2, signal())).rejects.toThrow(RangeError);

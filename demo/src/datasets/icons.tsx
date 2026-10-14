@@ -61,3 +61,9 @@ export const ParquetIcon = () => (
     <path d="M3 7.5h14M3 12h14M8 3v14M12.5 3v14" strokeWidth="1.1" />
   </svg>
 );
+export const DatabaseIcon = () => (
+  <svg {...props}>
+    <ellipse cx="10" cy="4.5" rx="6.5" ry="2.5" />
+    <path d="M3.5 4.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11M3.5 10c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5" />
+  </svg>
+);

@@ -8,8 +8,11 @@ export function DemoLimitations({
 }: {
   recording: boolean;
   imported: boolean;
-  /** Rows come from this public third-party API, or a Parquet file read over HTTP. */
-  live?: 'binance' | 'hackernews' | 'parquet';
+  /**
+   * Rows come from this public third-party API, a Parquet file read over HTTP, or DuckDB in
+   * this tab.
+   */
+  live?: 'binance' | 'hackernews' | 'parquet' | 'sql';
   compact?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -21,7 +24,9 @@ export function DemoLimitations({
         ? 'Live public API · one request per item'
         : live === 'parquet'
           ? 'Real file over HTTP · one row group per jump'
-          : 'Generated data · search may miss matches';
+          : live === 'sql'
+            ? 'DuckDB in this tab · each revision is a copy in memory'
+            : 'Generated data · search may miss matches';
   return (
     <aside className={`demo-limitations${compact ? ' demo-limitations-compact' : ''}`}>
       {!compact && (
@@ -57,6 +62,29 @@ export function DemoLimitations({
                 ? 'Imported files and their bookmarks last only for this session. Reloading returns to the bundled recording; import your file again to explore it.'
                 : 'Bookmarks stay in this browser. Full-page links restore position and selection for the same recording revision.'}{' '}
               Search input and results are not saved across reloads.
+            </p>
+          </>
+        ) : live === 'sql' ? (
+          <>
+            <p>
+              <strong>A database in this tab.</strong> DuckDB-WASM, about 8 MB, loads the first time
+              you open a file or make the sample. It reads your file in place and never uploads it;
+              it fetches its Parquet and JSON readers, signed extensions, from
+              extensions.duckdb.org. Reloading the page forgets the file, so a link cannot reopen
+              it.
+            </p>
+            <p>
+              <strong>What a revision costs.</strong> Each filter or sort copies the matching rows,
+              in order, into a table in this tab’s memory. Rows are then a range scan by address,
+              the map and summaries are exact, and search checks every row. The last three revisions
+              are kept; a large file needs memory for the source and each copy, and browsers cap a
+              tab’s WebAssembly memory at 4 GB or less.
+            </p>
+            <p>
+              <strong>Search.</strong> Plain text matches text columns, predicates such as
+              <code> latency_ms &gt; 500</code> run as SQL with parameters, and both continue from
+              the current row to the end, then from the start. The dialog shows up to 100 matches
+              and says when there are more.
             </p>
           </>
         ) : live === 'parquet' ? (

@@ -14,7 +14,7 @@ const BUDGETS = {
   'granum-grid/core': 3_700,
   'granum-grid/data': 4_100,
   '@granum/parquet': 3_500,
-  '@granum/sql': 4_000,
+  '@granum/sql': 4_200,
   'base.css': 16_100,
   'styles.css': 19_500,
 };

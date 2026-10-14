@@ -28,6 +28,8 @@ import { stopWorker } from './data/worker-client';
 import { DEFAULT_LATENCY, setLatency } from './data/latency';
 import { TraceImport } from './TraceImport';
 import { ParquetImport } from './ParquetImport';
+import { SqlImport } from './SqlImport';
+import { fileStart } from './datasets/sql';
 import { parquet as bundledParquet, parquetDetails } from './datasets/parquet';
 import { useExplorerTools } from './explorer';
 import { performance as bundledPerformance } from './datasets/performance';
@@ -60,9 +62,13 @@ export default function App() {
         ? 'hackernews'
         : isParquet
           ? 'parquet'
-          : undefined;
+          : dataset.id === 'file'
+            ? 'sql'
+            : undefined;
   const [recordingDataset, setRecordingDataset] = useState(bundledPerformance);
   const [parquetDataset, setParquetDataset] = useState<DemoDataset>(bundledParquet);
+  // An opened file lives only in this tab; the card keeps its latest revision.
+  const [fileDataset, setFileDataset] = useState<DemoDataset>(fileStart);
   const isImported = isRecording && provider.revision.startsWith('local-');
   // A pasted Parquet URL reopens from `?url=`; it has no full-page link, like an imported file.
   const ownParquet = isParquet && !parquetDetails(provider)?.bundled;
@@ -173,7 +179,13 @@ export default function App() {
     const current = api.current?.getView();
     if (current) places.current.set(dataset.id, { ...current, selection: null });
     const next =
-      id === 'performance' ? recordingDataset : id === 'parquet' ? parquetDataset : findDataset(id);
+      id === 'performance'
+        ? recordingDataset
+        : id === 'parquet'
+          ? parquetDataset
+          : id === 'file'
+            ? fileDataset
+            : findDataset(id);
     setDataset(next);
     setInspected(null);
     setStats(null);
@@ -198,6 +210,15 @@ export default function App() {
         file && !file.bundled ? { dataset: 'parquet', url: file.url } : { dataset: 'parquet' },
       ),
     );
+  };
+  const loadFile = (next: DemoDataset) => {
+    setFileDataset(next);
+    setDataset(next);
+    setInspected(null);
+    setStats(null);
+    // A revision has its own addresses, so the previous revision's place does not carry over.
+    places.current.delete('file');
+    replaceUrl(new URLSearchParams({ dataset: 'file' }));
   };
   const loadRecording = (next: DemoDataset) => {
     setRecordingDataset(next);
@@ -288,6 +309,14 @@ export default function App() {
               onLoad={loadParquet}
             />
           )}
+          {dataset.id === 'file' && (
+            // Each revision remounts the panel, so its fields show that revision's view.
+            <SqlImport
+              key={`${provider.id}:${provider.revision}`}
+              dataset={dataset}
+              onLoad={loadFile}
+            />
+          )}
           <FeatureTour dataset={dataset} api={api}>
             {isSignal && (
               <button
@@ -320,7 +349,8 @@ export default function App() {
         footer
         toolbar={{
           fullPageUrl:
-            pageMode || isImported || ownParquet
+            // A local file lives in this tab only, so a new page could not reopen it.
+            pageMode || isImported || ownParquet || dataset.id === 'file'
               ? undefined
               : (view) => pageUrl(dataset.id, encodeView(view)),
           actions: (
