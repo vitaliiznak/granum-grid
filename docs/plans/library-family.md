@@ -269,11 +269,15 @@ Exit: no behavior change besides the cuts, and budgets enforced.
 
 ### Phase 1: data adapters (5–7 days)
 
-1. A one-day throwaway spike: DuckDB-WASM in Chrome, Firefox, and Safari with 1M, 10M,
-   and 50M-row files. Measure time to build a revision, `fetchRows` on the last page,
-   the overview scan, and memory. If a deep `fetchRows` at 10M rows takes over ~100 ms or
-   a revision takes over ~10 s, SQL serves only search and the overview, and rows stay on
-   the Parquet reader.
+1. Done 2026-10-14 (spike in the session scratchpad, not committed): at 10M rows a deep
+   `fetchRows` took under 1 ms with integer addresses (3–5 ms by `rowid`), a sorted
+   revision 2–3 s, the 320-group map 0.2–0.3 s; both kill criteria pass. At 30M rows every
+   single-sort build ran out of memory (4 GB WebAssembly cap, 3.1 GB DuckDB limit, no
+   spill to disk), so the playground states a ceiling of about ten million rows. Traps
+   found and avoided: numbers bound as parameters become DOUBLE and defeat row-group
+   skipping (the provider writes integers into SQL), `query()` cannot be canceled
+   (the playground uses `send()` with a 10 ms polling interval), and `OFFSET` paging is
+   unusable. Measurements are in `packages/sql/README.md`.
 2. Done 2026-10-14: `@granum/parquet` lives in `packages/parquet` with hyparquet as a
    peer. Decompressors are injected (`compressors`), `openParquetFile` takes an options
    object, and `file.largestRowGroupBytes` and `file.pageIndex` let the playground say

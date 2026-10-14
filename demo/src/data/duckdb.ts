@@ -17,6 +17,12 @@ export interface Database {
 
 /** Idle connections kept for reuse; each query runs on its own so a cancel reaches only it. */
 const IDLE_CONNECTIONS = 4;
+/**
+ * How often the worker checks a sent query for a cancel. At DuckDB-WASM's 100 ms default a
+ * cancel landed 80 ms late and a row request waited behind a long search; at 10 ms both
+ * took about 10–20 ms, for a throughput cost under 6% (measured 2026-10-14).
+ */
+const POLLING_MS = 10;
 
 let loading: Promise<Database> | null = null;
 export const loadDatabase = () =>
@@ -35,6 +41,7 @@ async function start(): Promise<Database> {
   ]);
   const db: AsyncDuckDB = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), new Worker(worker));
   await db.instantiate(wasm);
+  await db.open({ query: { queryPollingInterval: POLLING_MS } });
   const idle: AsyncDuckDBConnection[] = [];
 
   const query: SqlQuery = async (sql, params, signal) => {
@@ -45,9 +52,14 @@ async function start(): Promise<Database> {
     try {
       const statement = await connection.prepare(sql);
       try {
-        const table = await statement.query(...params);
+        // Only a sent (streamed) query can be canceled; `query()` always runs to its end.
+        const rows: Record<string, unknown>[] = [];
+        for await (const batch of await statement.send(...params)) {
+          signal.throwIfAborted();
+          for (const row of batch.toArray()) rows.push(row.toJSON());
+        }
         signal.throwIfAborted();
-        return table.toArray().map((row) => row.toJSON() as Record<string, unknown>);
+        return rows;
       } finally {
         await statement.close();
       }

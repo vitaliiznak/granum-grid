@@ -77,8 +77,9 @@ export function DemoLimitations({
               <strong>What a revision costs.</strong> Each filter or sort copies the matching rows,
               in order, into a table in this tab’s memory. Rows are then a range scan by address,
               the map and summaries are exact, and search checks every row. The last three revisions
-              are kept; a large file needs memory for the source and each copy, and browsers cap a
-              tab’s WebAssembly memory at 4 GB or less.
+              are kept. Memory is the limit: a tab’s WebAssembly memory stops at 4 GB, each revision
+              is a copy, and sorting needs room of its own. Measured on one laptop, ten million rows
+              of five columns sorted in 2–3 seconds; thirty million ran out of memory.
             </p>
             <p>
               <strong>Search.</strong> Plain text matches text columns, predicates such as
