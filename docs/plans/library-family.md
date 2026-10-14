@@ -1,9 +1,13 @@
 # Plan: Granum as a small family of libraries
 
-Status: in progress since 2026-10-14. The maintainer accepted the recommendations in the
-decisions table; creating the `@granum` npm org is still theirs to do before Phase 3. It
-extends [next-steps.md](next-steps.md); that plan's remaining work (publish to npm, cut
-three generated datasets) folds into Phase 0 and Phase 3 below.
+Status: as of 2026-10-14, the code work is done: Phases 0–2, the package split and rename in
+Phase 3, Phase 4, and Phase 5, in local commits that have not been pushed. Everything left
+waits on the maintainer or other people: pushing, creating the `@granum` npm org and
+publishing, the screen recording at release, finding integrators, and the screen-reader
+and device checks. One code follow-up stays open: serving DuckDB's extensions from the
+playground instead of extensions.duckdb.org (see Risks). It extends
+[next-steps.md](next-steps.md); that plan's remaining work (publish to npm, cut three
+generated datasets) folded into Phase 0 and Phase 3 below.
 
 ## Outcome and acceptance
 
