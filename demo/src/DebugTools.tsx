@@ -1,10 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import {
-  defaultFeatures,
-  type AtlasRailOptions,
-  type Features,
-  type ScrollStats,
-} from 'granum-grid';
+import type { AtlasRailOptions, ScrollStats } from 'granum-grid';
 
 function BugIcon() {
   return (
@@ -28,10 +23,10 @@ function BugIcon() {
 }
 
 /**
- * Debug switches across the library's layers: map layers are `AtlasRailOptions`, motion and
- * data are hook `features`, and hints belong to the playground. Map layers start on, features
- * start at the library defaults, and context hints start off because they would cover the
- * guided demo. Scrolling is the browser's own and has no switch.
+ * Debug switches across the library's layers: map layers are `AtlasRailOptions`, prefetching
+ * is a hook option, and hints belong to the playground. Map layers and prefetching start on,
+ * and context hints start off because they would cover the guided demo. Scrolling is the
+ * browser's own and has no switch.
  */
 export const DEMO_SWITCHES = {
   overview: true,
@@ -42,16 +37,10 @@ export const DEMO_SWITCHES = {
   precision: true,
   preview: true,
   trail: true,
-  ...defaultFeatures,
+  prefetch: true,
   hints: false,
 };
 type DemoSwitches = typeof DEMO_SWITCHES;
-
-export function switchFeatures(switches: DemoSwitches): Features {
-  const features = { ...defaultFeatures };
-  for (const key of Object.keys(features) as (keyof Features)[]) features[key] = switches[key];
-  return features;
-}
 
 /**
  * A map switch that is off overrides the dataset's map settings; on leaves them alone. The
@@ -81,8 +70,6 @@ const labels: Record<keyof DemoSwitches, string> = {
   precision: 'Precision scrubbing',
   preview: 'Real row previews',
   trail: 'Visited trail',
-  transitions: 'View transitions',
-  progressiveEstimates: 'Progressive estimates',
   prefetch: 'Predictive prefetch',
   hints: 'Context hints',
 };

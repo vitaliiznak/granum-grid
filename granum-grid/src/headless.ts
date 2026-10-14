@@ -8,8 +8,6 @@ export type {
   RowActivationContext,
 } from './react/useGranumGrid.js';
 export type { GranumGridApi } from './core/api.js';
-export { defaultFeatures } from './features.js';
-export type { Features } from './features.js';
 export type { SavedView } from './core/exploration.js';
 export type * from './data/types.js';
 export type {

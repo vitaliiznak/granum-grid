@@ -142,7 +142,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
   });
   useImperativeHandle(props.apiRef, () => grid.api, [grid.api]);
   const { snapshot, api } = grid;
-  const { engine, session, mapping, features, reduceMotion, append } = grid[INTERNAL];
+  const { engine, session, mapping, reduceMotion, append } = grid[INTERNAL];
   // Search and map highlights belong to one engine; a provider switch resets them.
   const [search, setSearch] = useOwnedState(engine, CLOSED_SEARCH);
   const [highlights, setHighlights] = useOwnedState(engine, NO_MARKERS);
@@ -171,7 +171,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
       data-layout={props.layout ?? 'embedded'}
       data-unstyled={props.unstyled || undefined}
       style={props.style}
-      data-motion={!reduceMotion && features.transitions ? 'on' : 'off'}
+      data-motion={reduceMotion ? 'off' : 'on'}
       data-theme={props.theme ?? 'system'}
       onKeyDown={(event) => {
         // Nested explorers and the viewport handle their own shortcuts first.

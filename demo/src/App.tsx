@@ -12,7 +12,7 @@ import {
 } from 'granum-grid';
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { MapSettings } from './MapSettings';
-import { DEMO_SWITCHES, DebugTools, switchFeatures, switchMap } from './DebugTools';
+import { DEMO_SWITCHES, DebugTools, switchMap } from './DebugTools';
 import { DemoLimitations } from './DemoLimitations';
 import { useFrameRate } from './useFrameRate';
 import { RowInspector } from './RowInspector';
@@ -428,7 +428,7 @@ export default function App() {
         initialView={initialView}
         apiRef={api}
         theme={theme}
-        features={switchFeatures(switches)}
+        prefetch={switches.prefetch}
         reducedMotion={reduced ? true : 'system'}
         onStats={setStats}
         className={`demo-explorer dataset-${dataset.id}`}

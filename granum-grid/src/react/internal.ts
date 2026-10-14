@@ -1,7 +1,6 @@
 import type { GranumGridEngine } from '../core/engine.js';
 import type { CoordinateMapping } from '../core/mappings.js';
 import type { DataSession } from '../data/session.js';
-import type { Features } from '../features.js';
 
 /**
  * Key for the state the library's own widgets read from `useGranumGrid`. It is not exported
@@ -17,7 +16,6 @@ export interface GridInternals<Row> {
   /** Row pages, metadata, and requests for the current provider revision. */
   session: DataSession<Row>;
   mapping: CoordinateMapping;
-  features: Features;
   reduceMotion: boolean;
   append: boolean;
 }

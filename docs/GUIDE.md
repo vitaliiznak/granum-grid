@@ -371,8 +371,9 @@ the map. Its data session and coordinate mapping are internal to the library's w
 `onNavigate` reports committed jumps, and `onStats` reports cache and request counts and
 measured rows. The ready-made component adds the map and the Go to dialog; the toolbar,
 footer, and column headings are opt-in.
-`features` switches transitions, loading estimates, and prefetching; `defaultFeatures`
-lists every flag with its default. The component's regions
+`prefetch` (default true) requests the page the reader is heading toward once scrolling
+pauses; turn it off for a source that bills per request. Transitions follow
+`reducedMotion`. The component's regions
 (`toolbar`, `rail`, `footer`) each take `true` or options to show the built-in region,
 `false` to hide it, or a render function; only `rail` is shown when omitted. `panel` holds
 host content; map layers are `rail` options. Layers and package entry points are listed in the

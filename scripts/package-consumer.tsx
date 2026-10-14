@@ -12,7 +12,6 @@ import {
   type GranumGridAppearance,
   type AtlasRailOptions,
   type GranumGridApi,
-  type Features,
 } from 'granum-grid';
 import { useGranumGrid as useHeadlessGrid, type Marker } from 'granum-grid/headless';
 import { createEngine, readView, type NavigationController } from 'granum-grid/core';
@@ -35,8 +34,16 @@ export const removedRegions = (
   />
 );
 export type UnusedEngine = GranumGridEngine;
-// @ts-expect-error Map layers are AtlasRailOptions, not hook features.
-export const mapFeature: Partial<Features> = { overview: false };
+export const scrollingHasNoSwitches = (
+  <GranumGrid
+    provider={null!}
+    ariaLabel=""
+    renderRow={() => null}
+    prefetch={false}
+    // @ts-expect-error Scrolling is the browser's own; there are no feature switches.
+    features={{ inertia: false }}
+  />
+);
 const api = createRef<GranumGridApi<{ value: number }>>();
 const appearance: GranumGridAppearance = {
   classNames: { row: 'px-4 border-b', toolbar: 'flex gap-2' },

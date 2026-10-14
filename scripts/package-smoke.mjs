@@ -29,11 +29,10 @@ assert.deepEqual(await entryValues('granum-grid'), [
   'createArrayProvider',
   'createCursorProvider',
   'decodeView',
-  'defaultFeatures',
   'encodeView',
   'useGranumGrid',
 ]);
-assert.deepEqual(await entryValues('granum-grid/headless'), ['defaultFeatures', 'useGranumGrid']);
+assert.deepEqual(await entryValues('granum-grid/headless'), ['useGranumGrid']);
 const engine = createEngine({ rowCount: 100_000_000 });
 engine.goTo(73_499_999);
 assert.equal(engine.getSnapshot().activeIndex, 73_499_999);

@@ -152,8 +152,11 @@ Choices a contributor needs before changing the library, with options decided ag
   viewport marker shows where the reader went; Back returns. Considered and not taken:
   keeping flights behind an option (two navigation models to test and document).
 
-- **`features` is motion and data only.** Map layers are `AtlasRailOptions` alone, so
-  there is no "feature wins over option" rule.
+- **No feature switches** (2026-10-14). The `features` object lost inertia, elastic edges,
+  flights, and speed zoom to native scrolling; of what remained, transitions follow reduced
+  motion and loading estimates are always on, so only `prefetch` is left, as a plain
+  option. Map layers are `AtlasRailOptions` alone, so there is no "feature wins over option"
+  rule.
 
 - **The library writes no browser storage.** The playground keeps bookmarks and dismissed
   hints under `granum-*` keys.

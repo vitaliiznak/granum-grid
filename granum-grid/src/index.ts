@@ -16,8 +16,6 @@ export { JumpBar } from './react/JumpBar.js';
 export type { JumpBarProps } from './react/JumpBar.js';
 export type { GranumGridApi } from './core/api.js';
 export type { GranumGridPart, GranumGridAppearance } from './react/styling.js';
-export { defaultFeatures } from './features.js';
-export type { Features } from './features.js';
 
 // Data in, places out.
 export { createArrayProvider } from './data/array.js';

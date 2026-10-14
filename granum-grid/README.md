@@ -89,7 +89,7 @@ function Readings() {
 | Place and selection | `apiRef`, `initialIndex`, `initialView`, `selection`, `onSelectionChange`, `markers`                    |
 | Events              | `onNavigate`, `onRowActivate`, `onStats`                                                                |
 | Regions             | `toolbar`, `panel`, `rail`, `footer`, `stickyChapters`                                                  |
-| Behavior            | `layout` (`embedded`, `page`), `features`, `reducedMotion`                                              |
+| Behavior            | `layout` (`embedded`, `page`), `prefetch`, `reducedMotion`                                              |
 | Appearance          | `theme`, `unstyled`, `className`, `style`, `classNames`, `styles`                                       |
 
 ## Layers
@@ -109,8 +109,8 @@ Widgets take the hook's result as `grid`: `<AtlasRail grid={grid} />` accepts th
 
 | Entry                    | Surface                                                                                                                                                                                                                       |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `granum-grid`            | `GranumGrid`, `useGranumGrid`, `AtlasRail`, `JumpBar`, `createArrayProvider`, `createCursorProvider`, `encodeView`, `decodeView`, `defaultFeatures`, and public types                                           |
-| `granum-grid/headless`   | `useGranumGrid`, `defaultFeatures`, and the hook, handle, provider, and navigation types; no components or CSS                                                                                                                |
+| `granum-grid`            | `GranumGrid`, `useGranumGrid`, `AtlasRail`, `JumpBar`, `createArrayProvider`, `createCursorProvider`, `encodeView`, `decodeView`, and public types                                           |
+| `granum-grid/headless`   | `useGranumGrid`, and the hook, handle, provider, and navigation types; no components or CSS                                                                                                                                    |
 | `granum-grid/core`       | Framework-independent engine (`createEngine`), coordinate mappings, saved-view encoding and validation (`readView`), and `validRange`                                                                                        |
 | `granum-grid/data`       | Provider types, `PageCache`, `DataSession`, `rangeProvider`, `createArrayProvider`, `createCursorProvider`, `checkBuckets`, and the cursor helpers `acceptCursorWindow` and `cursorWindowIssue`                              |
 | `granum-grid/base.css`   | Structural layout only                                                                                                                                                                                                        |

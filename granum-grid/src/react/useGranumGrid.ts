@@ -34,7 +34,6 @@ import { useRowRequests } from './useRowRequests.js';
 import { handleViewportKey } from '../dom/keyboard.js';
 import { bucketAt, chapterAt } from '../core/navigation.js';
 import { DataSession, sessionKey } from '../data/session.js';
-import { defaultFeatures, type Features } from '../features.js';
 import type {
   CacheOptions,
   Chapter,
@@ -101,8 +100,11 @@ export interface UseGranumGridOptions<Row> {
   onNavigate?(event: NavigationEvent): void;
   /** Cache and request counts and measured rows. */
   onStats?(stats: ScrollStats): void;
-  /** Motion and data behavior; see `defaultFeatures`. */
-  features?: Partial<Features>;
+  /**
+   * Request the page the reader is heading toward, predicted from scroll speed, once
+   * scrolling pauses. Default: true. Turn it off for a source that bills per request.
+   */
+  prefetch?: boolean;
   reducedMotion?: 'system' | boolean;
 }
 // Keep React's DOM attributes as a named type. Inferred object spreads otherwise
@@ -177,7 +179,7 @@ export function useGranumGrid<Row>({
   initialView,
   initialIndex = 0,
   cache,
-  features: overrides,
+  prefetch = true,
   reducedMotion = 'system',
   onNavigate,
   onStats,
@@ -203,7 +205,6 @@ export function useGranumGrid<Row>({
     throw new RangeError('overscan must be an integer from 0 to 1000');
   // An embedded explorer sits inside a page, so its edges stop like a plain scroller's; a
   // page explorer owns the document and springs back at its ends.
-  const features = { ...defaultFeatures, ...overrides };
   const id = useId();
   const velocity = useRef(0);
   const [announcement, setAnnouncement] = useState('');
@@ -392,7 +393,7 @@ export function useGranumGrid<Row>({
     if (!viewport) return;
     return bindScroll(viewport, engine, { layer, onVelocity });
   }, [viewport, layer, windowScroll, engine]);
-  useRowRequests(engine, session, { start, count, prefetch: features.prefetch, velocity });
+  useRowRequests(engine, session, { start, count, prefetch, velocity });
   // Session statistics include searches started through `session.search`.
   const stats: ScrollStats = {
     ...session.getStats(),
@@ -422,7 +423,7 @@ export function useGranumGrid<Row>({
     };
     const row = session.read(index);
     const error = session.error(index);
-    const estimate = features.progressiveEstimates ? bucketAt(session.overview, index) : undefined;
+    const estimate = bucketAt(session.overview, index);
     return session.has(index)
       ? { ...common, status: 'ready', row: row as Row }
       : { ...common, status: error ? 'error' : 'loading', error, estimate };
@@ -529,7 +530,6 @@ export function useGranumGrid<Row>({
       engine,
       session,
       mapping,
-      features,
       reduceMotion,
       append,
     },

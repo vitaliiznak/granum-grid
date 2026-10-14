@@ -132,7 +132,7 @@ export function AtlasRail<Row>({
   const helpId = useId();
   const rangeDrag = useRef<{ anchor: number; previous: RowRange | null } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const { engine, session, mapping, features, reduceMotion } = grid[INTERNAL];
+  const { engine, session, mapping, reduceMotion } = grid[INTERNAL];
   const { snapshot, provider, selection } = grid;
   const setSelection = grid.api.setSelection;
   const [chart, setChart] = useState<{ session: typeof session; id: string }>();
@@ -348,7 +348,7 @@ export function AtlasRail<Row>({
       data-marker-labels={options.markerLabels ?? 'label'}
       data-show-markers={showMarkers}
       data-scrolling={scrollDirection ?? undefined}
-      data-scroll-motion={!reduceMotion && features.transitions ? 'on' : 'off'}
+      data-scroll-motion={reduceMotion ? 'off' : 'on'}
       onKeyDown={(event) => {
         if (event.key === 'Escape') setHelpOpen(false);
       }}
