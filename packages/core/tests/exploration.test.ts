@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { decodeView, encodeView, type SavedView } from '../src/core/exploration';
 import { createEngine } from '../src/core/engine';
 import type { Marker } from '../src/data/types';
-import { clusterMarkers, leadMarker } from '../src/react/MarkerLayer';
+import { clusterMarkers, leadMarker } from '../src/map/markers';
 
 it('restores only valid locations and selections from the same ordered revision', () => {
   const provider = { id: 'a', revision: '1', rowCount: 100 };

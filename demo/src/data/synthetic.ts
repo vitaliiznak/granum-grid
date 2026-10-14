@@ -5,7 +5,7 @@ import type {
   ProviderQuery,
   SearchContext,
   SearchResult,
-} from 'granum-grid';
+} from '@granum/react';
 import { delay } from './latency';
 import { aggregate, overviewTracks } from './worker-client';
 import { models } from './models';

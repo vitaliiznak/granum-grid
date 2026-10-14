@@ -7,7 +7,7 @@ import type {
   ProviderQuery,
   SearchContext,
   SearchResult,
-} from 'granum-grid';
+} from '@granum/react';
 import { splitRange } from './ranges';
 import { datePeriod, iso, reach, remember, sharedLoad, type Fetch } from './remote';
 import { checkPredicate, dateResult, type Predicate } from './search';

@@ -46,7 +46,9 @@ try {
     ...manifest.devDependencies,
     ...demo.dependencies,
   };
-  delete dependencies['granum-grid']; // Local workspace, checked by build and package tests.
+  // Local workspaces, checked by the build and package tests.
+  for (const name of Object.keys(dependencies))
+    if (name.startsWith('@granum/')) delete dependencies[name];
   for (const name of Object.keys(dependencies).sort()) {
     const path = `node_modules/${name}/package.json`;
     if (!existsSync(new URL(path, root))) {

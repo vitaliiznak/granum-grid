@@ -8,8 +8,8 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { clamp, progressToRow, rowToProgress } from '../core/mappings.js';
-import { bucketAt, chapterAt } from '../core/navigation.js';
+import { clamp, progressToRow, rowToProgress } from '@granum/core/internal';
+import { bucketAt, chapterAt } from '@granum/core/internal';
 import {
   atlasDomain,
   atlasTicks,
@@ -17,11 +17,11 @@ import {
   observeCanvas,
   overviewAccuracy,
   profileValue,
-} from '../map/atlas.js';
-import { formatCompact, formatMetric } from '../map/format.js';
-import { atlasPeaks, attractToPeak } from '../map/atlasGravity.js';
+} from '@granum/core/map';
+import { formatCompact, formatMetric } from '@granum/core/map';
+import { atlasPeaks, attractToPeak } from '@granum/core/map';
 import { MarkerLayer } from './MarkerLayer.js';
-import type { Marker, RowRange } from '../data/types.js';
+import type { Marker, RowRange } from '@granum/core/data';
 import type { GranumGridState } from './useGranumGrid.js';
 import { INTERNAL } from './internal.js';
 export interface AtlasRailOptions {

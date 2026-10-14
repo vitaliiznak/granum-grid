@@ -1,6 +1,6 @@
-import type { GranumGridEngine } from '../core/engine.js';
-import type { CoordinateMapping } from '../core/mappings.js';
-import type { DataSession } from '../data/session.js';
+import type { GranumGridEngine } from '@granum/core/internal';
+import type { CoordinateMapping } from '@granum/core/internal';
+import type { DataSession } from '@granum/core/internal';
 
 /**
  * Key for the state the library's own widgets read from `useGranumGrid`. It is not exported

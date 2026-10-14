@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { compressors } from 'hyparquet-compressors';
-import { checkBuckets } from 'granum-grid/data';
+import { checkBuckets } from '@granum/core/data';
 import {
   createParquetProvider,
   estimateParquetRowBytes,

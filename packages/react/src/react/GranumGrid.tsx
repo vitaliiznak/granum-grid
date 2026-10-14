@@ -10,20 +10,20 @@ import {
   type Ref,
   type Key,
 } from 'react';
-import type { GranumGridApi } from '../core/api.js';
+import type { GranumGridApi } from '@granum/core/internal';
 import { useGranumGrid, type UseGranumGridOptions, type GranumGridState } from './useGranumGrid.js';
 import { partProps, type GranumGridAppearance } from './styling.js';
 import { JumpBar } from './JumpBar.js';
 import { AtlasRail, type AtlasRailOptions, type AtlasRailProps } from './AtlasRail.js';
 import { Footer, RowPlaceholder, Toolbar, type ToolbarOptions } from './ExplorerChrome.js';
 import { INTERNAL } from './internal.js';
-import { overviewAccuracy } from '../map/atlas.js';
-import { chapterName, rangeAddress } from '../map/format.js';
-import { isTextEntry, isWithin } from '../dom/targets.js';
-import { isSearchShortcut } from '../dom/keyboard.js';
+import { overviewAccuracy } from '@granum/core/map';
+import { chapterName, rangeAddress } from '@granum/core/map';
+import { isTextEntry, isWithin } from '@granum/core/dom';
+import { isSearchShortcut } from '@granum/core/dom';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { useOwnedState } from './useOwnedState.js';
-import type { Marker, PendingRowSlot } from '../data/types.js';
+import type { Marker, PendingRowSlot } from '@granum/core/data';
 export type { ToolbarOptions };
 export interface RowRenderContext<Row> {
   row: Row;

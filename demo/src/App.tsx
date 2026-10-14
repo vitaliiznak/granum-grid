@@ -9,7 +9,7 @@ import {
   type ScrollAlignment,
   type RowRenderContext,
   type RowActivationContext,
-} from 'granum-grid';
+} from '@granum/react';
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { MapSettings } from './MapSettings';
 import { DEMO_SWITCHES, DebugTools, switchMap } from './DebugTools';

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import type { GranumGridEngine } from '../core/engine.js';
-import type { RowMeasurement } from '../core/rowSizes.js';
+import type { GranumGridEngine } from '@granum/core/internal';
+import type { RowMeasurement } from '@granum/core/internal';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { useKeyed } from './useKeyed.js';
 

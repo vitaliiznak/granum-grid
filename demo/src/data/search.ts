@@ -1,4 +1,4 @@
-import type { ProviderQuery, SearchResult } from 'granum-grid';
+import type { ProviderQuery, SearchResult } from '@granum/react';
 
 export type Predicate = Extract<ProviderQuery, { kind: 'predicate' }>;
 type Operator = Predicate['operator'];

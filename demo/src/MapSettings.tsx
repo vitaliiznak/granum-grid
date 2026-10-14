@@ -1,4 +1,4 @@
-import type { AtlasRailOptions } from 'granum-grid';
+import type { AtlasRailOptions } from '@granum/react';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { DemoDataset } from './datasets';
 

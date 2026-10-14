@@ -12,14 +12,14 @@ this way and downloads about 2 MB per jump.
 
 ## Install
 
-Not yet on npm. `granum-grid` and [hyparquet](https://github.com/hyparam/hyparquet) 1.31.2
+Not yet on npm. `@granum/core` and [hyparquet](https://github.com/hyparam/hyparquet) 1.31.2
 or later are peer dependencies. hyparquet decodes uncompressed and Snappy pages; for zstd,
 gzip, Brotli, or LZ4, also install `hyparquet-compressors`.
 
 ## Use
 
 ```tsx
-import { GranumGrid } from 'granum-grid';
+import { GranumGrid } from '@granum/react';
 import { createParquetProvider, openParquetFile, type ParquetRow } from '@granum/parquet';
 
 // Reads only the footer: row count, row groups, and columns.

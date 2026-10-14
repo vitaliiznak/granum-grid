@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { AtlasRail, JumpBar, type Marker } from 'granum-grid';
-import { useGranumGrid } from 'granum-grid/headless';
+import { AtlasRail, JumpBar, type Marker } from '@granum/react';
+import { useGranumGrid } from '@granum/react/headless';
 import { inventory } from './inventory';
-import 'granum-grid/styles.css';
+import '@granum/react/styles.css';
 
 // The headless hook supplies rows, navigation, and input. This component owns the markup
 // and the state the two widgets share: whether search is open and what it highlights.

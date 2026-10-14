@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEngine } from '../src/core/index';
+import { createEngine } from '../src/index';
 import { RowSizes } from '../src/core/rowSizes';
 
 describe('sparse measured row sizes', () => {

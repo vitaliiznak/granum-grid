@@ -15,19 +15,19 @@ browser debugging, and handoffs. No API key, backend, or AI service is needed.
 
 ## Find the right code
 
-| Area                                    | Entry points / guidance                                                                    |
-| --------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Public exports and contracts            | `granum-grid/src/index.ts`, `headless.ts`, `core/api.ts`, `data/types.ts`, `docs/GUIDE.md` |
-| Navigation, mappings, row measurements  | `granum-grid/src/core/engine.ts`, `mappings.ts`, `rowSizes.ts`                             |
-| Paging, cancellation, dataset lifecycle | `granum-grid/src/data/cache.ts`, `session.ts`, `range.ts`                                  |
-| DOM input, keys, event targets          | `granum-grid/src/dom/` (framework-free)                                                    |
-| Map drawing, peaks, number formats      | `granum-grid/src/map/` (framework-free)                                                    |
-| React, layout, styles                   | `granum-grid/src/react/`, `granum-grid/src/base.css`, `styles.css`, `STYLING.md`           |
-| Data adapter packages                   | `packages/parquet/` (`@granum/parquet`), `packages/sql/` (`@granum/sql`)                   |
-| Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                 |
-| Film and screenshots (frozen studio)    | `media/README.md`; the studio is on the `media-studio` branch                              |
-| Packaging, consumers, size budgets      | `scripts/build-package.mjs`, `package-test.mjs`, `size.mjs`, `docs/PUBLISHING.md`          |
-| Current multi-step plan                 | `docs/plans/library-family.md`                                                             |
+| Area                                    | Entry points / guidance                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Public exports and contracts            | `packages/react/src/index.ts`, `headless.ts`, `packages/core/src/index.ts`, `data/types.ts`, `docs/GUIDE.md` |
+| Navigation, mappings, row measurements  | `packages/core/src/core/engine.ts`, `mappings.ts`, `rowSizes.ts`                                             |
+| Paging, cancellation, dataset lifecycle | `packages/core/src/data/cache.ts`, `session.ts`, `range.ts`                                                  |
+| Native scrolling, keys, event targets   | `packages/core/src/dom/` (framework-free)                                                                    |
+| Map drawing, peaks, markers, formats    | `packages/core/src/map/` (framework-free)                                                                    |
+| React components, hook, styles          | `packages/react/src/react/`, `packages/core/src/base.css`, `styles.css`, `STYLING.md`                        |
+| Data adapter packages                   | `packages/parquet/` (`@granum/parquet`), `packages/sql/` (`@granum/sql`)                                     |
+| Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                                   |
+| Film and screenshots (frozen studio)    | `media/README.md`; the studio is on the `media-studio` branch                                                |
+| Packaging, consumers, size budgets      | `scripts/build-package.mjs`, `package-test.mjs`, `size.mjs`, `docs/PUBLISHING.md`                            |
+| Current multi-step plan                 | `docs/plans/library-family.md`                                                                               |
 
 `README.md` describes current use; `docs/GUIDE.md` is the integration reference, with
 limits and defaults. `DESIGN.md` records rationale and decisions. Check actual exports
@@ -39,9 +39,10 @@ and tests before treating documentation as implemented behavior.
   half-open `[start, end)`. Large counts must not overflow through bitwise math.
 - Work and memory must remain bounded by the viewport, pages, or requested
   buckets, not total dataset size. Never scan billions of synthetic rows.
-- Layers, lowest first: `data/` ← `core/` ← `dom/` ← `map/` ← `react/`. A layer imports
-  only layers below it, and only `react/` and the package entries import React; lint
-  enforces this. The library must not import demo, media, domain-specific adapters, or
+- Packages: `@granum/core` (framework-free; layers `data/` ← `core/` ← `dom/` ← `map/`, each
+  importing only the ones below) and `@granum/react`, which reaches core only through its
+  entries (`/data`, `/dom`, `/map`, `/internal`). Nothing in core imports React; lint
+  enforces all of this. The library must not import demo, media, domain-specific adapters, or
   model SDKs. ESM library imports use `.js` suffixes so published output resolves in Node.
 - Provider identity/revision owns cached data and saved views. Preserve aborts,
   stale-result rejection, ordered fetch counts, and append-versus-revision semantics.

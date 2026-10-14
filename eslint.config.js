@@ -3,11 +3,13 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import compat from 'eslint-plugin-compat';
 
-// Library layers, lowest first: data ← core ← dom ← map ← react. A layer imports only the
-// layers below it, and only react/ and the package entries may import React.
+const REACT = ['react', 'react/*', 'react-dom', 'react-dom/*'];
+
+// @granum/core's layers, lowest first: data ← core ← dom ← map. A layer imports only the
+// layers below it, and nothing in @granum/core imports React or a package entry of its own.
 const LAYERS = ['data', 'core', 'dom', 'map'];
 const layerRules = LAYERS.map((layer, index) => ({
-  files: [`granum-grid/src/${layer}/**/*.ts`],
+  files: [`packages/core/src/${layer}/**/*.ts`],
   rules: {
     'no-restricted-imports': [
       'error',
@@ -16,14 +18,11 @@ const layerRules = LAYERS.map((layer, index) => ({
           {
             group: [
               ...LAYERS.slice(index + 1).map((above) => `../${above}/*`),
-              '../react/*',
               '../*.js',
-              'react',
-              'react/*',
-              'react-dom',
-              'react-dom/*',
+              '@granum/*',
+              ...REACT,
             ],
-            message: `granum-grid/src/${layer} may import only ${LAYERS.slice(0, index).join(', ') || 'itself'}; layers are data ← core ← dom ← map ← react.`,
+            message: `packages/core/src/${layer} may import only ${LAYERS.slice(0, index).join(', ') || 'itself'}; layers are data ← core ← dom ← map, and core has no React.`,
           },
         ],
       },
@@ -33,14 +32,36 @@ const layerRules = LAYERS.map((layer, index) => ({
 
 export default defineConfig([
   {
-    // Hook rules for every React surface: library and demo.
-    files: ['granum-grid/src/**/*.{ts,tsx}', 'packages/*/src/**/*.ts', 'demo/src/**/*.{ts,tsx}'],
+    // Hook rules for every React surface: the React package and the demo.
+    files: ['packages/*/src/**/*.{ts,tsx}', 'demo/src/**/*.{ts,tsx}'],
     languageOptions: { parser: tseslint.parser },
     linterOptions: { reportUnusedDisableDirectives: 'error' },
     plugins: { 'react-hooks': reactHooks },
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
+    },
+  },
+  {
+    // @granum/react reaches core through its package entries, as a consumer would.
+    files: ['packages/react/src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '**/core/src/**',
+                '../../core/**',
+                '@granum/core/src/**',
+                '@granum/core/dist/**',
+              ],
+              message: 'Import @granum/core, /data, /dom, /map, or /internal.',
+            },
+          ],
+        },
+      ],
     },
   },
   {
@@ -52,9 +73,14 @@ export default defineConfig([
         {
           patterns: [
             {
-              group: ['**/granum-grid/src/**', 'granum-grid/src/**', 'granum-grid/dist/**'],
+              group: [
+                '**/packages/*/src/**',
+                '@granum/*/src/**',
+                '@granum/*/dist/**',
+                '@granum/core/internal',
+              ],
               message:
-                'Import granum-grid, granum-grid/headless, granum-grid/core, or granum-grid/data.',
+                'Import @granum/react, @granum/react/headless, @granum/core, its /data, /dom, or /map entries, or an adapter package.',
             },
           ],
         },
@@ -63,7 +89,7 @@ export default defineConfig([
   },
   {
     // Library browser APIs against each package's browserslist.
-    files: ['granum-grid/src/**/*.{ts,tsx}', 'packages/*/src/**/*.ts'],
+    files: ['packages/*/src/**/*.{ts,tsx}'],
     plugins: { compat },
     settings: {
       // Also check JavaScript built-ins such as Array.prototype.findLast, not only Web APIs.

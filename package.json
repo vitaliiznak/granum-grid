@@ -3,13 +3,12 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "granum-grid",
     "packages/*",
     "demo"
   ],
   "scripts": {
     "dev": "npm run dev -w demo",
-    "build": "npm run build -w granum-grid && npm run build -w packages/parquet -w packages/sql && npm run build -w demo",
+    "build": "npm run build -w packages/core && npm run build -w packages/react -w packages/parquet -w packages/sql && npm run build -w demo",
     "ai:doctor": "node scripts/ai-doctor.mjs",
     "record:trace": "node scripts/record-demo-trace.mjs",
     "typecheck": "tsc -p tsconfig.check.json",
@@ -17,7 +16,7 @@
     "check:full": "npm run format:check && npm run release:check && npm run test:e2e && npm run test:pages",
     "test": "vitest run",
     "test:tutorials": "node scripts/check-tutorials.mjs",
-    "lint": "eslint granum-grid/src packages/*/src demo/src",
+    "lint": "eslint packages/*/src demo/src",
     "test:smoke": "playwright test demo/tests/acceptance.spec.ts --project=chromium",
     "test:e2e": "playwright test",
     "test:pages": "node scripts/pages-smoke.mjs",
@@ -25,7 +24,7 @@
     "test:package": "node scripts/package-test.mjs && node scripts/size.mjs",
     "release:check": "npm run lint && npm run check && npm run build && npm run test:package",
     "format": "npm run format:check -- --write",
-    "format:check": "prettier --check granum-grid/src granum-grid/tests packages/*/src packages/*/tests demo/src demo/tests demo/unit demo/server demo/vite.config.ts scripts playwright.config.ts vitest.config.ts eslint.config.js"
+    "format:check": "prettier --check packages/*/src packages/*/tests demo/src demo/tests demo/unit demo/server demo/vite.config.ts scripts playwright.config.ts vitest.config.ts eslint.config.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",

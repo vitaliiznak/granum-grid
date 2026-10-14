@@ -15,12 +15,12 @@ which is how Granum Grid expects ordering to work
 
 ## Install
 
-Not yet on npm. `granum-grid` is a peer dependency; bring your own DuckDB.
+Not yet on npm. `@granum/core` is a peer dependency; bring your own DuckDB.
 
 ## Use
 
 ```tsx
-import { GranumGrid } from 'granum-grid';
+import { GranumGrid } from '@granum/react';
 import { createSqlSource, type SqlQuery, type SqlRow } from '@granum/sql';
 
 // DuckDB-WASM: `connection` is an AsyncDuckDBConnection. A sent query can be canceled.

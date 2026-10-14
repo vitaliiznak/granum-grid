@@ -25,7 +25,7 @@ has working code and checkpoints. For a direct setup recipe, use the
 | Handle row heights, append mode, or saved views | [Integration guide](GUIDE.md)                                                                                                                       |
 | Look up a default or limit                      | [Limits and defaults](GUIDE.md#limits-and-defaults)                                                                                                 |
 | Match my application's appearance               | [Styling guide](../STYLING.md)                                                                                                                      |
-| Check the exact public types                    | [Exports](../granum-grid/src/index.ts), [provider contract](../granum-grid/src/data/types.ts), and [navigation API](../granum-grid/src/core/api.ts) |
+| Check the exact public types                    | [Exports](../packages/react/src/index.ts), [provider contract](../packages/core/src/data/types.ts), and [navigation API](../packages/core/src/core/api.ts) |
 | Understand a setup problem                      | [Quick-start troubleshooting](QUICK_START.md#if-something-does-not-look-right)                                                                      |
 | Know what is not supported                      | [Scope and current limits](../README.md#scope-and-current-limits)                                                                                   |
 | Decide whether this library fits the job        | [Design principles](../DESIGN.md#principles)                                                                                                        |
@@ -34,7 +34,7 @@ has working code and checkpoints. For a direct setup recipe, use the
 | Prepare a release or deployment                 | [Publishing guide](PUBLISHING.md)                                                                                                                   |
 
 The exported types and tests establish what is currently implemented. The library
-source is in [`granum-grid/`](../granum-grid/), with its [package README](../granum-grid/README.md).
+source is in [`packages/`](../packages/): [`@granum/core`](../packages/core/README.md) and [`@granum/react`](../packages/react/README.md), plus the Parquet and SQL adapters.
 
 ## Explore the examples
 

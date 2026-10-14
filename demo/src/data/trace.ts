@@ -1,5 +1,5 @@
 // Type-only library imports: the dev server's trace plugin loads this file without a build.
-import type { AggregateRequest, Bucket, DataProvider, RowRange } from 'granum-grid';
+import type { AggregateRequest, Bucket, DataProvider, RowRange } from '@granum/react';
 import { splitRange } from './ranges';
 import {
   NUMBER_OPERATORS,

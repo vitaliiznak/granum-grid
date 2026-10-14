@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
-import { GranumGrid, type Bucket, type GranumGridApi } from 'granum-grid';
+import { GranumGrid, type Bucket, type GranumGridApi } from '@granum/react';
 import { sensors, type Reading } from './sensors';
-import 'granum-grid/styles.css';
+import '@granum/react/styles.css';
 
 const WARM = { start: 720, end: 740 };
 

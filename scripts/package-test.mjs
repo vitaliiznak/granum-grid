@@ -15,12 +15,22 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));
-const manifest = JSON.parse(readFileSync(join(root, 'granum-grid/package.json'), 'utf8'));
-const parquetManifest = JSON.parse(
-  readFileSync(join(root, 'packages/parquet/package.json'), 'utf8'),
-);
-const sqlManifest = JSON.parse(readFileSync(join(root, 'packages/sql/package.json'), 'utf8'));
-const temporary = mkdtempSync(join(tmpdir(), 'granum-grid-package-'));
+const temporary = mkdtempSync(join(tmpdir(), 'granum-package-'));
+
+// Core first: the others build their declarations against its dist/ types. Entry points are
+// pinned; change them on purpose, with the READMEs, docs/GUIDE.md, and the consumer fixtures.
+const PACKAGES = [
+  {
+    dir: 'core',
+    exports: ['.', './data', './dom', './map', './internal', './base.css', './styles.css'],
+  },
+  { dir: 'react', exports: ['.', './headless', './base.css', './styles.css'] },
+  { dir: 'parquet', exports: ['.'] },
+  { dir: 'sql', exports: ['.'] },
+].map((entry) => ({
+  ...entry,
+  manifest: JSON.parse(readFileSync(join(root, 'packages', entry.dir, 'package.json'), 'utf8')),
+}));
 
 function npm(args, cwd = root) {
   // npm_execpath avoids shell quoting and npm.cmd differences on Windows.
@@ -33,11 +43,11 @@ function npm(args, cwd = root) {
 }
 
 /** Pack a workspace, running its prepack build, so no symlink or old dist hides a file. */
-function pack(workspace) {
+function pack(dir) {
   const [packed] = JSON.parse(
     npm([
       'pack',
-      `--workspace=${workspace}`,
+      `--workspace=packages/${dir}`,
       '--json',
       '--foreground-scripts=false',
       '--ignore-scripts=false',
@@ -49,58 +59,43 @@ function pack(workspace) {
 }
 
 try {
-  // granum-grid first: the adapters' declarations build against its dist/ types.
-  const packed = pack('granum-grid');
-  assert.equal(packed.name, manifest.name);
-  assert.equal(packed.version, manifest.version);
-  assert.equal(manifest.license, 'Apache-2.0');
-  assert.deepEqual(
-    Object.keys(manifest.exports),
-    ['.', './headless', './core', './data', './base.css', './styles.css'],
-    'Public entry points changed; update the package README, docs/GUIDE.md, and the consumer fixtures deliberately',
-  );
-  const files = new Set(packed.files.map(({ path }) => path));
-  const targets = Object.values(manifest.exports).flatMap((entry) =>
-    typeof entry === 'string' ? [entry] : Object.values(entry),
-  );
-  for (const path of [
-    'package.json',
-    'README.md',
-    'LICENSE',
-    manifest.main,
-    manifest.types,
-    ...targets,
-  ]) {
-    assert.ok(files.has(path.replace(/^\.\//, '')), `Missing packed file: ${path}`);
-  }
-  for (const path of files) {
-    assert.match(
-      path,
-      /^(?:package\.json|README\.md|LICENSE|(?:dist|src)\/[^.].*\.(?:js|map|ts|tsx|css))$/,
-      `Unexpected packed file: ${path}`,
+  for (const entry of PACKAGES) {
+    const { manifest } = entry;
+    const packed = (entry.packed = pack(entry.dir));
+    assert.equal(packed.name, manifest.name);
+    assert.equal(packed.version, manifest.version);
+    assert.equal(manifest.license, 'Apache-2.0');
+    assert.deepEqual(
+      Object.keys(manifest.exports),
+      entry.exports,
+      `${manifest.name}: public entry points changed`,
     );
-    assert.ok(!/(^|\/)(?:tests?|node_modules|demo|media)(\/|\.)/.test(path), path);
-  }
-
-  // Adapters ship only their entry, declarations, maps, and source.
-  const adapters = [parquetManifest, sqlManifest].map((adapter) => {
-    const adapterPacked = pack(`packages/${adapter.name.split('/')[1]}`);
-    assert.equal(adapterPacked.name, adapter.name);
-    assert.equal(adapterPacked.version, adapter.version);
-    assert.deepEqual(Object.keys(adapter.exports), ['.']);
-    for (const { path } of adapterPacked.files)
+    entry.files = new Set(packed.files.map(({ path }) => path));
+    const targets = Object.values(manifest.exports).flatMap((target) =>
+      typeof target === 'string' ? [target] : Object.values(target),
+    );
+    for (const path of [
+      'package.json',
+      'README.md',
+      'LICENSE',
+      manifest.main,
+      manifest.types,
+      ...targets,
+    ])
+      assert.ok(entry.files.has(path.replace(/^\.\//, '')), `${manifest.name}: missing ${path}`);
+    for (const path of entry.files) {
       assert.match(
         path,
-        /^(?:package\.json|README\.md|LICENSE|(?:dist|src)\/[^.].*\.(?:js|map|ts))$/,
-        `Unexpected packed file in ${adapter.name}: ${path}`,
+        /^(?:package\.json|README\.md|LICENSE|(?:dist|src)\/[^.].*\.(?:js|map|ts|tsx|css))$/,
+        `${manifest.name}: unexpected packed file ${path}`,
       );
-    return adapterPacked;
-  });
-  const [parquetPacked, sqlPacked] = adapters;
-
-  const archive = join(temporary, packed.filename);
-  const parquetArchive = join(temporary, parquetPacked.filename);
-  const sqlArchive = join(temporary, sqlPacked.filename);
+      assert.ok(!/(^|\/)(?:tests?|node_modules|demo|media)(\/|\.)/.test(path), path);
+    }
+  }
+  const archive = (dir) => {
+    const entry = PACKAGES.find((item) => item.dir === dir);
+    return `file:${join(temporary, entry.packed.filename)}`;
+  };
   const installedVersion = (name) => lock.packages[`node_modules/${name}`].version;
   const consumers = [
     {
@@ -121,16 +116,17 @@ try {
   for (const [index, consumer] of consumers.entries()) {
     const cwd = join(temporary, `consumer-${index}`);
     mkdirSync(cwd);
+    const local = Object.fromEntries(
+      PACKAGES.map(({ dir, manifest }) => [manifest.name, archive(dir)]),
+    );
     writeFileSync(
       join(cwd, 'package.json'),
       JSON.stringify({
-        name: 'granum-grid-package-consumer',
+        name: 'granum-package-consumer',
         private: true,
         type: 'module',
         dependencies: {
-          [manifest.name]: `file:${archive}`,
-          [parquetManifest.name]: `file:${parquetArchive}`,
-          [sqlManifest.name]: `file:${sqlArchive}`,
+          ...local,
           hyparquet: installedVersion('hyparquet'),
           'hyparquet-compressors': installedVersion('hyparquet-compressors'),
           react: consumer.react,
@@ -139,6 +135,8 @@ try {
           '@types/react-dom': consumer.reactDomTypes,
           typescript: installedVersion('typescript'),
         },
+        // @granum/react depends on @granum/core by version; resolve it to the packed archive.
+        overrides: { '@granum/core': local['@granum/core'] },
       }),
     );
     npm(
@@ -154,24 +152,23 @@ try {
       ],
       cwd,
     );
-    const installed = join(cwd, 'node_modules', manifest.name);
-    assert.ok(
-      !lstatSync(installed).isSymbolicLink(),
-      'Must install the tarball, not a workspace link',
-    );
-    assert.equal(
-      readFileSync(join(installed, 'LICENSE'), 'utf8'),
-      readFileSync(join(root, 'LICENSE'), 'utf8'),
-    );
-    // Both JavaScript and declaration maps must resolve to the shipped source files.
-    for (const path of files) {
-      if (!path.endsWith('.map')) continue;
-      const map = JSON.parse(readFileSync(join(installed, path), 'utf8'));
-      for (const source of map.sources) {
-        const target = posix.normalize(
-          posix.join(posix.dirname(path), map.sourceRoot ?? '', source),
-        );
-        assert.ok(files.has(target), `${path} references missing source ${target}`);
+    for (const { manifest, files } of PACKAGES) {
+      const installed = join(cwd, 'node_modules', manifest.name);
+      assert.ok(!lstatSync(installed).isSymbolicLink(), `${manifest.name}: must be the tarball`);
+      assert.equal(
+        readFileSync(join(installed, 'LICENSE'), 'utf8'),
+        readFileSync(join(root, 'LICENSE'), 'utf8'),
+      );
+      // Both JavaScript and declaration maps must resolve to the shipped source files.
+      for (const path of files) {
+        if (!path.endsWith('.map')) continue;
+        const map = JSON.parse(readFileSync(join(installed, path), 'utf8'));
+        for (const source of map.sources) {
+          const target = posix.normalize(
+            posix.join(posix.dirname(path), map.sourceRoot ?? '', source),
+          );
+          assert.ok(files.has(target), `${manifest.name}: ${path} references missing ${target}`);
+        }
       }
     }
     for (const fixture of [
@@ -210,15 +207,15 @@ try {
       );
     }
     console.log(
-      `${consumer.label}: tarball install, SSR, exports, styles, and consumer types passed.`,
+      `${consumer.label}: tarball installs, SSR, exports, styles, and consumer types passed.`,
     );
   }
   const output = join(root, 'output');
   mkdirSync(output, { recursive: true });
-  for (const verified of [packed, ...adapters]) {
-    copyFileSync(join(temporary, verified.filename), join(output, verified.filename));
+  for (const { packed } of PACKAGES) {
+    copyFileSync(join(temporary, packed.filename), join(output, packed.filename));
     console.log(
-      `Verified output/${verified.filename}: ${verified.files.length} files, ${Math.ceil(verified.size / 1024)} KiB packed.`,
+      `Verified output/${packed.filename}: ${packed.files.length} files, ${Math.ceil(packed.size / 1024)} KiB packed.`,
     );
   }
 } finally {

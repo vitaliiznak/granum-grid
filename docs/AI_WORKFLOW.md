@@ -41,9 +41,9 @@ Run commands from the repository root. Add a regression case where behavior chan
 | Change                                                | Validation                                                                                                     |
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Docs or agent instructions only                       | Review paths, commands, and consistency; no browser needed                                                     |
-| Engine, range math, cache, providers                 | `npm run check`; focus first with `npx vitest run granum-grid/tests/session.test.ts` or the relevant test path  |
+| Engine, range math, cache, providers                 | `npm run check`; focus first with `npx vitest run packages/core/tests/session.test.ts` or the relevant test path  |
 | React, inputs, layout, styles, demo interactions      | `npm run check`, `npm run test:smoke`, relevant browser spec, and visual inspection when appearance changes    |
-| Public API, exports, package/build metadata           | `npm run check`, `npm run build`, `npm run test:package`; update `docs/GUIDE.md`, `granum-grid/README.md`, and the `scripts/package-*` consumer fixtures when applicable |
+| Public API, exports, package/build metadata           | `npm run check`, `npm run build`, `npm run test:package`; update `docs/GUIDE.md`, `packages/react/README.md`, and the `scripts/package-*` consumer fixtures when applicable |
 | Broad change / release candidate                      | `npm run check:full` after installing all three browsers                                                       |
 
 `npm run typecheck` covers library, adapter packages, demo, unit/browser tests, and the
@@ -51,7 +51,7 @@ Vite/Vitest/Playwright configs without emitting files; the package-consumer fixt
 checked separately against an installed tarball, not workspace aliases.
 `npm run test:tutorials` compares the seven lesson code blocks with `demo/src/tutorials`
 and checks local links and headings in the root `README.md`, `STYLING.md`, `DESIGN.md`,
-and `AGENTS.md`, in `docs/*.md`, `docs/lessons/`, `granum-grid/README.md`, `media/README.md`,
+and `AGENTS.md`, in `docs/*.md`, `docs/lessons/`, `packages/react/README.md`, `media/README.md`,
 `media/MUSIC.md`, and the trace fixture README. `npm run lint` applies hook rules to the
 library and demo, public-entry imports to the demo, the layer fence to the library, and
 browserslist API checks to the library and adapter packages.

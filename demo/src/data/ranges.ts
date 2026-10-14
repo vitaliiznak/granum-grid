@@ -1,4 +1,4 @@
-import type { RowRange } from 'granum-grid';
+import type { RowRange } from '@granum/react';
 
 /**
  * Split `[start, end)` into `parts` contiguous ranges whose sizes differ by at most one.

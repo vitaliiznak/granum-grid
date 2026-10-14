@@ -6,15 +6,15 @@ It is a reading surface, not a spreadsheet. There is no column model, sorting, f
 
 ## Install
 
-React and React DOM 18.2–19 are peer dependencies; there are no other runtime dependencies. The package ships ESM JavaScript and TypeScript declarations; use an ESM-capable bundler and TypeScript 5+ for typed consumers. CommonJS `require()` is not supported.
+React and React DOM 18.2–19 are peer dependencies, and [`@granum/core`](https://github.com/vitaliiznak/granum-grid/tree/main/packages/core) (the framework-free engine, data session, and native scrolling) is its only dependency. The package ships ESM JavaScript and TypeScript declarations; use an ESM-capable bundler and TypeScript 5+ for typed consumers. CommonJS `require()` is not supported.
 
-This version is not yet published to npm. Build and install a local archive with [step 1 of the quick start](https://github.com/vitaliiznak/granum-grid/blob/main/docs/QUICK_START.md#1-install-the-library), which also covers a new-app setup, an HTTP adapter, and troubleshooting.
+This version is not yet published to npm. Build and install the local archives (this package and `@granum/core`) with [step 1 of the quick start](https://github.com/vitaliiznak/granum-grid/blob/main/docs/QUICK_START.md#1-install-the-library), which also covers a new-app setup, an HTTP adapter, and troubleshooting.
 
 ## Use
 
 ```tsx
-import { GranumGrid, createArrayProvider } from 'granum-grid';
-import 'granum-grid/styles.css';
+import { GranumGrid, createArrayProvider } from '@granum/react';
+import '@granum/react/styles.css';
 
 // Keep the provider outside render, or memoize it by rows and revision.
 const provider = createArrayProvider([{ value: 21.4 }, { value: 22.1 }, { value: 20.8 }], {
@@ -40,7 +40,7 @@ export function Explorer() {
 
 For remote data, supply a `DataProvider` with `id`, `revision`, `rowCount`, and `fetchRows(start, count, signal)` instead; the component stays the same. `Row` is your own type, with no required fields. API indices are zero-based and the UI shows one-based row numbers. Change the provider's `revision` when data order or contents change, and fetch exactly the requested count of rows. Overview summaries, markers, chapters, and search are optional provider methods.
 
-No stylesheet is imported automatically: choose `granum-grid/styles.css` for the default theme, `granum-grid/base.css` for layout only, or no CSS with the headless `useGranumGrid` hook. With React Server Components, render the explorer, provider, and renderer inside a `'use client'` component.
+No stylesheet is imported automatically: choose `@granum/react/styles.css` for the default theme, `@granum/react/base.css` for layout only, or no CSS with the headless `useGranumGrid` hook. With React Server Components, render the explorer, provider, and renderer inside a `'use client'` component.
 
 ## The API in four ideas
 
@@ -96,27 +96,26 @@ function Readings() {
 
 Stop at the layer that fits. Each one is built from the layer below it, and the demo uses only these public entries.
 
-| Layer                                         | Import                                 | You own                                                                                                       |
-| --------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `GranumGrid`                                  | `granum-grid`                          | Row content, theme, and which regions to configure, hide, or replace                                          |
-| Widgets: `AtlasRail`, `JumpBar`               | `granum-grid`                          | Layout, and the explorer state they share as props: search open and query, map highlights, map selection mode |
-| `useGranumGrid`                               | `granum-grid/headless`                 | All markup. The hook supplies rows, navigation, selection, input, and ARIA props                              |
-| Engine and data session                       | `granum-grid/core`, `granum-grid/data` | Rendering and input, without React                                                                            |
+| Layer                                       | Import                                         | You own                                                                                                       |
+| ------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `GranumGrid`                                | `@granum/react`                                | Row content, theme, and which regions to configure, hide, or replace                                          |
+| Widgets: `AtlasRail`, `JumpBar`             | `@granum/react`                                | Layout, and the explorer state they share as props: search open and query, map highlights, map selection mode |
+| `useGranumGrid`                             | `@granum/react/headless`                       | All markup. The hook supplies rows, navigation, selection, input, and ARIA props                              |
+| Engine, data session, scrolling, map pieces | `@granum/core` and its `/data`, `/dom`, `/map` | Rendering and input, without React                                                                            |
 
 Widgets take the hook's result as `grid`: `<AtlasRail grid={grid} />` accepts the same options as the component's `rail` prop. The hook holds no dialog, search, bookmark, or map-mode state. Pass your own places with its `markers` option, and an `onOpenSearch` handler for `/`, Ctrl/Cmd+K, and `api.openSearch(query)`; without the handler those do nothing, and the keys stay with the browser. The hook's state carries rows, prop getters, the handle, and display state (`snapshot`, `selection`, `markers`, the current `chapter`, `stats`); its data session and coordinate mapping stay internal.
 
 ## Entry points
 
-| Entry                    | Surface                                                                                                                                                                                                                       |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `granum-grid`            | `GranumGrid`, `useGranumGrid`, `AtlasRail`, `JumpBar`, `createArrayProvider`, `createCursorProvider`, `encodeView`, `decodeView`, and public types                                           |
-| `granum-grid/headless`   | `useGranumGrid`, and the hook, handle, provider, and navigation types; no components or CSS                                                                                                                                    |
-| `granum-grid/core`       | Framework-independent engine (`createEngine`), coordinate mappings, saved-view encoding and validation (`readView`), and `validRange`                                                                                        |
-| `granum-grid/data`       | Provider types, `PageCache`, `DataSession`, `rangeProvider`, `createArrayProvider`, `createCursorProvider`, `checkBuckets`, and the cursor helpers `acceptCursorWindow` and `cursorWindowIssue`                              |
-| `granum-grid/base.css`   | Structural layout only                                                                                                                                                                                                        |
-| `granum-grid/styles.css` | Optional skin and `--ds-*` theme variables; includes base layout                                                                                                                                                              |
+| Entry                                   | Surface                                                                                                                                            |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@granum/react`                         | `GranumGrid`, `useGranumGrid`, `AtlasRail`, `JumpBar`, `createArrayProvider`, `createCursorProvider`, `encodeView`, `decodeView`, and public types |
+| `@granum/react/headless`                | `useGranumGrid`, and the hook, handle, provider, and navigation types; no components or CSS                                                        |
+| `@granum/core`, `/data`, `/dom`, `/map` | The framework-free layers; see [its README](https://github.com/vitaliiznak/granum-grid/tree/main/packages/core)                                    |
+| `@granum/react/base.css`                | Structural layout only                                                                                                                             |
+| `@granum/react/styles.css`              | Optional skin and `--ds-*` theme variables; includes base layout                                                                                   |
 
-The package test pins the runtime exports of `granum-grid` and `granum-grid/headless`, so widening either is a deliberate change.
+The package test pins the runtime exports of `@granum/react` and `@granum/react/headless`, so widening either is a deliberate change.
 
 ## Browser support
 

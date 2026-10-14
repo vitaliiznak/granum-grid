@@ -5,8 +5,8 @@ import { DEFAULT_LATENCY, setLatency } from '../src/data/latency';
 import { logAt } from '../src/data/logs';
 import { syntheticProvider } from '../src/data/synthetic';
 import { parseTrace, traceProvider } from '../src/data/trace';
-import { parseJump } from '../../granum-grid/src/core/navigation';
-import type { DataProvider } from 'granum-grid';
+import { parseJump } from '../../packages/core/src/core/navigation';
+import type { DataProvider } from '@granum/react';
 
 const signalProvider = signal.provider;
 

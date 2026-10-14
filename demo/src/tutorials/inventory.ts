@@ -1,4 +1,4 @@
-import { createArrayProvider } from 'granum-grid';
+import { createArrayProvider } from '@granum/react';
 
 export type Product = { sku: string; name: string; stock: number };
 

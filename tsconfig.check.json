@@ -4,8 +4,6 @@
     "types": ["node", "vite/client"]
   },
   "include": [
-    "granum-grid/src",
-    "granum-grid/tests",
     "packages/*/src",
     "packages/*/tests",
     "demo/src",

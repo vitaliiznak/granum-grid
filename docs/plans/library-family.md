@@ -336,8 +336,12 @@ touchpad, an iPhone, and an Android phone, and run VoiceOver and NVDA.
 
 ### Phase 3: split, publish 0.2, find users (2–3 days, then ongoing)
 
-1. Split into `core`, `react`, `parquet`, and `sql` under the chosen names. Consumer
-   tests per package (React 18 and 19 for `react`), lockstep versions, a changelog.
+1. Done 2026-10-14: `granum-grid/` became `packages/core` (`@granum/core`: `.`, `/data`,
+   `/dom`, `/map`, `/internal`, CSS) and `packages/react` (`@granum/react`, `/headless`,
+   CSS copied from core). The maintainer chose the `@granum` scope (they create the npm
+   org) and the `gr-` CSS prefix. `test:package` packs all four and installs them together
+   in React 18.2 and 19 consumers; it also proves no core file imports React. Still to do:
+   the `ds-` → `gr-` rename and a changelog.
 2. A 60-second screen recording replaces the film in the README.
 3. The maintainer publishes after `npm login`.
 4. A Show HN built on "paste a Parquet URL or drop a file and scroll all of it with a

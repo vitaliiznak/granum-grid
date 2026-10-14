@@ -7,7 +7,7 @@ import {
   type GranumGridApi,
   type RowRenderContext,
   type SavedView,
-} from 'granum-grid';
+} from '@granum/react';
 import { connectHttpTrace, type RequestMeasurement } from './data/http-trace';
 import type { TraceRow } from './data/trace';
 import { useExplorerTools } from './explorer';

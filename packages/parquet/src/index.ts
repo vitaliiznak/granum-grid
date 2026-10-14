@@ -1,5 +1,5 @@
 import type { AsyncBuffer, Compressors, FileMetaData, SchemaElement } from 'hyparquet';
-import type { Bucket, DataProvider } from 'granum-grid';
+import type { Bucket, DataProvider } from '@granum/core/data';
 
 let library: Promise<typeof import('hyparquet')> | null = null;
 /** hyparquet loads on first use, so a host's main bundle does not carry it. */

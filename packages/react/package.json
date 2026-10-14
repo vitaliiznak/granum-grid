@@ -1,0 +1,71 @@
+{
+  "name": "@granum/react",
+  "version": "0.1.0",
+  "description": "An overview-first React explorer for enormous indexed datasets: rows, a map of the whole dataset, typed jumps, and history",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitaliiznak/granum-grid.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://vitaliiznak.github.io/granum-grid/",
+  "bugs": "https://github.com/vitaliiznak/granum-grid/issues",
+  "keywords": [
+    "react",
+    "typescript",
+    "virtualization",
+    "virtual-scroll",
+    "large-datasets",
+    "data-exploration"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./headless": {
+      "types": "./dist/headless.d.ts",
+      "import": "./dist/headless.js"
+    },
+    "./base.css": "./dist/base.css",
+    "./styles.css": "./dist/styles.css"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm --prefix ../.. run release:check"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "@granum/core": "0.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0 <20",
+    "react-dom": ">=18.2.0 <20"
+  },
+  "browserslist": [
+    "chrome >= 100",
+    "edge >= 100",
+    "firefox >= 104",
+    "safari >= 15.4",
+    "ios_saf >= 15.4"
+  ],
+  "granumBuild": {
+    "css": "../core/src"
+  }
+}

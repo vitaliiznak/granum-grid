@@ -1,22 +1,21 @@
 {
-  "name": "granum-grid",
+  "name": "@granum/core",
   "version": "0.1.0",
-  "description": "An overview-first React explorer for enormous indexed datasets",
+  "description": "Framework-free navigation, data sessions, native scrolling, and map primitives for exploring enormous indexed datasets",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vitaliiznak/granum-grid.git",
-    "directory": "granum-grid"
+    "directory": "packages/core"
   },
   "homepage": "https://vitaliiznak.github.io/granum-grid/",
   "bugs": "https://github.com/vitaliiznak/granum-grid/issues",
   "keywords": [
-    "react",
-    "typescript",
     "virtualization",
     "virtual-scroll",
     "large-datasets",
-    "data-exploration"
+    "data-exploration",
+    "framework-agnostic"
   ],
   "type": "module",
   "main": "./dist/index.js",
@@ -35,33 +34,32 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./headless": {
-      "types": "./dist/headless.d.ts",
-      "import": "./dist/headless.js"
-    },
-    "./core": {
-      "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js"
-    },
     "./data": {
       "types": "./dist/data/index.d.ts",
       "import": "./dist/data/index.js"
+    },
+    "./dom": {
+      "types": "./dist/dom/index.d.ts",
+      "import": "./dist/dom/index.js"
+    },
+    "./map": {
+      "types": "./dist/map/index.d.ts",
+      "import": "./dist/map/index.js"
+    },
+    "./internal": {
+      "types": "./dist/internal.d.ts",
+      "import": "./dist/internal.js"
     },
     "./base.css": "./dist/base.css",
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
-    "build": "node ../scripts/build-package.mjs",
-    "prepack": "npm run build",
-    "prepublishOnly": "npm --prefix .. run release:check"
+    "build": "node ../../scripts/build-package.mjs",
+    "prepack": "npm run build"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
-  },
-  "peerDependencies": {
-    "react": ">=18.2.0 <20",
-    "react-dom": ">=18.2.0 <20"
   },
   "browserslist": [
     "chrome >= 100",

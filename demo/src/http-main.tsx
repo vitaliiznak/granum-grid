@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HttpExample } from './HttpExample';
-import 'granum-grid/styles.css';
+import '@granum/react/styles.css';
 import './example-page.css';
 import './http.css';
 

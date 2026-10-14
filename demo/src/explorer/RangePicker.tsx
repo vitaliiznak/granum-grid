@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import type { RowRange } from 'granum-grid';
-import { validRange } from 'granum-grid/core';
+import type { RowRange } from '@granum/react';
+import { validRange } from '@granum/core';
 import { rangeCount } from './format';
 
 /** The same choice of input methods is used for a selection and a comparison. */

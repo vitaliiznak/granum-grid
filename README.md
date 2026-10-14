@@ -10,11 +10,11 @@ The UI and navigation run in the browser, with no Granum Grid backend. The playg
 
 ## Use it in React
 
-Not yet on npm: [build and install a local package](docs/QUICK_START.md#1-install-the-library). React 18.2–19, no other runtime dependencies.
+Not yet on npm: [build and install the local packages](docs/QUICK_START.md#1-install-the-library). React 18.2–19; `@granum/react` depends only on `@granum/core`.
 
 ```tsx
-import { GranumGrid, type DataProvider } from 'granum-grid';
-import 'granum-grid/styles.css';
+import { GranumGrid, type DataProvider } from '@granum/react';
+import '@granum/react/styles.css';
 
 type LogLine = { time: string; message: string };
 
@@ -45,13 +45,14 @@ export function Logs() {
 
 The provider is the whole contract: a stable `id`, a `revision`, a known `rowCount`, and `fetchRows` for any slice by address. Overview buckets for the map, markers, chapters, and search are optional provider methods. Your source must answer `fetchRows(3_000_000_000, 256)` without reading the rows before it ([server-owned ordering](docs/GUIDE.md#server-owned-ordering)); the adapter packages below do that for Parquet files and SQL.
 
-It is a reading surface, not a spreadsheet grid. There is no column model, sorting, filtering, or editing in the browser, and no bookmark store or range comparison. The playground builds those last two on the public API in [`demo/src/explorer`](demo/src/explorer/index.tsx). Start with the [package README](granum-grid/README.md), then the [integration guide](docs/GUIDE.md).
+It is a reading surface, not a spreadsheet grid. There is no column model, sorting, filtering, or editing in the browser, and no bookmark store or range comparison. The playground builds those last two on the public API in [`demo/src/explorer`](demo/src/explorer/index.tsx). Start with the [package README](packages/react/README.md), then the [integration guide](docs/GUIDE.md).
 
 ## Packages
 
 | Package                                         | What it gives you                                                                                                                                              |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`granum-grid`](granum-grid/README.md)          | The explorer, the headless hook, and the framework-free engine and data session                                                                                |
+| [`@granum/react`](packages/react/README.md)     | The explorer component, its map and search widgets, and the headless hook                                                                                      |
+| [`@granum/core`](packages/core/README.md)       | Framework-free: the navigation engine, the data session, native scrolling for an element or the window, and the map's pieces                                   |
 | [`@granum/parquet`](packages/parquet/README.md) | A Parquet file on any server that answers byte ranges, read one row group per jump, with a map from the footer's statistics                                    |
 | [`@granum/sql`](packages/sql/README.md)         | Any table DuckDB can read: each filter or sort becomes a revision with its own addresses, an exact map, and search that reads every row; bring your own DuckDB |
 
@@ -134,7 +135,7 @@ npm run dev
 
 Open the URL Vite prints. `/tutorials.html` runs the [tutorial lessons](docs/lessons/README.md).
 
-The library comes in [layers you can stop at](granum-grid/README.md#layers): the ready-made `GranumGrid`, the map and search widgets, the headless `useGranumGrid` hook, and a React-free engine and data session.
+The library comes in [layers you can stop at](packages/react/README.md#layers): the ready-made `GranumGrid`, the map and search widgets, the headless `useGranumGrid` hook, and a React-free engine and data session.
 
 ## Demo limitations
 

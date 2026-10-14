@@ -1,4 +1,4 @@
-import type { RowRange } from 'granum-grid';
+import type { RowRange } from '@granum/react';
 
 // Copied from the library's internal formatters; the library does not export formatting.
 const decimals = new Map<number, Intl.NumberFormat>();

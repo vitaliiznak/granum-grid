@@ -9,24 +9,28 @@ import { fileURLToPath } from 'node:url';
 // Budgets ratchet down as the plan in docs/plans/library-family.md removes code; raise one
 // only on purpose, with the reason in the commit.
 const BUDGETS = {
-  'granum-grid': 25_600,
-  'granum-grid/headless': 12_100,
-  'granum-grid/core': 3_300,
-  'granum-grid/data': 4_100,
+  '@granum/react': 25_600,
+  '@granum/react/headless': 12_100,
+  '@granum/core': 3_300,
+  '@granum/core/data': 4_100,
+  '@granum/core/dom': 2_350,
+  '@granum/core/map': 2_450,
   '@granum/parquet': 3_500,
   '@granum/sql': 4_200,
   'base.css': 15_900,
   'styles.css': 19_200,
 };
-const dist = fileURLToPath(new URL('../granum-grid/dist/', import.meta.url));
 const workspace = fileURLToPath(new URL('../', import.meta.url));
+const built = (path) => `${workspace}packages/${path}`;
 const scripts = {
-  'granum-grid': `${dist}index.js`,
-  'granum-grid/headless': `${dist}headless.js`,
-  'granum-grid/core': `${dist}core/index.js`,
-  'granum-grid/data': `${dist}data/index.js`,
-  '@granum/parquet': `${workspace}packages/parquet/dist/index.js`,
-  '@granum/sql': `${workspace}packages/sql/dist/index.js`,
+  '@granum/react': built('react/dist/index.js'),
+  '@granum/react/headless': built('react/dist/headless.js'),
+  '@granum/core': built('core/dist/index.js'),
+  '@granum/core/data': built('core/dist/data/index.js'),
+  '@granum/core/dom': built('core/dist/dom/index.js'),
+  '@granum/core/map': built('core/dist/map/index.js'),
+  '@granum/parquet': built('parquet/dist/index.js'),
+  '@granum/sql': built('sql/dist/index.js'),
 };
 const sizes = {};
 for (const [entry, file] of Object.entries(scripts)) {
@@ -43,7 +47,8 @@ for (const [entry, file] of Object.entries(scripts)) {
   });
   sizes[entry] = gzipSync(result.outputFiles[0].contents, { level: 9 }).length;
 }
-for (const file of ['base.css', 'styles.css']) sizes[file] = readFileSync(dist + file).length;
+for (const file of ['base.css', 'styles.css'])
+  sizes[file] = readFileSync(built(`core/dist/${file}`)).length;
 
 let over = false;
 for (const [entry, size] of Object.entries(sizes)) {

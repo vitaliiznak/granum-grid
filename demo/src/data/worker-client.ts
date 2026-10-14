@@ -1,4 +1,4 @@
-import type { AggregateRequest, Bucket, OverviewTrack } from 'granum-grid';
+import type { AggregateRequest, Bucket, OverviewTrack } from '@granum/react';
 let nextId = 0;
 let worker: Worker | undefined;
 const jobs = new Map<

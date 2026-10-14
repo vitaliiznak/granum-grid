@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { createEngine } from 'granum-grid/core';
-import { PageCache, createArrayProvider as arrayFromData } from 'granum-grid/data';
-import { GranumGrid, useGranumGrid, AtlasRail, createArrayProvider } from 'granum-grid';
-import { useGranumGrid as useHeadlessGrid } from 'granum-grid/headless';
+import { createEngine } from '@granum/core';
+import { PageCache, createArrayProvider as arrayFromData } from '@granum/core/data';
+import { GranumGrid, useGranumGrid, AtlasRail, createArrayProvider } from '@granum/react';
+import { useGranumGrid as useHeadlessGrid } from '@granum/react/headless';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 function renderWithoutWarnings(element) {
   const warnings = [];
@@ -19,10 +19,10 @@ function renderWithoutWarnings(element) {
     console.error = originalError;
   }
 }
-assert.match(import.meta.resolve('granum-grid'), /\/dist\/index\.js$/);
+assert.match(import.meta.resolve('@granum/react'), /\/dist\/index\.js$/);
 // The runtime surface of each entry point is deliberately small; widen it on purpose.
 const entryValues = async (name) => Object.keys(await import(name)).sort();
-assert.deepEqual(await entryValues('granum-grid'), [
+assert.deepEqual(await entryValues('@granum/react'), [
   'AtlasRail',
   'GranumGrid',
   'JumpBar',
@@ -32,7 +32,24 @@ assert.deepEqual(await entryValues('granum-grid'), [
   'encodeView',
   'useGranumGrid',
 ]);
-assert.deepEqual(await entryValues('granum-grid/headless'), ['useGranumGrid']);
+assert.deepEqual(await entryValues('@granum/react/headless'), ['useGranumGrid']);
+// @granum/core is framework-free: no file it ships imports React.
+const coreDist = fileURLToPath(new URL('.', import.meta.resolve('@granum/core')));
+for (const file of readdirSync(coreDist, { recursive: true }).filter((f) => f.endsWith('.js')))
+  assert.ok(!/from ['"]react/.test(readFileSync(`${coreDist}/${file}`, 'utf8')), file);
+assert.deepEqual(await entryValues('@granum/core/dom'), [
+  'MAX_SCROLL',
+  'NATIVE_SCROLL',
+  'bindScroll',
+  'handleMovementKey',
+  'handleViewportKey',
+  'isControl',
+  'isSearchShortcut',
+  'isTextEntry',
+  'isWithin',
+  'ownsKeys',
+  'scrollMapping',
+]);
 const engine = createEngine({ rowCount: 100_000_000 });
 engine.goTo(73_499_999);
 assert.equal(engine.getSnapshot().activeIndex, 73_499_999);
@@ -107,9 +124,9 @@ const headlessModules = new Set();
   const source = readFileSync(fileURLToPath(url), 'utf8');
   for (const [, path] of source.matchAll(/(?:from|import)\s*['"](\.{1,2}\/[^'"]+)['"]/g))
     follow(new URL(path, url).href);
-})(import.meta.resolve('granum-grid/headless'));
+})(import.meta.resolve('@granum/react/headless'));
 const components = [...headlessModules].filter((url) => /\/react\/[A-Z][^/]*\.js$/.test(url));
-assert.deepEqual(components, [], 'granum-grid/headless must not load explorer components');
+assert.deepEqual(components, [], '@granum/react/headless must not load explorer components');
 function HeadlessRows() {
   const grid = useHeadlessGrid({
     provider: { id: 'headless', revision: '1', rowCount: 1_000, fetchRows: async () => [] },
@@ -121,8 +138,8 @@ function HeadlessRows() {
   );
 }
 assert.match(renderWithoutWarnings(createElement(HeadlessRows)), /aria-rowcount="1000"/);
-const baseCss = readFileSync(new URL(import.meta.resolve('granum-grid/base.css')), 'utf8');
-const themeCss = readFileSync(new URL(import.meta.resolve('granum-grid/styles.css')), 'utf8');
+const baseCss = readFileSync(new URL(import.meta.resolve('@granum/react/base.css')), 'utf8');
+const themeCss = readFileSync(new URL(import.meta.resolve('@granum/react/styles.css')), 'utf8');
 assert.match(baseCss, /@layer granum-grid/);
 assert.match(themeCss, /@import ['"]\.\/base.css['"]/);
 assert.ok(!themeCss.includes('!important'));

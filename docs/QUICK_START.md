@@ -16,29 +16,31 @@ creating a new app with current Vite, use Node 22.12+.
 
 ## 1. Install the library
 
-This checkout is a pre-publication release. Install its local package archive to
-try the current code in another app.
+This checkout is a pre-publication release. Install its local package archives to
+try the current code in another app: `@granum/react` and the `@granum/core` it depends
+on.
 
 **In the Granum Grid repository root:**
 
 ```sh
 npm ci
 mkdir -p output
-npm pack --workspace=granum-grid --pack-destination ./output
+npm pack --workspace=packages/core --workspace=packages/react --pack-destination ./output
 ```
 
 If you already installed this checkout's dependencies, skip `npm ci`. Packing runs
-the library build automatically and creates `output/granum-grid-0.1.0.tgz`. Use the
-filename printed by npm if the version changes. The archive contains the library,
-styles, types, and source maps; it does not include the demo or its data.
+each package's build automatically and creates `output/granum-core-0.1.0.tgz` and
+`output/granum-react-0.1.0.tgz`. Use the filenames printed by npm if the version changes.
+The archives contain the library, styles, types, and source maps; they do not include the
+demo or its data.
 
 **In your React app directory:**
 
 ```sh
-npm install /absolute/path/to/granum-grid/output/granum-grid-0.1.0.tgz
+npm install /absolute/path/to/granum-grid/output/granum-core-0.1.0.tgz /absolute/path/to/granum-grid/output/granum-react-0.1.0.tgz
 ```
 
-Replace the path with the actual archive location. Your app only needs the
+Replace the paths with the actual archive locations. Your app only needs the
 installed package at runtime; you do not need to keep the demo server running.
 Packing builds an archive without running the repository's checks; for those, run
 [`npm run release:check`](../AGENTS.md#validate-and-finish) from the repository root.
@@ -52,7 +54,7 @@ From a directory outside this repository, create a small React + TypeScript app:
 npm create vite@latest my-explorer -- --template react-ts
 cd my-explorer
 npm install
-npm install /absolute/path/to/granum-grid/output/granum-grid-0.1.0.tgz
+npm install /absolute/path/to/granum-grid/output/granum-core-0.1.0.tgz /absolute/path/to/granum-grid/output/granum-react-0.1.0.tgz
 ```
 
 Follow the [Vite setup guide](https://vite.dev/guide/#scaffolding-your-first-vite-project)
@@ -66,8 +68,8 @@ Replace `src/App.tsx` in a Vite app with this complete component. In an existing
 app, render this component wherever you want the explorer.
 
 ```tsx
-import { GranumGrid, createArrayProvider } from 'granum-grid';
-import 'granum-grid/styles.css';
+import { GranumGrid, createArrayProvider } from '@granum/react';
+import '@granum/react/styles.css';
 
 type Reading = { value: number };
 
@@ -112,7 +114,7 @@ body {
 }
 ```
 
-In an existing app, keep your own global CSS. `granum-grid/styles.css` provides the
+In an existing app, keep your own global CSS. `@granum/react/styles.css` provides the
 explorer's layout and theme; no demo stylesheet is needed. The height keeps the
 viewport bounded. `renderRow` controls your content, while the library handles
 loading, positioning, keyboard navigation, and focus.
@@ -147,8 +149,8 @@ array and its revision:
 
 ```tsx
 import { useMemo } from 'react';
-import { GranumGrid, createArrayProvider } from 'granum-grid';
-import 'granum-grid/styles.css';
+import { GranumGrid, createArrayProvider } from '@granum/react';
+import '@granum/react/styles.css';
 
 type Reading = { value: number };
 export function Readings({ rows, revision }: { rows: readonly Reading[]; revision: string }) {
@@ -181,7 +183,7 @@ must expose a known row count and a stable ordering for one dataset revision.
 This adapter expects an existing endpoint that returns a JSON array of readings:
 
 ```ts
-import type { DataProvider } from 'granum-grid';
+import type { DataProvider } from '@granum/react';
 
 type Reading = { value: number };
 type Snapshot = { id: string; revision: string; rowCount: number };
@@ -253,7 +255,7 @@ const searchHelp = {
     { name: 'duration', type: 'number', operators: ['>', '>=', '=', '<', '<='] },
     { name: 'name', type: 'text', operators: ['=', '!='] },
   ],
-} satisfies import('granum-grid').SearchHelp;
+} satisfies import('@granum/react').SearchHelp;
 ```
 
 Put this on the provider alongside `search`. [Search](GUIDE.md#search) explains how
@@ -272,8 +274,8 @@ from a button or another part of your app:
 
 ```tsx
 import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi, type DataProvider } from 'granum-grid';
-import 'granum-grid/styles.css';
+import { GranumGrid, type GranumGridApi, type DataProvider } from '@granum/react';
+import '@granum/react/styles.css';
 
 type Reading = { value: number };
 
@@ -300,15 +302,15 @@ for search, focus, controlled selection, and saved-view URLs.
 
 ## Configuration that preserves expectations
 
-| Intent                                            | Configuration                              |
-| ------------------------------------------------- | ------------------------------------------ |
-| Immutable ordered snapshot                        | `dataMode="snapshot"` (default)            |
-| Accept appended rows, preserve the reader's place | `dataMode="append"`                        |
-| Follow new rows when already at the end           | `dataMode="follow"`                        |
-| Fixed row height                                  | `rowHeight={36}`                           |
-| Natural row height, estimated before measurement  | `dynamicRowHeight rowHeight={36}`          |
-| No exact-row requests on map hover                | `rail={{ preview: 'summary' }}`            |
-| Rows only: no map                                 | `rail={false}`                             |
+| Intent                                            | Configuration                     |
+| ------------------------------------------------- | --------------------------------- |
+| Immutable ordered snapshot                        | `dataMode="snapshot"` (default)   |
+| Accept appended rows, preserve the reader's place | `dataMode="append"`               |
+| Follow new rows when already at the end           | `dataMode="follow"`               |
+| Fixed row height                                  | `rowHeight={36}`                  |
+| Natural row height, estimated before measurement  | `dynamicRowHeight rowHeight={36}` |
+| No exact-row requests on map hover                | `rail={{ preview: 'summary' }}`   |
+| Rows only: no map                                 | `rail={false}`                    |
 
 Append mode requires the same ID/revision and unchanged existing rows. The count
 may increase, never decrease; `follow` is append mode that also stays at the end.
@@ -332,7 +334,7 @@ parent render. Inline `onStats`, `onNavigate`, and `onSelectionChange` callbacks
 
 | Symptom                                                  | What to check                                                                                    |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| The explorer has no layout or theme                      | Import `granum-grid/styles.css` once. Use `base.css` only when supplying your own theme.         |
+| The explorer has no layout or theme                      | Import `@granum/react/styles.css` once. Use `base.css` only when supplying your own theme.       |
 | A new Vite app is narrow or centered                     | Replace the starter `index.css` as shown above and remove any imported starter `App.css`.        |
 | Position or requests reset on every render               | Keep the provider's `id` and `revision` stable; change the revision only when rows change.       |
 | Rows show an error                                       | Check the response shape, exact requested count, revision, and HTTP status.                      |
@@ -344,9 +346,9 @@ parent render. Inline `onStats`, `onNavigate`, and `onSelectionChange` callbacks
 
 - [Integration guide](GUIDE.md): dynamic heights, append mode, saved views, and headless layouts.
 - [Styling](../STYLING.md): theme tokens, custom controls, and replacing markup.
-- [Public exports](../granum-grid/src/index.ts) and [provider types](../granum-grid/src/data/types.ts): the current typed contracts. [Design rationale](../DESIGN.md) explains the decisions behind them.
+- [Public exports](../packages/react/src/index.ts) and [provider types](../packages/core/src/data/types.ts): the current typed contracts. [Design rationale](../DESIGN.md) explains the decisions behind them.
 - [Documentation home](README.md): all guides and runnable examples.
 
 For a custom React UI, use `useGranumGrid`. For framework-independent engine and
-cache logic, use `granum-grid/core` and `granum-grid/data`; you supply the rendering
+cache logic, use `@granum/core` and `@granum/core/data`; you supply the rendering
 and input integration. The package still declares React and React DOM as peers.

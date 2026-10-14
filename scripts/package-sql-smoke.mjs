@@ -8,10 +8,10 @@ assert.deepEqual(Object.keys(await import('@granum/sql')).sort(), [
   'plainValue',
   'quoteIdentifier',
 ]);
-// granum-grid is a type-only peer: the built JavaScript must not import it at runtime.
+// @granum/core is a type-only peer: the built JavaScript must not import it at runtime.
 const dist = new URL('.', import.meta.resolve('@granum/sql'));
 for (const name of readdirSync(dist).filter((file) => file.endsWith('.js')))
-  assert.ok(!readFileSync(new URL(name, dist), 'utf8').includes('granum-grid'), name);
+  assert.ok(!readFileSync(new URL(name, dist), 'utf8').includes('@granum/core'), name);
 
 // A stand-in database: the package must build every statement itself.
 const statements = [];

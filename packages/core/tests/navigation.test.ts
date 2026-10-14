@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createEngine } from '../src/core/index';
+import { createEngine } from '../src/index';
 import { bucketAt, chapterAt, parseJump } from '../src/core/navigation';
 import type { Bucket } from '../src/data/types';
 it('records a whole scrub once and restores pre-jump fractional state', () => {

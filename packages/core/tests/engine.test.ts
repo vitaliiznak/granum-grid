@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createEngine,
-  pixelToRow,
-  rowToPixel,
-  rowToProgress,
-  progressToRow,
-} from '../src/core/index';
+import { createEngine, pixelToRow, rowToPixel, rowToProgress, progressToRow } from '../src/index';
 describe('100M row coordinates', () => {
   it('retains fractional positions and reaches the exact final row', () => {
     const engine = createEngine({ rowCount: 100_000_000, rowHeight: 32 });

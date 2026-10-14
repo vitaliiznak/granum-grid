@@ -16,24 +16,24 @@ import {
   type CoordinateMapping,
   type NavigationEvent,
   type NavigationSnapshot,
-} from '../core/index.js';
-import { clamp } from '../core/mappings.js';
-import { validRange } from '../data/bounds.js';
-import { createGranumGridApi, type GranumGridApi } from '../core/api.js';
-import { readView, type SavedView } from '../core/exploration.js';
+} from '@granum/core';
+import { clamp } from '@granum/core/internal';
+import { validRange } from '@granum/core/internal';
+import { createGranumGridApi, type GranumGridApi } from '@granum/core/internal';
+import { readView, type SavedView } from '@granum/core/internal';
 import { INTERNAL, type GridInternals } from './internal.js';
 import { useRowMeasurements } from './useRowMeasurements.js';
-import { bindScroll } from '../dom/scroll.js';
-import { isControl, ownsKeys } from '../dom/targets.js';
+import { bindScroll } from '@granum/core/dom';
+import { isControl, ownsKeys } from '@granum/core/dom';
 import { useKeyed } from './useKeyed.js';
 import { useReducedMotion } from './useReducedMotion.js';
 import { useLatest } from './useLatest.js';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { useFollowOutput } from './useFollowOutput.js';
 import { useRowRequests } from './useRowRequests.js';
-import { handleViewportKey } from '../dom/keyboard.js';
-import { bucketAt, chapterAt } from '../core/navigation.js';
-import { DataSession, sessionKey } from '../data/session.js';
+import { handleViewportKey } from '@granum/core/dom';
+import { bucketAt, chapterAt } from '@granum/core/internal';
+import { DataSession, sessionKey } from '@granum/core/internal';
 import type {
   CacheOptions,
   Chapter,
@@ -41,7 +41,7 @@ import type {
   Marker,
   RowSlot,
   RowRange,
-} from '../data/types.js';
+} from '@granum/core/data';
 export interface ScrollStats {
   cachedRows: number;
   cachedBytes: number;

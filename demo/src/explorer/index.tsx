@@ -1,5 +1,5 @@
 import { useCallback, type ReactNode } from 'react';
-import type { DataProvider, GranumGridState, Marker, RowRange } from 'granum-grid';
+import type { DataProvider, GranumGridState, Marker, RowRange } from '@granum/react';
 import { CompareRanges, type ComparisonHost } from './CompareRanges';
 import { ContextHints } from './ContextHints';
 import { ExplorerTools } from './ExplorerTools';

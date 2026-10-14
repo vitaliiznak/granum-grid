@@ -1,14 +1,14 @@
 # Styling and composition
 
-Granum Grid has no styling-framework dependency and imports no CSS from JavaScript. Import `granum-grid/styles.css` for the default skin and theme tokens, `granum-grid/base.css` to supply your own colors, type, spacing, controls, and borders, or no CSS with the headless hook. The [layer table](granum-grid/README.md#layers) shows what each layer leaves to you.
+Granum Grid has no styling-framework dependency and imports no CSS from JavaScript. Import `@granum/react/styles.css` for the default skin and theme tokens, `@granum/react/base.css` to supply your own colors, type, spacing, controls, and borders, or no CSS with the headless hook. The [layer table](packages/react/README.md#layers) shows what each layer leaves to you.
 
 The `unstyled` prop also disables the default skin on one instance when another instance on the same page uses `styles.css`. Structural layout is preserved.
 
 ## Theme the default component
 
 ```tsx
-import { GranumGrid } from 'granum-grid';
-import 'granum-grid/styles.css';
+import { GranumGrid } from '@granum/react';
+import '@granum/react/styles.css';
 import './explorer.css';
 
 <GranumGrid
@@ -43,7 +43,7 @@ Both stylesheets use the `granum-grid` cascade layer and zero-specificity `:wher
 
 ```css
 @layer granum-grid, theme, base, components, utilities;
-@import 'granum-grid/base.css';
+@import '@granum/react/base.css';
 /* Import your framework and application styles after declaring the order. */
 ```
 
@@ -156,7 +156,7 @@ Every explorer region is one prop with one rule: `true` or an options object sho
 Open the built-in search dialog with `api.openSearch()`. A `rail` function also receives the built-in map's props as a second argument; spread them to wrap or adjust the map while keeping search highlights and map selection: `rail={(_, rail) => <AtlasRail {...rail} layout="expanded" />}`. The example `Button` below is your application's component; it can come from a React UI library or wrap a native button.
 
 ```tsx
-import 'granum-grid/base.css';
+import '@granum/react/base.css';
 
 <GranumGrid
   unstyled
@@ -188,7 +188,7 @@ Replacement renderers own their wrapper styling and accessibility; the replaced 
 ## Build a headless list
 
 ```tsx
-import { useGranumGrid, type DataProvider } from 'granum-grid/headless';
+import { useGranumGrid, type DataProvider } from '@granum/react/headless';
 
 function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }) {
   const grid = useGranumGrid({
@@ -235,11 +235,11 @@ No stylesheet is required for positioning, clipping, native scrolling, or visual
 
 `grid.rows` holds only the bounded visible slots. Each slot is `ready` with a `row`, or `loading`/`error` with an optional aggregate `estimate`; error slots carry an `error` message. Placeholder estimates are never presented as `Row` values.
 
-Headless mode gives you the navigation state; render empty/error/retry UI (`grid.api.retry()` requests failed pages again), focus styles, and any navigation controls you need. `granum-grid/headless` loads no explorer components. `AtlasRail` and `JumpBar` are exported from `granum-grid` for composition. Each takes the hook's result as `grid`, and you hold the state they share:
+Headless mode gives you the navigation state; render empty/error/retry UI (`grid.api.retry()` requests failed pages again), focus styles, and any navigation controls you need. `@granum/react/headless` loads no explorer components. `AtlasRail` and `JumpBar` are exported from `granum-grid` for composition. Each takes the hook's result as `grid`, and you hold the state they share:
 
 ```tsx
 import { useState } from 'react';
-import { AtlasRail, JumpBar, useGranumGrid, type DataProvider, type Marker } from 'granum-grid';
+import { AtlasRail, JumpBar, useGranumGrid, type DataProvider, type Marker } from '@granum/react';
 
 function Explorer({ provider }: { provider: DataProvider<{ value: number }> }) {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -266,4 +266,4 @@ function Explorer({ provider }: { provider: DataProvider<{ value: number }> }) {
 }
 ```
 
-`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](granum-grid/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Place your rows inside `grid.getLayerProps()` within the viewport: the layer is kept at the scroll offset, so rows at `slot.y` scroll natively. When a dataset is shorter than the viewport, the built-in viewport marks the space below its last row as the end of the dataset.
+`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](packages/react/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Place your rows inside `grid.getLayerProps()` within the viewport: the layer is kept at the scroll offset, so rows at `slot.y` scroll natively. When a dataset is shorter than the viewport, the built-in viewport marks the space below its last row as the end of the dataset.

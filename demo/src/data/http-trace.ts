@@ -1,4 +1,4 @@
-import type { DataProvider } from 'granum-grid';
+import type { DataProvider } from '@granum/react';
 import type { TraceRow } from './trace';
 
 /** Path prefix of the dev server's trace service (`demo/server/trace.ts`). */

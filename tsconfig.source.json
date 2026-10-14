@@ -4,10 +4,13 @@
     "noEmit": true,
     "types": ["vite/client"],
     "paths": {
-      "granum-grid": ["./granum-grid/src/index.ts"],
-      "granum-grid/headless": ["./granum-grid/src/headless.ts"],
-      "granum-grid/core": ["./granum-grid/src/core/index.ts"],
-      "granum-grid/data": ["./granum-grid/src/data/index.ts"],
+      "@granum/core": ["./packages/core/src/index.ts"],
+      "@granum/core/data": ["./packages/core/src/data/index.ts"],
+      "@granum/core/dom": ["./packages/core/src/dom/index.ts"],
+      "@granum/core/map": ["./packages/core/src/map/index.ts"],
+      "@granum/core/internal": ["./packages/core/src/internal.ts"],
+      "@granum/react": ["./packages/react/src/index.ts"],
+      "@granum/react/headless": ["./packages/react/src/headless.ts"],
       "@granum/parquet": ["./packages/parquet/src/index.ts"],
       "@granum/sql": ["./packages/sql/src/index.ts"]
     }

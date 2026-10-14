@@ -8,7 +8,7 @@ import type {
   SearchContext,
   SearchHelp,
   SearchResult,
-} from 'granum-grid';
+} from '@granum/core/data';
 
 /** A JSON-safe cell value. Large integers and binary become text, dates ISO strings. */
 export type SqlValue = string | number | boolean | null | SqlValue[] | { [key: string]: SqlValue };

@@ -1,4 +1,4 @@
-import type { Chapter } from 'granum-grid';
+import type { Chapter } from '@granum/react';
 
 /**
  * Rows spread evenly across UTC milliseconds `[start, end)`. Worker-safe; shared by the

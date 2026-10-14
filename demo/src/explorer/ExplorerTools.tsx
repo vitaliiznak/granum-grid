@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { DataProvider, GranumGridApi, Marker, RowRange } from 'granum-grid';
+import type { DataProvider, GranumGridApi, Marker, RowRange } from '@granum/react';
 import {
   MAX_BOOKMARKS,
   bookmarkMarkers,

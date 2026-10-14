@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { Bucket, DataProvider, RowRange } from 'granum-grid';
-import { checkBuckets } from 'granum-grid/data';
+import type { Bucket, DataProvider, RowRange } from '@granum/react';
+import { checkBuckets } from '@granum/core/data';
 import { formatMetric, rangeAddress, rangeCount } from './format';
 
 /** Exact or estimated statistics for one range, loaded from the provider's aggregates. */

@@ -9,7 +9,7 @@ and the search dialog, without the ready-made `GranumGrid`.
 ## 1. Choose a layer
 
 `GranumGrid` is assembled from smaller public parts, and you can stop at any of its
-[layers](../../granum-grid/README.md#layers). This lesson uses the headless hook with the
+[layers](../../packages/react/README.md#layers). This lesson uses the headless hook with the
 `AtlasRail` and `JumpBar` widgets. The hook supplies rows, navigation, selection,
 keyboard and pointer input, and ARIA props; you decide whether search is open and what
 the map highlights. This lesson reuses `src/inventory.ts` from
@@ -22,10 +22,10 @@ Use this as `src/App.tsx`.
 <!-- source: demo/src/tutorials/ComposeLesson.tsx -->
 ```tsx
 import { useMemo, useState } from 'react';
-import { AtlasRail, JumpBar, type Marker } from 'granum-grid';
-import { useGranumGrid } from 'granum-grid/headless';
+import { AtlasRail, JumpBar, type Marker } from '@granum/react';
+import { useGranumGrid } from '@granum/react/headless';
 import { inventory } from './inventory';
-import 'granum-grid/styles.css';
+import '@granum/react/styles.css';
 
 // The headless hook supplies rows, navigation, and input. This component owns the markup
 // and the state the two widgets share: whether search is open and what it highlights.

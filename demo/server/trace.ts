@@ -4,8 +4,8 @@ import type { Plugin, ViteDevServer } from 'vite';
 import { TRACE_API } from '../src/data/http-trace';
 import { parseTrace, traceProvider } from '../src/data/trace';
 import { NUMBER_OPERATORS } from '../src/data/search';
-import { searchIssue } from '../../granum-grid/src/data/search';
-import type { ProviderQuery } from '../../granum-grid/src/data/types';
+import { searchIssue } from '../../packages/core/src/data/search';
+import type { ProviderQuery } from '../../packages/core/src/data/types';
 
 /** A finite, immutable recording on the server, not a database or a synthetic benchmark. */
 export function createTraceService(raw: string) {

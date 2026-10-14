@@ -5,11 +5,7 @@ import { granumGridSource } from './demo/vite.config';
 export default defineConfig({
   // Browser specs under demo/tests belong to Playwright.
   test: {
-    include: [
-      'granum-grid/tests/**/*.test.ts',
-      'packages/*/tests/**/*.test.ts',
-      'demo/unit/**/*.test.ts',
-    ],
+    include: ['packages/*/tests/**/*.test.ts', 'demo/unit/**/*.test.ts'],
   },
   resolve: { alias: granumGridSource },
 });

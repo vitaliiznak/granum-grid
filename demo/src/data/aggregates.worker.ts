@@ -1,6 +1,6 @@
 import { models, type Model } from './models';
 import { splitRange } from './ranges';
-import type { AggregateRequest, Bucket, OverviewTrack } from 'granum-grid';
+import type { AggregateRequest, Bucket, OverviewTrack } from '@granum/react';
 
 function summarize(
   value: (index: number) => number | null,

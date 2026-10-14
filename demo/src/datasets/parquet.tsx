@@ -1,4 +1,4 @@
-import type { DataProvider } from 'granum-grid';
+import type { DataProvider } from '@granum/react';
 import {
   createParquetProvider,
   estimateParquetRowBytes,

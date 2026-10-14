@@ -1,4 +1,4 @@
-import type { DataProvider, GranumGridApi } from 'granum-grid';
+import type { DataProvider, GranumGridApi } from '@granum/react';
 import type { SqlColumn, SqlProvider, SqlRow, SqlSource, SqlView } from '@granum/sql';
 import { DatabaseIcon } from './icons';
 import { columnRows } from './parquet';

@@ -10,10 +10,10 @@ assert.deepEqual(Object.keys(await import('@granum/parquet')).sort(), [
   'estimateParquetRowBytes',
   'openParquetFile',
 ]);
-// granum-grid is a type-only peer: the built JavaScript must not import it at runtime.
+// @granum/core is a type-only peer: the built JavaScript must not import it at runtime.
 const dist = new URL('.', import.meta.resolve('@granum/parquet'));
 for (const name of readdirSync(dist).filter((file) => file.endsWith('.js')))
-  assert.ok(!readFileSync(new URL(name, dist), 'utf8').includes('granum-grid'), name);
+  assert.ok(!readFileSync(new URL(name, dist), 'utf8').includes('@granum/core'), name);
 
 // A range server for the fixture copied next to this script.
 const bytes = new Uint8Array(readFileSync(new URL('./readings.parquet', import.meta.url)));

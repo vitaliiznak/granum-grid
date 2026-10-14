@@ -51,6 +51,6 @@ while navigating, a revision change, and an empty dataset. Check keyboard access
 a narrow viewport. Verify exact/estimated/unavailable summaries and search completeness
 against known records rather than relying only on the appearance of a chart.
 
-[Public exports](../../granum-grid/src/index.ts) and the
-[provider contract](../../granum-grid/src/data/types.ts) are the source of truth.
+[Public exports](../../packages/react/src/index.ts) and the
+[provider contract](../../packages/core/src/data/types.ts) are the source of truth.
 The [integration guide](../GUIDE.md) explains the remaining options.

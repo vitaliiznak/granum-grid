@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from 'react';
-import { clamp } from '../core/mappings.js';
-import type { GranumGridEngine } from '../core/engine.js';
-import type { DataSession } from '../data/session.js';
+import { clamp } from '@granum/core/internal';
+import type { GranumGridEngine } from '@granum/core/internal';
+import type { DataSession } from '@granum/core/internal';
 
 interface RowRequestOptions {
   /** Mounted row window. */

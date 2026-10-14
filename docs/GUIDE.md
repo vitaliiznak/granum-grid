@@ -5,9 +5,9 @@
 This guide covers provider rules, server-owned ordering, search, navigation, summaries,
 selection and host tools, page layout, live feeds, and limits. Start with the
 [quick start](QUICK_START.md) for installation and a first component. The exact types are in
-[`index.ts`](../granum-grid/src/index.ts), [`data/types.ts`](../granum-grid/src/data/types.ts),
-[`core/engine.ts`](../granum-grid/src/core/engine.ts), and
-[`core/api.ts`](../granum-grid/src/core/api.ts). [DESIGN.md](../DESIGN.md) records the
+[`index.ts`](../packages/react/src/index.ts), [`data/types.ts`](../packages/core/src/data/types.ts),
+[`core/engine.ts`](../packages/core/src/core/engine.ts), and
+[`core/api.ts`](../packages/core/src/core/api.ts). [DESIGN.md](../DESIGN.md) records the
 rationale and decisions.
 
 ## Provider contract
@@ -109,7 +109,7 @@ A server that pages with an opaque cursor can satisfy `fetchRows` through
   that cursor, the address of the first row, and the next cursor (null at the end).
 
 `createCursorProvider` seeks once and follows the next cursor only until the requested
-slice is full. `cursorWindowIssue` and `acceptCursorWindow` from `granum-grid/data`
+slice is full. `cursorWindowIssue` and `acceptCursorWindow` from `@granum/core/data`
 expose the same window checks for a host's own transport.
 
 Random access is the hard part, and it is yours. `cursorAt` must find an address without
@@ -118,7 +118,7 @@ row-group offsets in a columnar file. SQL `OFFSET` reads every skipped row, so i
 not scale to deep addresses.
 
 ```ts
-import { createCursorProvider } from 'granum-grid';
+import { createCursorProvider } from '@granum/react';
 
 const logs = createCursorProvider(server, {
   id: 'logs',
@@ -202,7 +202,7 @@ Open **debug** and enable **Dynamic row heights** in the signal demo to try wrap
 
 ```tsx
 import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi } from 'granum-grid';
+import { GranumGrid, type GranumGridApi } from '@granum/react';
 
 function Notes() {
   const api = useRef<GranumGridApi<Note>>(null);
@@ -255,7 +255,7 @@ Rows retain the leading row address and pixel offset while content changes, clam
 `goTo(index)` accepts a safe integer, clamps it to the dataset, jumps at once, and
 records history unless `history: 'skip'`. `onNavigate` fires after committed navigation,
 not on every scroll frame; subscribe to snapshots for continuous position. Keep live position in the engine
-instead of mirroring it in host state. `granum-grid/core` has no React, DOM, or network
+instead of mirroring it in host state. `@granum/core` has no React, DOM, or network
 imports: `createEngine` takes numeric dimensions and normalized input. Snapshots keep their identity until a value
 changes, so React subscribes through `useSyncExternalStore`.
 
@@ -280,11 +280,11 @@ Those are application features; the playground builds all of them on the public 
   what is on screen".
 - `markers` adds host places, such as saved bookmarks, to the provider's markers for the
   map, N/P, snapping, and named-marker search.
-- `api.getView()`, `encodeView`, `decodeView`, and `readView` (from `granum-grid/core`)
+- `api.getView()`, `encodeView`, `decodeView`, and `readView` (from `@granum/core`)
   save and validate a place. The library writes no browser storage.
 - Your provider's `fetchAggregates({ start, end, buckets: 1 }, signal)` returns a
   range's statistics with `exact`, `estimated`, or `unavailable` accuracy;
-  `checkBuckets` from `granum-grid/data` validates the response.
+  `checkBuckets` from `@granum/core/data` validates the response.
 - `rangeProvider(provider, range)` reads a sub-range as its own provider, for a second
   explorer beside the first, without materializing rows.
 
@@ -301,7 +301,7 @@ shows **Back** and **Go to…**; diagnostics are under **debug** in the demo, an
 The demo's **Open full page** link opens the same location and selected range in a separate tab. Its URL updates while navigating and restores after reload. **Back to normal view** returns to the embedded demo in that tab, keeping the dataset, position, selection, and current debug and simulation settings. The **debug** button opens one panel in both layouts for behavior switches, reduced-motion emulation, row-height testing, and performance statistics. Generated datasets also expose simulated server latency from 0–10 seconds (default: 1 second); changes apply to new requests while cached rows remain instant. Real sources (the Parquet file, Hacker News, and your own file) do not expose simulated latency. For a host application, add a route that renders one `GranumGrid` with `layout="page"`, then pass a URL builder to the embedded instance:
 
 ```tsx
-import { encodeView, decodeView } from 'granum-grid';
+import { encodeView, decodeView } from '@granum/react';
 
 // Embedded instance:
 <GranumGrid
@@ -361,6 +361,13 @@ host supplies `onStats`. These defaults are not performance guarantees.
 
 ## Composition and packaging
 
+Granum Grid is a family of packages. `@granum/core` is framework-free: the engine
+(`@granum/core`), providers and the data session (`/data`), native scrolling and keys
+(`/dom`), and the map's pieces (`/map`). `@granum/react` builds the hook and components on
+it and re-exports what a React app needs, so a React app imports `@granum/react` and its
+stylesheet. `@granum/parquet` and `@granum/sql` are providers that take their types from
+`@granum/core/data`.
+
 `useGranumGrid` returns the `api` handle, the navigation `snapshot`, bounded row slots,
 viewport, row, and announcement prop getters, and display state: `selection`,
 `markers`, the current `chapter`, `unseenRows`, and `stats`. A custom layout renders its
@@ -377,7 +384,7 @@ pauses; turn it off for a source that bills per request. Transitions follow
 (`toolbar`, `rail`, `footer`) each take `true` or options to show the built-in region,
 `false` to hide it, or a render function; only `rail` is shown when omitted. `panel` holds
 host content; map layers are `rail` options. Layers and package entry points are listed in the
-[package README](../granum-grid/README.md#layers). Custom controls, headless
+[package README](../packages/react/README.md#layers). Custom controls, headless
 layouts, and styling hooks are in [STYLING.md](../STYLING.md).
 
 ## Integration interface
@@ -387,7 +394,7 @@ layouts, and styling hooks are in [STYLING.md](../STYLING.md).
 Pass `onRowActivate={({ row, index, rowNumber }) => ...}` to `GranumGrid` or
 `useGranumGrid` to inspect a loaded record in your own panel. `index` is zero-based;
 `rowNumber` is one-based. `RowActivationContext<Row>` is exported from both
-`granum-grid` and `granum-grid/headless`.
+`@granum/react` and `@granum/react/headless`.
 
 Click/tap activates a loaded row; Enter activates the focused loaded row. Arrow keys
 move row focus and scroll only enough to reveal it. Activation itself preserves the
@@ -438,12 +445,12 @@ interface GranumGridApi<Row> {
 ```
 
 Input, measurement, and animation adapters stay on the framework-independent engine in
-`granum-grid/core`, together with its raw `getLocation` and `restore`.
+`@granum/core`, together with its raw `getLocation` and `restore`.
 
 - `openSearch(query)` opens the dialog without navigating and replaces the query in an
   already-open dialog; choosing a result navigates. Search closes when the dataset or
   revision changes. Headless hosts pass `onOpenSearch` to the hook and render a
-  controlled `JumpBar` or their own search UI ([layers](../granum-grid/README.md#layers)).
+  controlled `JumpBar` or their own search UI ([layers](../packages/react/README.md#layers)).
 - When a custom button opens search, call `event.currentTarget.focus()` first so closing
   the dialog returns focus to it, including in browsers that do not focus buttons on
   pointer clicks.

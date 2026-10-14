@@ -1,7 +1,7 @@
 import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi } from 'granum-grid';
+import { GranumGrid, type GranumGridApi } from '@granum/react';
 import { inventory, type Product } from './inventory';
-import 'granum-grid/styles.css';
+import '@granum/react/styles.css';
 
 export default function Inventory() {
   const api = useRef<GranumGridApi<Product>>(null);

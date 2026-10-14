@@ -26,7 +26,7 @@ import {
   type DataProvider,
   type Marker,
   type ProviderQuery,
-} from 'granum-grid';
+} from '@granum/react';
 
 export type Log = { service: string; status: number; message: string };
 const rows: Log[] = Array.from({ length: 600 }, (_, index) => ({
@@ -113,9 +113,9 @@ Replace `src/App.tsx` with this component:
 <!-- source: demo/src/tutorials/LogsLesson.tsx -->
 ```tsx
 import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi } from 'granum-grid';
+import { GranumGrid, type GranumGridApi } from '@granum/react';
 import { logs, type Log } from './logs';
-import 'granum-grid/styles.css';
+import '@granum/react/styles.css';
 
 export default function Logs() {
   const api = useRef<GranumGridApi<Log>>(null);
