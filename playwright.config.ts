@@ -8,7 +8,8 @@ export default defineConfig({
   testDir: './demo/tests',
   outputDir: process.env.PLAYWRIGHT_OUTPUT_DIR ?? 'test-results',
   timeout: 30_000,
-  globalTimeout: 10 * 60 * 1000,
+  // A runaway guard: the three-browser CI run takes about 10 minutes, and retries add more.
+  globalTimeout: 15 * 60 * 1000,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
   reporter: isCI ? [['github'], ['line'], ['html', { open: 'never' }]] : 'list',
