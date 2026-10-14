@@ -70,6 +70,8 @@ export default function Inventory() {
         rowHeight={40}
         style={{ height: 560, marginTop: 16 }}
         rail={false}
+        toolbar
+        footer
         getRowKey={(row) => row.sku}
         renderRow={({ row, rowNumber }) => (
           <span role="gridcell">
@@ -84,8 +86,10 @@ export default function Inventory() {
 
 `scrollToIndex(59)` targets visible row 60. `align: 'start'` places it at the top.
 `getRowKey` uses the SKU as the record identity. `rail={false}` hides the map because
-this provider only supplies rows. The `toolbar`, `rail`, and `footer` regions follow the
-same rule: `false` hides it, an object configures it, and a function renders your own.
+this provider only supplies rows. `toolbar` adds Back, Forward, and **Go to…**, and
+`footer` adds the current row. Without them the explorer shows only rows and the map.
+The `toolbar`, `rail`, and `footer` regions follow one rule: `true` or an options object
+shows the built-in region, `false` hides it, and a function renders your own.
 
 ## 3. Check the result
 

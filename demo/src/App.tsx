@@ -26,6 +26,8 @@ import { findDataset } from './datasets';
 import { stopWorker } from './data/worker-client';
 import { DEFAULT_LATENCY, setLatency } from './data/latency';
 import { TraceImport } from './TraceImport';
+import { ParquetImport } from './ParquetImport';
+import { parquet as bundledParquet, parquetDetails } from './datasets/parquet';
 import { useExplorerTools } from './explorer';
 import { performance as bundledPerformance } from './datasets/performance';
 import type { DemoDataset } from './datasets';
@@ -49,10 +51,20 @@ export default function App() {
   );
   const provider = dataset.provider;
   const isRecording = dataset.id === 'performance';
+  const isParquet = dataset.id === 'parquet';
   const live =
-    dataset.id === 'bitcoin' ? 'binance' : dataset.id === 'hackernews' ? 'hackernews' : undefined;
+    dataset.id === 'bitcoin'
+      ? 'binance'
+      : dataset.id === 'hackernews'
+        ? 'hackernews'
+        : isParquet
+          ? 'parquet'
+          : undefined;
   const [recordingDataset, setRecordingDataset] = useState(bundledPerformance);
+  const [parquetDataset, setParquetDataset] = useState<DemoDataset>(bundledParquet);
   const isImported = isRecording && provider.revision.startsWith('local-');
+  // A pasted Parquet URL reopens from `?url=`; it has no full-page link, like an imported file.
+  const ownParquet = isParquet && !parquetDetails(provider)?.bundled;
   const [shared] = useState(() =>
     decodeView(window.location.hash.replace(/^#view=/, ''), provider),
   );
@@ -158,7 +170,8 @@ export default function App() {
     // The place, not the selection, carries over when the visitor returns.
     const current = api.current?.getView();
     if (current) places.current.set(dataset.id, { ...current, selection: null });
-    const next = id === 'performance' ? recordingDataset : findDataset(id);
+    const next =
+      id === 'performance' ? recordingDataset : id === 'parquet' ? parquetDataset : findDataset(id);
     setDataset(next);
     setInspected(null);
     setStats(null);
@@ -166,7 +179,23 @@ export default function App() {
     const params = new URLSearchParams(location.search);
     if (id === 'logs') params.delete('dataset');
     else params.set('dataset', id);
+    const fileUrl = id === 'parquet' && parquetDetails(next.provider);
+    if (fileUrl && !fileUrl.bundled) params.set('url', fileUrl.url);
+    else params.delete('url');
     replaceUrl(params);
+  };
+  const loadParquet = (next: DemoDataset) => {
+    setParquetDataset(next);
+    setDataset(next);
+    setInspected(null);
+    setStats(null);
+    places.current.delete('parquet');
+    const file = parquetDetails(next.provider);
+    replaceUrl(
+      new URLSearchParams(
+        file && !file.bundled ? { dataset: 'parquet', url: file.url } : { dataset: 'parquet' },
+      ),
+    );
   };
   const loadRecording = (next: DemoDataset) => {
     setRecordingDataset(next);
@@ -250,6 +279,13 @@ export default function App() {
             <DemoLimitations recording={isRecording} imported={isImported} live={live} />
           </DatasetIntro>
           {isRecording && <TraceImport imported={isImported} onLoad={loadRecording} />}
+          {isParquet && (
+            <ParquetImport
+              dataset={dataset}
+              initialUrl={new URLSearchParams(location.search).get('url')}
+              onLoad={loadParquet}
+            />
+          )}
           <FeatureTour dataset={dataset} api={api}>
             {isSignal && (
               <button
@@ -279,9 +315,12 @@ export default function App() {
         panel={tools.panel}
         markers={tools.markers}
         stickyChapters
+        footer
         toolbar={{
           fullPageUrl:
-            pageMode || isImported ? undefined : (view) => pageUrl(dataset.id, encodeView(view)),
+            pageMode || isImported || ownParquet
+              ? undefined
+              : (view) => pageUrl(dataset.id, encodeView(view)),
           actions: (
             <>
               {dataset.renderDetails && (

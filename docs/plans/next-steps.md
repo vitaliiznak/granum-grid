@@ -12,48 +12,60 @@ their own files.
 - **Library ships only the explorer** (`53c43ff`): selection tools, bookmarks, range
   comparison, and hints moved to `demo/src/explorer`; unused server sort/filter/edit API
   removed.
-- **Five reproduced defects fixed, each with a regression test:**
-  - Changing `rowHeight` or `dynamicRowHeight` reset the reader to row 1 and cleared
-    history. The engine now changes layout in place (`setRowLayout`).
-  - An embedded explorer trapped page scrolling at either end. A wheel gesture that
-    starts at an end now scrolls the page; `overscroll-behavior: contain` opts out.
-  - Sideways wheels over rows were blocked, so wide tables could not scroll horizontally.
-  - The end of the dataset showed one row above a blank "End of dataset" panel. Scrolling
-    now stops when the last row ends at the viewport's bottom (`snapshot.maxPosition`).
-  - A provider rebuilt during render dropped the row cache on every parent render.
-    Sessions are now keyed by `id`, `revision`, `rowCount`, and summary capabilities.
+- **Five reproduced defects fixed, each with a regression test** (`e0d0b45`): row-height
+  changes kept the place, wheel hand-off at the ends, sideways wheels, the one-row end
+  state (`snapshot.maxPosition`), and providers rebuilt during render.
+- **Step 1, the default is a grid** (2026-10-14). With `provider`, `ariaLabel`, and
+  `renderRow` the component renders rows and the map. `toolbar`, `footer`, and the
+  `header` row are opt-in; `true` or options show a region, `false` hides it, a function
+  replaces it. Elastic edges are off when embedded and on with `layout="page"`. The Go to
+  dialog still opens from Cmd/Ctrl+K, `/`, and `api.openSearch()`. The playground, the
+  HTTP page, and the Inventory and Logs lessons opt back in. Decision in
+  [DESIGN.md](../../DESIGN.md#decisions).
+- **Step 2, Parquet over HTTP** (2026-10-14). `demo/src/data/parquet.ts` builds a
+  provider from a Parquet URL with hyparquet 1.31.2 (pinned, loaded on first use). The
+  playground's first dataset is a 2.15 GB FineWeb file on Hugging Face, and its panel
+  opens any pasted Parquet URL (kept in `?url=` so a link reopens it). Measurements and
+  limits are in the [guide](../GUIDE.md#a-file-without-a-server-parquet-over-http);
+  decision in [DESIGN.md](../../DESIGN.md#decisions).
+- **Step 4, partly.** Real datasets come first in the gallery and the README, and
+  DESIGN.md Decisions keep only choices a contributor needs (269 → 201 lines).
 
-## Next, in order
+## Remaining, each blocked on the maintainer
 
-Each step needs a decision from the maintainer before it starts.
+3. **Publish 0.1 to npm and find three integrators.** Status: ready to publish.
+   - `granum-grid` is free on npm (`npm view` returns 404 on 2026-10-14). This machine
+     is not logged in (`npm whoami` needs auth), so publishing waits for `npm login`.
+   - `npm run release:check` passes and writes `output/granum-grid-0.1.0.tgz`; follow
+     [PUBLISHING.md](../PUBLISHING.md#first-publication) from step 4.
+   - Integrators file the new
+     [integration report](../../.github/ISSUE_TEMPLATE/integration-report.md). Freeze new
+     features until three are in; their friction list becomes the roadmap.
+4. **Cut the repository's weight.** Two parts need a decision.
+   - **Media out of history.** A `main`-only clone is 18.7 MB; without
+     `media/granum-grid-launch.mp4` in history it is 8.4 MB, and without the film and
+     `media/images/*.png` it is 0.95 MB (measured with `git filter-repo` on a scratch
+     clone). Recommended: publish the film and screenshots as release assets (the README
+     already plays the film from a GitHub attachment), point README and `media/README.md`
+     links at them, ignore `media/*.mp4` and `media/images/`, then rewrite:
 
-1. **Make the default a grid, not an app.** Status: not started.
-   - With only `provider`, `ariaLabel`, and `renderRow`, render the rows and the map.
-     Make the toolbar (Back/Forward, breadcrumb, search button) and footer opt-in.
-   - Turn elastic edges off by default in `layout="embedded"`.
-   - Affects `GranumGrid.tsx`, `features.ts`, the playground (which opts back in), the
-     guides, and specs that click toolbar buttons.
-   - Acceptance: the three-prop example in `granum-grid/README.md` shows no chrome
-     besides rows and map; the playground looks unchanged.
-2. **Lead with one backend where "any row by address" is cheap.** Status: not started.
-   - Candidate: Parquet over HTTP range requests. The footer holds each row group's row
-     count, so the count is exact and a provider can read only the row group that holds
-     a requested address, with no server.
-   - Prototype a `createParquetProvider(url)` in the demo first. Measure first-row latency
-     and bytes read for a jump into a multi-gigabyte public file before promising it.
-   - Alternatives if Parquet disappoints: Kafka partition offsets, or a large log file
-     with a line-offset index.
-   - Acceptance: a reader pastes a Parquet URL into the playground and jumps to any row.
-3. **Publish 0.1 to npm and find three integrators.** Status: blocked on the maintainer
-   (registry account, package name check, `npm run release:check`).
-   - Freeze new features until their feedback is in; their friction list becomes the
-     roadmap.
-4. **Cut the repository's weight.** Status: not started.
-   - Move `media/*.mp4` and screenshots out of git history (Git LFS or release assets).
-     This rewrites history, so coordinate with every clone first.
-   - Keep at most two generated datasets in the playground; put the real ones (Bitcoin,
-     Hacker News, the recording, and step 2's Parquet) first.
-   - Trim `DESIGN.md` Decisions to choices a new contributor needs.
+     ```sh
+     # After every clone and worktree has pushed or saved its work:
+     git clone --single-branch git@github.com:vitaliiznak/granum-grid.git rewrite && cd rewrite
+     git filter-repo --invert-paths --path media/granum-grid-launch.mp4 --path-glob 'media/images/*.png'
+     git remote add origin git@github.com:vitaliiznak/granum-grid.git
+     git push --force origin main   # then re-clone everywhere
+     ```
+
+     Git LFS keeps the paths but counts README image views against the free 1 GB monthly
+     bandwidth, so release assets fit better. A local clone also keeps old blobs alive
+     through the stash and Codex's `refs/codex/turn-diffs/*` checkpoint refs; delete those
+     before expecting a smaller `.git` here.
+   - **Two generated datasets.** Keep Server logs and Signal archive (the default, the
+     hero picture, and most tests). Removing Human genome, Market tape, and Star catalog
+     also removes three film scenes (`media/src/scenes.ts`) and three screenshots, so the
+     film needs a new cut. The film and screenshots were re-rendered in uncommitted work
+     on 2026-10-14; decide after that work lands.
 
 ## Open risks, not yet scheduled
 
@@ -69,17 +81,27 @@ Each step needs a decision from the maintainer before it starts.
 - **Size.** The full component is about 31 KB of minified, gzipped JS plus about 46 KB of
   raw CSS; the headless hook alone is about 13 KB. Set a budget in `test:package` before
   adding features.
+- **The map without an overview is still busy.** With three props and a provider that
+  has no `fetchOverview`, the map shows "No profile", an empty value axis, and a markers
+  legend. It may read better as a plain scrollbar until a profile exists.
+- **Parquet jumps cost a row group.** A file written with one huge row group and no page
+  index downloads that whole group per jump. The adapter could warn when a group's
+  compressed size passes a threshold.
 
-## Validation evidence for the done items
+## Validation evidence
 
-`npm run format:check`, `npm run release:check` (lint, typecheck, tutorials, wiki, 132
-unit tests, library and demo builds, React 18.2 and 19 tarball consumers), the media
-typecheck, all 56 Chromium browser tests, and the changed specs (acceptance, dynamic,
-interactions, and the full-page exploration case) in Firefox and WebKit. The three new
-browser tests fail without the fixes and pass with them. Not run: native Safari, physical
-touch devices, a screen reader, or hosted CI.
+On 2026-10-14, after steps 1, 2, and the step 4 changes: `npm run format:check`,
+`npm run lint`, `npm run check` (140 unit tests, including 8 for the Parquet reader),
+`npm run release:check` (builds and React 18.2 and 19 tarball consumers, with new
+assertions that three props render no toolbar, heading row, or footer), `npm run
+media:build`, `npm run build:wiki`, the full Chromium browser suite, and the new
+`defaults` and `parquet` specs in Firefox and WebKit. The `defaults` spec fails on the
+previous library code. `npm publish --dry-run` lists 237 files, 176 kB, library only.
+The Parquet browser tests serve a fixture through `page.route`; the FineWeb numbers come
+from manual runs against Hugging Face. Not run: native Safari, physical touch devices, a
+screen reader, hosted CI, or npm publication.
 
 ## Next action
 
-Decide step 1's defaults (toolbar and footer opt-in, elastic edges off when embedded),
-then implement them in one change with the playground opting back in.
+Log in to npm and publish the verified archive (PUBLISHING.md step 4 onward), then decide
+the media move and the generated-dataset cut.

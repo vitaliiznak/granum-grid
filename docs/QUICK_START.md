@@ -89,6 +89,7 @@ export default function App() {
         ariaLabel="Readings"
         rowHeight={40}
         style={{ height: 480 }}
+        toolbar // Back, Forward, and Go to…; omit it for rows and the map only
         renderRow={({ row, rowNumber }) => (
           <span role="gridcell">
             Reading {rowNumber.toLocaleString()}: {row.value.toFixed(2)} °C
@@ -313,9 +314,9 @@ Append mode requires the same ID/revision and unchanged existing rows. The count
 may increase, never decrease; `follow` is append mode that also stays at the end.
 
 `features` switches motion and data behavior; map layers are `rail` options. The region
-props `toolbar`, `rail`, and `footer` take `false` to hide the region, an object to
-configure it, or a function to render your own; `panel` holds your own content above the
-rows.
+props `toolbar`, `rail`, and `footer` take `true` or an object to show the built-in
+region, `false` to hide it, or a function to render your own; only `rail` is shown when
+omitted. `panel` holds your own content above the rows.
 A provider rebuilt during render keeps its data session and cached rows while its `id`,
 `revision`, `rowCount`, and summary methods are unchanged. Changing `id` or `revision`
 starts a new session and resets navigation; appending with the same identity retains its

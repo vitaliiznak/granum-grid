@@ -8,8 +8,8 @@ export function DemoLimitations({
 }: {
   recording: boolean;
   imported: boolean;
-  /** Rows come from this public third-party API. */
-  live?: 'binance' | 'hackernews';
+  /** Rows come from this public third-party API, or a Parquet file read over HTTP. */
+  live?: 'binance' | 'hackernews' | 'parquet';
   compact?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -19,7 +19,9 @@ export function DemoLimitations({
       ? 'Live public API · shared rate limit'
       : live === 'hackernews'
         ? 'Live public API · one request per item'
-        : 'Generated data · search may miss matches';
+        : live === 'parquet'
+          ? 'Real file over HTTP · one row group per jump'
+          : 'Generated data · search may miss matches';
   return (
     <aside className={`demo-limitations${compact ? ' demo-limitations-compact' : ''}`}>
       {!compact && (
@@ -55,6 +57,29 @@ export function DemoLimitations({
                 ? 'Imported files and their bookmarks last only for this session. Reloading returns to the bundled recording; import your file again to explore it.'
                 : 'Bookmarks stay in this browser. Full-page links restore position and selection for the same recording revision.'}{' '}
               Search input and results are not saved across reloads.
+            </p>
+          </>
+        ) : live === 'parquet' ? (
+          <>
+            <p>
+              <strong>A real file, read in place.</strong> The browser reads the Parquet footer
+              once, then downloads only the column chunks of the row group that holds the rows in
+              view; with a page index, only the pages that hold them. Nothing is generated or
+              uploaded, and there is no server of our own. The file’s server must allow byte ranges
+              and cross-origin reads (CORS).
+            </p>
+            <p>
+              <strong>What a jump costs.</strong> One row group of compressed data, so the cost
+              depends on how the file was written: about 2 MB for the FineWeb file’s 1,000-row
+              groups, and far more for a file with one huge row group. Map hover shows summaries
+              instead of rows so it never downloads a group. Recently read byte ranges stay cached,
+              up to 48 MB.
+            </p>
+            <p>
+              <strong>Map and search.</strong> The map’s band is each row group’s exact min–max from
+              the footer’s statistics; its line reads one row group per map group and is marked
+              sampled. Go to accepts row numbers and percentages; there is no text search, because
+              searching would read the whole file.
             </p>
           </>
         ) : live === 'hackernews' ? (

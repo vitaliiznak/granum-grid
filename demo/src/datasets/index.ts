@@ -6,20 +6,22 @@ import { market } from './market';
 import { signal } from './signal';
 import { stars } from './stars';
 import { performance } from './performance';
+import { parquet } from './parquet';
 import type { DemoDataset } from './types';
 
 const datasets: DemoDataset[] = [
+  parquet,
+  bitcoin,
+  hackernews,
+  performance,
   logs,
   signal,
   genome,
   market,
-  bitcoin,
-  hackernews,
   stars,
-  performance,
 ];
-/** Generated datasets first, then the ones read from a real source. */
-export const datasetGroups = (['synthetic', 'real'] as const).map((origin) => ({
+/** Datasets read from a real source first, then the generated ones. */
+export const datasetGroups = (['real', 'synthetic'] as const).map((origin) => ({
   origin,
   label: origin === 'synthetic' ? 'Synthetic' : 'Real',
   datasets: datasets.filter((dataset) => dataset.origin === origin),

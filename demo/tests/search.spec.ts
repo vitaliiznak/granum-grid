@@ -98,8 +98,11 @@ test('named marker fallback discloses its scope for a provider without text sear
   page,
 }) => {
   // The sensor tutorial provider supplies markers but does not opt in to row text search.
+  // Its explorer has no toolbar, so the shortcut opens the dialog.
   await openDataset(page, '/tutorials.html?lesson=sensors');
-  await page.getByRole('button', { name: 'Go to…' }).click();
+  const grid = page.getByRole('grid', { name: 'Sensor readings' });
+  await grid.focus();
+  await page.keyboard.press('ControlOrMeta+k');
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('textbox').fill(' warm ');
   await expect(dialog.getByRole('status')).toContainText('Searching named markers only');
@@ -107,5 +110,6 @@ test('named marker fallback discloses its scope for a provider without text sear
   await expect(dialog.getByText('Named markers · 1', { exact: true })).toBeVisible();
   await dialog.getByRole('textbox').press('Enter');
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByTestId('position')).toContainText('Row 721 of');
+  await expect(grid.locator('[aria-rowindex="721"]')).toBeInViewport();
+  await expect(grid.locator('[aria-rowindex="1"]')).toHaveCount(0);
 });

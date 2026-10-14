@@ -64,6 +64,22 @@ const markup = renderWithoutWarnings(
 );
 assert.ok(markup.includes('aria-rowcount="100000000"'));
 assert.ok(markup.includes('Loading row'));
+// Three props render rows and the map; the toolbar, heading row, and footer are opt-in.
+assert.ok(markup.includes('data-ds-part="rail"'));
+for (const part of ['toolbar', 'header', 'footer'])
+  assert.ok(!markup.includes(`data-ds-part="${part}"`), `${part} must be opt-in`);
+const chromeMarkup = renderWithoutWarnings(
+  createElement(GranumGrid, {
+    provider: { id: 'chrome', revision: '1', rowCount: 12, fetchRows: async () => [] },
+    ariaLabel: 'Explorer with chrome',
+    toolbar: true,
+    header: 'Readings',
+    footer: true,
+    renderRow: ({ row }) => String(row),
+  }),
+);
+for (const part of ['toolbar', 'header', 'footer'])
+  assert.ok(chromeMarkup.includes(`data-ds-part="${part}"`), `${part} must render when set`);
 const customMarkup = renderWithoutWarnings(
   createElement(GranumGrid, {
     provider: { id: 'custom', revision: '1', rowCount: 12, fetchRows: async () => [] },

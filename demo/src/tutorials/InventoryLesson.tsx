@@ -18,6 +18,8 @@ export default function Inventory() {
         rowHeight={40}
         style={{ height: 560, marginTop: 16 }}
         rail={false}
+        toolbar
+        footer
         getRowKey={(row) => row.sku}
         renderRow={({ row, rowNumber }) => (
           <span role="gridcell">

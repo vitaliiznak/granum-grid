@@ -1798,6 +1798,77 @@ summary::-webkit-details-marker {
   background: var(--buy);
 }
 
+/* Parquet file read over HTTP */
+.dataset-parquet {
+  --dataset: #6b4fc4;
+}
+:root[data-theme='dark'] .dataset-parquet {
+  --dataset: #b4a3f2;
+}
+.pq-col-row {
+  width: 84px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-muted);
+}
+.pq-cell {
+  width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.pq-cell[data-number] {
+  width: 110px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.demo-explorer .demo-row > .pq-cell:last-child,
+.ds-legend .pq-cell:last-child {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+.pq-details > div {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pq-details dt {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.pq-details dt span {
+  margin-left: 6px;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--muted);
+}
+.pq-details dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.parquet-import form {
+  display: flex;
+  flex: 1 1 420px;
+  gap: 8px;
+  min-width: 0;
+}
+.parquet-import input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--page);
+  font: inherit;
+  font-size: 12px;
+}
+.parquet-import button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
 /* Hacker News (live items) */
 .hn-col-id,
 .hn-id {

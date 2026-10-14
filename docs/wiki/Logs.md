@@ -137,6 +137,8 @@ export default function Logs() {
         rowHeight={48}
         style={{ height: 560, marginTop: 16 }}
         rail={false}
+        toolbar
+        footer
         renderRow={({ row, rowNumber }) => (
           <span role="gridcell">
             {rowNumber}. {row.service} · {row.status} · {row.message}

@@ -231,7 +231,7 @@ export const textExample = (
       actions: <button>Export</button>,
       fullPageUrl: (view) => `/explore#view=${encodeView(view)}`,
     }}
-    footer={false}
+    footer
     rail={(_, rail) => (
       <div className="my-rail">
         <AtlasRail {...rail} layout="expanded" />

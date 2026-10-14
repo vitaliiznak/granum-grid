@@ -93,148 +93,109 @@ results describe the test machine; 60 fps is a target, not a claim.
 
 ## Decisions
 
-- **Row activation is optional and host-owned.** `onRowActivate` on the component
-  and headless hook receives a loaded record and its address. The React adapter
-  keeps keyboard/pointer focus separate from the scroll anchor and range selection,
-  so inspecting a visible row neither jumps nor adds history. The host owns the
-  details, clipboard action, Escape/focus restoration, and provider-change cleanup.
-  The Bitcoin demo uses a non-modal panel with the loaded candle's precision and
-  explicit missing/zero-trade states. The Hacker News demo uses the same panel to
-  read an item's text, its links, and the parent and direct replies. The library
-  contains no financial or news UI.
+Choices a contributor needs before changing the library, with options decided against.
 
-- **Keep the demo focused on the dataset explorer.** The page ends with keyboard
-  shortcuts. Standalone live-feed, styling, and AI-tool playgrounds and the duplicate
-  source/version footer are removed. Source notes stay beside the dataset, while
-  append mode, styling, and the public integration API remain library capabilities
-  documented in the guides.
-
-- **Demo rows show scale honestly and align with their headings.** With a compact
-  map, the header gives column headings exactly the rows' width and wraps the map's
-  metric label (with its accuracy) in the column above the map, so headings after a
-  flexible column stay over their values. Between the tablet and phone layouts, columns
-  drop instead of being clipped. Recording durations span microseconds to tens of
-  milliseconds, so their bars are logarithmic and labeled "log bar", while the number
-  stays exact; events are grouped into DevTools-style phases by name, and unknown names
-  stay "Other". Bitcoin seconds without trades repeat the last price, so they are muted
-  rather than hidden, and a range is shown once when low equals high.
-
-- **Explain the map's statistic before its jump address.** Compact rails keep the
-  metric name visible. Hover details show only the metric, the group value with its
-  accuracy, the jump row and row examples; group size, scale and provider-owned
-  `metric.description` live in map help. Alternate tracks own their explanations.
-  The magnifier is opt-in because it reuses the overview and adds no detail; short
-  rails hide it and the row examples to leave room for the metric and navigation target.
-
-- **Granum Grid naming.** The display name is Granum Grid; the package and library
-  directory are `granum-grid`. The React component, hook, and associated types use
-  `GranumGrid` / `useGranumGrid`, and both stylesheets use the `granum-grid` layer.
-  Imports and consumers migrate together. The GitHub repository is
-  `vitaliiznak/granum-grid`. Existing `ds-*` style hooks, browser storage keys,
-  and the wiki sync manifest name stay stable to preserve styling, bookmarks,
-  dismissed hints, and managed-page history. Recorded trace data keeps its
-  original provenance.
-
-- **One reading surface: rows beside the dataset map.** Remove Range summaries,
-  group-size controls, custom bands, and stable zoom navigation. The map supplies
-  global context; selection/comparison statistics remain optional provider data.
-  Selection navigation opens the first selected row. Temporary overview context
-  during travel still reuses the global profile. Ctrl+wheel and pinch belong to the
-  browser. Saved locations contain only the row address; older row bookmarks load,
-  while removed `zoom` and `lens` bookmarks are rejected.
+- **The default is a grid, not an app.** Three props render rows and the dataset map.
+  The toolbar, footer, and heading row are opt-in (`toolbar`, `footer`, `header`); the
+  playground, the HTTP page, and the lessons that teach Back pass them. The Go to dialog
+  stays reachable from Cmd/Ctrl+K, `/`, and `api.openSearch()` without a toolbar. Elastic
+  edges are off by default when embedded, because a box inside a page should stop at its
+  ends like a plain scroller, and on with `layout="page"`, where the explorer owns the
+  document; `defaultFeatures` lists the embedded value. The map's own legend labels its
+  overview accuracy, so hiding the heading row never hides that label. Considered and not
+  taken: hiding the map by default (it is the reason to choose this over a virtual list)
+  and dropping the search shortcuts without a toolbar (they are invisible until used).
 
 - **A thin public API: a few words, each used everywhere.** One handle,
-  `GranumGridApi`, carries navigation, selection, saved views, search, and retry; it
-  replaced the separate `controller`/`controllerRef`, and raw `getLocation`/`restore`
-  stay on the engine because views validate dataset and revision. The component's
-  regions (`toolbar`, `rail`, `footer`) follow one rule (`false`
-  hides, an object configures, a function replaces), which replaced thirteen flat
-  props such as `renderRail`, `railActions`, `bookmarkStorageKey`, and `fullPageUrl`.
-  The hook and component share `layout`, `dataMode` (`follow` absorbed `followOutput`),
-  and `initialView` (absorbing `initialLocation` and `initialSelection`); `AtlasRail`
-  takes the same options as `rail`. The hook's session, mapping, and raw engine sit
-  behind a key no entry exports, so the published state shows only rows, prop getters,
-  the handle, and display values. `showStats`, `measureFrameRate`, and the hook's
-  `maxMeasuredRows` were removed: frame rate is sampled while `onStats` is supplied.
-  Cursor validation helpers and `rangeProvider` moved to `granum-grid/data`, and the
+  `GranumGridApi`, carries navigation, selection, saved views, search, and retry; raw
+  `getLocation`/`restore` stay on the engine because views validate dataset and
+  revision. The component's regions (`toolbar`, `rail`, `footer`) follow one rule (`true`
+  or an object shows, `false` hides, a function replaces). The hook and component share
+  `layout`, `dataMode`, and `initialView`; `AtlasRail` takes the same options as `rail`.
+  The hook's session, mapping, and raw engine sit behind a key no entry exports, and the
   package test pins the root and headless runtime exports. Considered and not taken:
   grouping row options into objects (more nesting, unstable inline identities),
-  compound components with context (hides the data flow the widgets now show), a
+  compound components with context (hides the data flow the widgets show), a
   `theme: 'none'` value in place of `unstyled` (changes the CSS hooks), and dropping
   `ViewCanvas` (a headless layout would go blank during long jumps).
 
-- **The library ships the explorer; the application ships application features.** The
-  selection card and its summaries, bookmarks with their storage, two-pane range
-  comparison, and first-run hints moved to `demo/src/explorer`. A host could hide them
-  but not build them, because they read private state (`engineOf`, an internal
-  visible-range getter). They now use only public entries, which shows the API is
-  enough: `panel` for host content above the rows, `api.getVisibleRange()`, the rail's
-  `selecting`/`onSelectingChange` options, and `readView` and `checkBuckets` exports.
-  The `tools` and `hints` props, the `hint` styling part, `engineOf`, and the
-  unused server sort/filter/edit types and helpers were removed; the server owns
-  ordering, and `createCursorProvider` keeps its two-method cursor source. Animated
-  jumps, the visited trail, marker snapping, and precision dragging stay: they are the
-  behavior of the map, which is the part no other component provides. Considered and
-  not taken: a separate `granum-grid/explorer` entry for the moved tools (it would keep
-  application decisions such as localStorage keys and copy in the package).
+- **The library ships the explorer; the application ships application features.**
+  Selection summaries, bookmarks and their storage, range comparison, and first-run
+  hints live in `demo/src/explorer` and use only public entries: `panel`,
+  `api.getVisibleRange()`, the rail's `selecting`/`onSelectingChange`, `readView`, and
+  `checkBuckets`. The server owns sorting, filtering, and editing. Animated jumps, the
+  visited trail, marker snapping, and precision dragging stay: they are the map's
+  behavior, which no other component provides. Considered and not taken: a
+  `granum-grid/explorer` entry for those tools (it would ship application decisions such
+  as storage keys and copy).
 
 - **Layers a host can stop at** ([reference](granum-grid/README.md#layers)). The hook
   holds no dialog, search, bookmark, or map-mode state, so a host owns every piece of
   explorer UI it shows and a list without search never captures its shortcuts.
   `JumpBar`, `AtlasRail`, and `ViewCanvas` are controlled widgets that take the hook's
-  result as `grid`, not a hidden context, so each can be placed alone.
-  `GranumGrid` keys search and highlights by engine; the host owns map selection mode
-  and its own places. Search runs through
-  `DataSession.search`, so request statistics need no UI flag. Breaking these fields was
-  acceptable because 0.1.0 is unpublished.
+  result as `grid`, not a hidden context, so each can be placed alone. Search runs
+  through `DataSession.search`, so request statistics need no UI flag.
 
-- **`features` is motion and data only.** Map layers are `AtlasRailOptions` alone
-  (`precision` joined them), so there is no "feature wins over option" rule. The demo's
-  debug panel keeps its sixteen switches: `switchMap`
-  turns a map switch that is off into a rail option override.
+- **`features` is motion and data only.** Map layers are `AtlasRailOptions` alone, so
+  there is no "feature wins over option" rule.
 
 - **The library writes no browser storage.** The playground's bookmarks and dismissed
   hints use its original `deepscroll-*` keys.
 
-- **One chart at a time in the map.** Additional provider metrics are choices in a
-  selector rather than narrow side-by-side plots, so unrelated scales never look
-  comparable.
-- **Peak attraction requires 8% prominence** on the displayed scale, computed from
-  contiguous available overview groups, so small ripples and missing data never attract.
-- **`searchIssue` stays internal.** Demo providers keep their own tested messages, and
-  the dev server imports source so `npm run dev` works without a build.
-- **The bundled trace is not lazy-loaded.** It is about 13 KB gzipped of a 48 KB main
-  bundle and parses in under 1 ms; an asynchronous dataset model would cost more.
-- **No shared debounced-request hook.** The two effects share about ten lines and handle
-  state differently.
-- **`AtlasRail` is not fully memoized.** It receives per-frame explorer state; targeted
-  hover and lookup changes remove the avoidable work.
-- **Similar-looking tests stay.** They check different contracts.
-- **Host places are markers.** The playground's bookmarks publish `bookmark` markers
-  through the `markers` prop into the same list as provider markers, so the map, N/P,
-  magnetism, and named search treat them alike, and its Bookmarks panel lists provider
-  markers too. They rank after errors and spikes:
-  a reader's place names a group over a deploy but never hides an incident. The list is
-  keyed by provider identity so a dataset switch never shows another dataset's bookmarks.
-  A map click jumps to the row like any marker; restoring position and selection stays in the
-  panel.
-- **One cascade layer, ordered by source.** Each stylesheet is a single `granum-grid` layer of
-  zero-specificity rules, so a later rule for the same part always wins; keep one rule per
-  part and section instead of appending overrides. The skin's `page` layout has square
-  corners.
-- **The rail's arrow keys pan one fixed row height.** Routing them through
-  `handleMovementKey` would change the slider's step with dynamic row heights.
-- **The playground's linked comparison panes share a progress ratio** from the top to
-  each pane's `maxPosition`, so both reach their ends together, and place each other
-  with `restoreView`.
-- **Row height is layout, not identity.** `rowHeight` and `dynamicRowHeight` change the
-  engine in place (`setRowLayout`) instead of rebuilding it, because row addresses do not
-  depend on height: the current row, its pixel offset, and history stay. Leaving measured
-  heights drops measurements so alignment uses the fixed height.
-- **A data session belongs to the provider's data, not its object.** Sessions are keyed
-  by `id`, `revision`, `rowCount` (outside append mode), and which summary methods exist.
-  A provider rebuilt during render swaps into the existing session, so cached rows stay;
-  before, every parent render refetched the visible pages.
-- **`demo/src/data/trace.ts` imports only types from `granum-grid`.** The dev server's trace
-  plugin loads it without a library build.
-- **No shared select component for map settings.** It was longer than the plain selects.
+- **Stable names outlive the rename.** The package, directory, and stylesheet layer are
+  `granum-grid`, and the React names are `GranumGrid` / `useGranumGrid`. The `ds-*`
+  style hooks, browser storage keys, and the wiki sync manifest name stay, so existing
+  styling, bookmarks, and managed wiki pages keep working.
+
+- **Row identity and layout.** A data session belongs to the provider's data, not its
+  object: sessions are keyed by `id`, `revision`, `rowCount` (outside append mode), and
+  which summary methods exist, so a provider rebuilt during render keeps its cached
+  rows. Row height is layout, not identity: `rowHeight` and `dynamicRowHeight` change the
+  engine in place (`setRowLayout`), so the current row, its offset, and history stay.
+
+- **Row activation is optional and host-owned.** `onRowActivate` receives a loaded
+  record and its address. Keyboard and pointer focus stay separate from the scroll anchor
+  and the selection, so inspecting a row neither jumps nor adds history. The host owns
+  the details panel, clipboard, Escape and focus restoration, and cleanup on a provider
+  change.
+
+- **One reading surface: rows beside the dataset map.** There are no range summaries,
+  group-size controls, custom bands, or zoom navigation; the map supplies global context
+  and selection statistics are optional provider data. Ctrl+wheel and pinch belong to the
+  browser. Saved locations contain only the row address; removed `zoom` and `lens`
+  bookmarks are rejected.
+
+- **The map explains its statistic before its jump address, one chart at a time.**
+  Compact rails keep the metric name visible; hover shows the metric, the group value
+  with its accuracy, the jump row, and row examples, while group size, scale, and
+  `metric.description` live in map help. Extra provider metrics are choices in a
+  selector, so unrelated scales never look comparable. Peak attraction requires 8%
+  prominence on the displayed scale, so ripples and missing data never attract. Host
+  places are markers: the playground's bookmarks join provider markers through the
+  `markers` prop and rank after errors and spikes. The rail's arrow keys pan one fixed
+  row height, so the slider's step does not change with dynamic heights. `AtlasRail` is
+  not fully memoized because it receives per-frame state.
+
+- **One cascade layer, ordered by source.** Each stylesheet is a single `granum-grid`
+  layer of zero-specificity rules, so a later rule for the same part always wins; keep
+  one rule per part and section instead of appending overrides.
+
+- **Lead with Parquet over HTTP range requests.** A Parquet footer lists every row
+  group's row count, so the count is exact and any address costs one row group, with no
+  server. The playground's adapter (`demo/src/data/parquet.ts`) uses hyparquet, pinned
+  and loaded on first use, so the main bundle grows by about 7 KB gzipped. It refuses a
+  server that ignores byte ranges rather than downloading the file, shares an in-flight
+  range between readers and aborts it only when all have gone, and reuses a redirect's
+  target (Hugging Face redirects each read to a signed CDN URL; skipping the hop cut a
+  read from about 0.6 s to 0.4 s). Its map reads at most 24 row groups, 6 at a time,
+  because more concurrent reads slowed every CDN read and delayed the first rows; map
+  hover shows summaries so it never downloads a group. There is no text search, which
+  would read the whole file. Measurements are in the
+  [guide](docs/GUIDE.md#a-file-without-a-server-parquet-over-http). Considered and not
+  taken: Kafka partition offsets (a broker is not reachable from a browser without a
+  proxy) and a log file with a line-offset index (Parquet's footer already is that
+  index, and real files exist).
+
+- **Demo modules the dev server loads stay build-free.** `demo/src/data/trace.ts`
+  imports only types from `granum-grid`, and `searchIssue` stays internal to the
+  library, so the trace plugin and `npm run dev` work without a library build.

@@ -45,20 +45,23 @@ No stylesheet is imported automatically: choose `granum-grid/styles.css` for the
 ## The API in four ideas
 
 1. **A provider describes the data.** `{ id, revision, rowCount, fetchRows }` is enough; optional methods add the overview, markers, chapters, and search. `createArrayProvider` and `createCursorProvider` build one from an array or a cursor-paged server.
-2. **The component needs three props.** `provider`, `ariaLabel`, and `renderRow`. Everything else has a default.
-3. **Each explorer region follows one rule.** `toolbar`, `rail`, and `footer` take `false` to hide the region, an options object to configure it, or a function that renders your own. `panel`, between the toolbar and the rows, is empty until you fill it:
+2. **The component needs three props.** `provider`, `ariaLabel`, and `renderRow` render the rows and the dataset map, nothing else. Everything else has a default, and the rest of the explorer is opt-in.
+3. **Each explorer region follows one rule.** `toolbar`, `rail`, and `footer` take `true` or an options object to show the built-in region, `false` to hide it, or a function that renders your own. Only the map (`rail`) is on by default. `header` adds column headings with the map's metric, and `panel`, between the toolbar and the rows, is empty until you fill it:
 
    ```tsx
    <GranumGrid
      provider={provider}
      ariaLabel="Logs"
      renderRow={renderRow}
-     toolbar={{ actions: <ExportButton /> }} // configure the built-in toolbar
+     toolbar={{ actions: <ExportButton /> }} // Back, Forward, breadcrumb, Go to…, and your controls
      rail={{ variant: 'markers', layout: 'compact' }} // configure the dataset map
+     header={<LogColumns />} // column headings above the rows
      panel={<SavedFilters />} // your own controls above the rows
-     footer={({ snapshot }) => <MyStatus rows={snapshot.rowCount} />} // replace
+     footer // the current row and progress; a function replaces it
    />
    ```
+
+   The Go to dialog needs no toolbar: Cmd/Ctrl+K inside the explorer, `/` in the rows, or `api.openSearch()` opens it.
 
 4. **One handle acts on the mounted explorer.** `apiRef` on the component and `api` on the hook hold the same `GranumGridApi`: `goTo`, `scrollToIndex`, `back`/`forward`, marker and chapter steps, `getSelection`/`setSelection`, `getVisibleRange`, `getView`/`restoreView`, `openSearch`, `retry`, plus `getSnapshot`, `subscribe`, and `onNavigate` for continuous state. Pass a decoded view back as `initialView` to reopen a shared place.
 

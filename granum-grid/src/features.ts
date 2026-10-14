@@ -1,10 +1,10 @@
 /**
- * Motion and data behavior of `useGranumGrid`. Map layers are `AtlasRailOptions`, and
- * first-run hints are the `hints` prop of `GranumGrid`.
+ * Motion and data behavior of `useGranumGrid`. Map layers are `AtlasRailOptions`.
+ * `edgeElasticity` is the embedded default; `layout="page"` turns it on unless set.
  */
 export const defaultFeatures = {
   inertia: true,
-  edgeElasticity: true,
+  edgeElasticity: false,
   automaticAggregation: false,
   flight: true,
   transitions: true,

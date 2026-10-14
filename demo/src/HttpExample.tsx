@@ -159,6 +159,8 @@ function HttpExplorer({
       panel={tools.panel}
       markers={tools.markers}
       rail={tools.rail}
+      toolbar
+      footer
       reducedMotion
       header={
         <>

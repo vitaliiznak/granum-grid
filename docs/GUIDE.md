@@ -127,6 +127,26 @@ const logs = createCursorProvider(server, {
 });
 ```
 
+### A file without a server: Parquet over HTTP
+
+A Parquet file's footer lists every row group's row count, so `rowCount` is exact and an
+address maps to one row group. The playground's
+[`createParquetProvider`](../demo/src/data/parquet.ts) reads the footer once with an HTTP
+range request, then downloads only the column chunks that hold the requested rows (only
+their pages when the file has a page index). It is a demo adapter built on
+[hyparquet](https://github.com/hyparam/hyparquet), not part of the package; copy it into
+your app. The server must answer byte ranges with `206` and allow cross-origin reads; the
+adapter refuses a server that sends the whole file instead.
+
+Measured on 14 October 2026 from one machine, against a 2.15 GB FineWeb file on Hugging
+Face (973,991 rows in 974 row groups of about 1,000): the footer took about 2 s and
+3.7 MB; a jump to row 486,996 then took about 0.7 s and 2.1 MB from Node, and 1.4–1.9 s
+in the playground, which also prefetches the next group. The first rows appeared about
+3 s after the playground opened the file. A jump costs one row group, so a file written
+with very large row groups and no page index costs far more per jump. The map's min–max
+come exact from the footer's statistics; its line reads one row group per map group and
+is labeled sampled.
+
 ## Search
 
 **Go to…** (Cmd/Ctrl+K inside the explorer, or `/` in the viewport) resolves some input
@@ -213,10 +233,10 @@ Rows retain the leading row address and pixel offset while content changes, clam
 ## Navigation
 
 - Drag the right-hand dataset map to travel across the dataset. Move horizontally away while dragging for half, quarter, or fine precision. Shift bypasses magnetic markers. Escape cancels a scrub.
-- Use **Go to…**, Cmd/Ctrl+K inside the component, or `/` in the viewport. See [search](#search) for the accepted input.
+- Use Cmd/Ctrl+K inside the component, `/` in the viewport, or **Go to…** in the `toolbar`. See [search](#search) for the accepted input.
 - Arrows move one row; PageUp/PageDown move a visible span; Home/End reach the endpoints. N/P visit markers. Cmd/Ctrl+Up/Down visit chapter boundaries.
-- Back/Forward and Alt+Left/Right restore committed jumps. Wheel motion is not a history entry. Mouse back/forward interception depends on the browser.
-- Read one record per line. The current address is the first visible row. Scrolling stops when the last row ends at the bottom of the viewport; a jump to a row below that point shows it there and keeps it current until the reader scrolls. A wheel gesture that starts by pushing past either end scrolls the page, as a native scroller does, while one that starts by moving rows keeps them to its end, resisting and springing back while elastic edges are on. Set `overscroll-behavior: contain` on the viewport to keep every wheel gesture in the rows. Sideways wheels pass through to wide content. The dataset map always covers the whole dataset. Ctrl+wheel and pinch remain browser zoom gestures.
+- Alt+Left/Right and the `toolbar`'s Back/Forward restore committed jumps. Wheel motion is not a history entry. Mouse back/forward interception depends on the browser.
+- Read one record per line. The current address is the first visible row. Scrolling stops when the last row ends at the bottom of the viewport; a jump to a row below that point shows it there and keeps it current until the reader scrolls. A wheel gesture that starts by pushing past either end scrolls the page, as a native scroller does, while one that starts by moving rows keeps them to its end, resisting and springing back while elastic edges are on. Elastic edges are off by default in an embedded explorer, which stops at its ends like a plain scroller, and on with `layout="page"`; set `features={{ edgeElasticity }}` to choose. Set `overscroll-behavior: contain` on the viewport to keep every wheel gesture in the rows. Sideways wheels pass through to wide content. The dataset map always covers the whole dataset. Ctrl+wheel and pinch remain browser zoom gestures.
 - Reduced motion follows the system preference or `reducedMotion={true}`. The component retains direct navigation while suppressing flights, touch inertia, elastic edges, and the fast-fling overview.
 
 `goTo(index)` accepts a safe integer, clamps it to the dataset, chooses an animated or
@@ -260,7 +280,7 @@ Those are application features; the playground builds all of them on the public 
 With `layout="page"`, a panel that scrolls on its own needs `data-ds-native-scroll`, so
 the wheel scrolls the panel instead of the rows.
 
-`stickyChapters` keeps the current provider chapter above the rows. Normal navigation
+`stickyChapters` keeps the current provider chapter above the rows. The `toolbar`
 shows **Back** and **Go to…**; diagnostics are under **debug** in the demo, and
 `onStats` reports them to a host. Showing the overview instead of rows during a fast
 fling is opt-in with `features={{ automaticAggregation: true }}`.
@@ -336,12 +356,13 @@ viewport, row, and announcement prop getters, and display state: `selection`,
 It fetches data and binds browser input; custom layouts choose the row content and place
 the map. Its data session and coordinate mapping are internal to the library's widgets.
 `onNavigate` reports committed jumps, and `onStats` reports cache and request counts and
-frame rate. The ready-made component adds the toolbar, the map, the Go to dialog, and
-the footer.
+frame rate. The ready-made component adds the map and the Go to dialog; the toolbar,
+footer, and column headings are opt-in.
 `features` switches motion and data behavior; `defaultFeatures` lists every flag with its
-default. The component's regions (`toolbar`, `rail`, `footer`) each take `false`,
-options, or a render function, and `panel` holds host content; map layers are `rail`
-options. Layers and package entry points are listed in the
+embedded default (`layout="page"` also turns on `edgeElasticity`). The component's regions
+(`toolbar`, `rail`, `footer`) each take `true` or options to show the built-in region,
+`false` to hide it, or a render function; only `rail` is shown when omitted. `panel` holds
+host content; map layers are `rail` options. Layers and package entry points are listed in the
 [package README](../granum-grid/README.md#layers). Custom controls, headless
 layouts, and styling hooks are in [STYLING.md](../STYLING.md).
 

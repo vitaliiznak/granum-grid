@@ -199,7 +199,9 @@ export function useGranumGrid<Row>({
   );
   if (!Number.isSafeInteger(overscan) || overscan < 0 || overscan > 1000)
     throw new RangeError('overscan must be an integer from 0 to 1000');
-  const features = { ...defaultFeatures, ...overrides };
+  // An embedded explorer sits inside a page, so its edges stop like a plain scroller's; a
+  // page explorer owns the document and springs back at its ends.
+  const features = { ...defaultFeatures, edgeElasticity: windowScroll, ...overrides };
   const id = useId();
   const [speedSpan, setSpeedSpan] = useState(0);
   const [edgeOffset, setEdgeOffset] = useState(0);

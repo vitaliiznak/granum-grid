@@ -47,7 +47,7 @@ It is a reading surface, not a spreadsheet grid. There is no column model, sorti
 
 ## The playground
 
-You never download the full set. The page asks for the slice you are looking at, and for a coarse summary of the whole set to draw the map. Five sets are generated in the browser. Three are real: Bitcoin from Binance, Hacker News from its public API, and a recorded browser trace. The billion-scale counts are addresses you can visit, not billions of rows sitting in memory.
+You never download the full set. The page asks for the slice you are looking at, and for a coarse summary of the whole set to draw the map. Four sets are real: a 2 GB Parquet file of web pages read in place, Bitcoin from Binance, Hacker News from its public API, and a recorded browser trace. Five are generated in the browser. The billion-scale counts are addresses you can visit, not billions of rows sitting in memory.
 
 ## Film
 
@@ -61,16 +61,17 @@ Music: 'Firefly' by Scott Buckley, released under [CC BY 4.0](https://creativeco
 
 ## The datasets
 
-| Dataset                | What you are looking at                                                                                                                                                                                                                                                                                                                                                                                  |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Server logs**        | 4 billion synthetic request lines from six fictional services in September 2026. Search a status, then read the incident around it.                                                                                                                                                                                                                                                                      |
-| **Signal archive**     | 100 million readings, four channels, twenty years. The picture used in the screenshots below.                                                                                                                                                                                                                                                                                                            |
-| **Human genome**       | 3,088,269,832 base addresses at GRCh38 chromosome lengths. The sequence is synthetic; gene landmarks sit near their real positions.                                                                                                                                                                                                                                                                      |
-| **Market tape**        | 750 million generated trades in a fictional 24/7 market, with crashes and block trades marked on the map.                                                                                                                                                                                                                                                                                                |
-| **Star catalog**       | 1,811,709,771 addresses ordered by right ascension. Named stars use real coordinates; the rest of the catalog is generated. This is not a Gaia download.                                                                                                                                                                                                                                                 |
-| **Bitcoin (live)**     | About 289 million seconds of BTC/USDT on Binance since August 2017. Candles load as you move. Summaries use the coarsest candles that fit a group and are exact only where those candles tile it. The page stays under half of Binance's request budget and pauses when asked. Some regions are blocked by Binance. [Source](demo/src/data/binance.ts).                                                  |
-| **Hacker News (live)** | About 50 million items since October 2006, one row per item id, from the official API. The count starts from a clock estimate and grows as new items appear. Open a row to read its text, links, and the parent and direct replies. Dates, `points > 3000`, `by = "pg"`, and the busiest threads come from Algolia's public index, ranked rather than exhaustive. [Source](demo/src/data/hackernews.ts). |
-| **Performance**        | A real, redacted Chromium recording of this playground, held in memory. You can also open a local Chrome trace, up to 25 MiB and 150,000 source events. Reload returns to the bundled recording. [Where it came from](demo/src/data/fixtures/README.md).                                                                                                                                                 |
+| Dataset                 | What you are looking at                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Web pages (Parquet)** | 973,991 English web pages in one 2.15 GB file of Hugging Face's [FineWeb](https://huggingface.co/datasets/HuggingFaceFW/fineweb) (ODC-By 1.0). The page reads the footer once, then downloads only the row group that holds the rows in view, about 2 MB, with HTTP range requests. Paste the URL of your own Parquet file to explore it the same way; its server must allow byte ranges and CORS. [Source](demo/src/data/parquet.ts). |
+| **Bitcoin (live)**      | About 289 million seconds of BTC/USDT on Binance since August 2017. Candles load as you move. Summaries use the coarsest candles that fit a group and are exact only where those candles tile it. The page stays under half of Binance's request budget and pauses when asked. Some regions are blocked by Binance. [Source](demo/src/data/binance.ts).                                                                                |
+| **Hacker News (live)**  | About 50 million items since October 2006, one row per item id, from the official API. The count starts from a clock estimate and grows as new items appear. Open a row to read its text, links, and the parent and direct replies. Dates, `points > 3000`, `by = "pg"`, and the busiest threads come from Algolia's public index, ranked rather than exhaustive. [Source](demo/src/data/hackernews.ts).                               |
+| **Performance**         | A real, redacted Chromium recording of this playground, held in memory. You can also open a local Chrome trace, up to 25 MiB and 150,000 source events. Reload returns to the bundled recording. [Where it came from](demo/src/data/fixtures/README.md).                                                                                                                                                                               |
+| **Server logs**         | 4 billion synthetic request lines from six fictional services in September 2026. Search a status, then read the incident around it.                                                                                                                                                                                                                                                                                                    |
+| **Signal archive**      | 100 million readings, four channels, twenty years. The picture used in the screenshots below.                                                                                                                                                                                                                                                                                                                                          |
+| **Human genome**        | 3,088,269,832 base addresses at GRCh38 chromosome lengths. The sequence is synthetic; gene landmarks sit near their real positions.                                                                                                                                                                                                                                                                                                    |
+| **Market tape**         | 750 million generated trades in a fictional 24/7 market, with crashes and block trades marked on the map.                                                                                                                                                                                                                                                                                                                              |
+| **Star catalog**        | 1,811,709,771 addresses ordered by right ascension. Named stars use real coordinates; the rest of the catalog is generated. This is not a Gaia download.                                                                                                                                                                                                                                                                               |
 
 ## Visual tour
 
@@ -122,7 +123,7 @@ Bookmarks remember a place and a selection, and they show up on the map next to 
 
 ## Run it locally
 
-Node 22. No API key. Bitcoin and Hacker News need a network connection; the generated sets do not.
+Node 22. No API key. Bitcoin, Hacker News, and the Parquet file need a network connection; the generated sets do not.
 
 ```sh
 npm ci
@@ -135,7 +136,7 @@ The library comes in [layers you can stop at](granum-grid/README.md#layers): the
 
 ## Demo limitations
 
-The generated examples are for moving through an index. **Sampled search and fake server delay are choices of those examples.** Bitcoin, Hacker News, and an imported trace follow their own sources, described above.
+The generated examples are for moving through an index. **Sampled search and fake server delay are choices of those examples.** Bitcoin, Hacker News, the Parquet file, and an imported trace follow their own sources, described above.
 
 - **Generated rows are made when you ask for them.** The same index returns the same content until the generator changes. The full synthetic set is never built. A delay slider does not measure a real server.
 - **Search on generated data is partial.** It checks a bounded sample of roughly 20,000 candidate rows, plus a few direct lookups for dates and known places. Matches you see are real. Matches you do not see may still exist. An empty sample is not proof the dataset has none. Overview numbers are estimates where the card says so.
@@ -155,7 +156,7 @@ Search in the page returns at most **100 matches** and does not page further. Th
 | Custom cells and controls                               | No cell editing, column resize, pinned columns, horizontal virtualization, or RTL scrolling |
 | The window as the scroller                              | The page scrollbar is a compressed range; typed jumps and local scrolling stay exact        |
 
-There is no CSV import and no database connector on this page. A new dataset is a count plus a way to fetch a slice by index. [How that fits together](docs/GUIDE.md).
+There is no CSV import and no database connector on this page; the Parquet set opens a Parquet URL. A new dataset is a count plus a way to fetch a slice by index. [How that fits together](docs/GUIDE.md).
 
 ## Screenshots and checks
 

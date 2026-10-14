@@ -55,3 +55,9 @@ export const NewsIcon = () => (
     <path d="M6 7.5h8M6 10.5h5" strokeWidth="1.2" />
   </svg>
 );
+export const ParquetIcon = () => (
+  <svg {...props}>
+    <rect x="3" y="3" width="14" height="14" rx="2" />
+    <path d="M3 7.5h14M3 12h14M8 3v14M12.5 3v14" strokeWidth="1.1" />
+  </svg>
+);

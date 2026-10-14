@@ -45,6 +45,8 @@ GitHub Actions also uploads the checked archive as the `npm-package` artifact. I
 
 6. Verify `npm view granum-grid@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/`, then replace the unpublished-release wording and local-archive install steps in `granum-grid/README.md`, `docs/QUICK_START.md`, `docs/wiki/Setup.md`, and `media/README.md`.
 
+7. Ask three developers outside the project to install the published package, connect it to their own data, and file an [integration report](../.github/ISSUE_TEMPLATE/integration-report.md). Hold new features until their reports are in; their friction list becomes the roadmap.
+
 Publishing a tarball uses its existing contents; it does not rebuild or run this repository's release checks. Always use an archive from the latest successful `release:check` for the intended source version. Publishing directly from the workspace with `npm publish -w granum-grid` runs `prepublishOnly` to verify the release and `prepack` to rebuild it.
 
 ## Later releases

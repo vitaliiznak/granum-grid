@@ -114,9 +114,7 @@ export function CompareRanges<Row>({
               unstyled={host.unstyled}
               classNames={host.classNames}
               styles={host.styles}
-              toolbar={false}
               rail={false}
-              footer={false}
               features={{ flight: false, automaticAggregation: false, prefetch: false }}
               reducedMotion
               header="Records in selected range"

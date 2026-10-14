@@ -85,7 +85,7 @@ The studio deliberately stays outside `granum-grid/`. It adds no runtime depende
 
 ## Claims and source material
 
-- Five of the eight datasets are generated: logs, signal, genome, market, and stars. The genome uses reference chromosome lengths and approximate gene landmarks, but its sequence is synthetic. The star catalog includes named-star landmarks; it is not a downloaded Gaia catalog. Market prices and logs are illustrative. Bitcoin and Hacker News read live public sources, and Performance is a real, redacted browser recording. The scenes use only generated datasets.
+- Five of the nine datasets are generated: logs, signal, genome, market, and stars. The genome uses reference chromosome lengths and approximate gene landmarks, but its sequence is synthetic. The star catalog includes named-star landmarks; it is not a downloaded Gaia catalog. Market prices and logs are illustrative. Bitcoin and Hacker News read live public sources, the Parquet set reads a public FineWeb file, and Performance is a real, redacted browser recording. The scenes use only generated datasets.
 - Row counts are navigable addresses in an on-demand provider. They are not rows downloaded into browser memory, nor a benchmark of a remote database.
 - Overview and selection statistics are sampled and labeled accordingly. Demo predicate search is partial. Keep those labels visible in crops and edits. The README and captions identify the synthetic source data; the screenshots contain only existing product UI. The address illustration on the opening card is not a measured chart.
 - New captures use the demo's default simulated request latency of 1 second. These recordings make no cross-device frame-rate or latency guarantee.

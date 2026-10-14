@@ -58,6 +58,8 @@ Use CSS Modules, utility class strings, ordinary classes, or inline styles:
   provider={provider}
   ariaLabel="Readings"
   className={styles.explorer}
+  toolbar
+  footer
   classNames={{
     toolbar: styles.toolbar,
     row: 'flex items-center gap-4 px-4 border-b',
@@ -142,14 +144,14 @@ For composition, pass the same options straight to the widget: `<AtlasRail grid=
 
 ## Use your React controls
 
-Every explorer region is one prop with one rule: `false` hides it, an options object configures the built-in part, and a function renders your own. `toolbar`, `rail`, and `footer` accept functions, which receive the hook state (`GranumGridState<Row>`) with its `api` handle. `panel` has no built-in part: it holds your own content between the toolbar and the rows, such as selection or bookmark tools.
+Every explorer region is one prop with one rule: `true` or an options object shows the built-in part, `false` hides it, and a function renders your own. Only `rail` is shown when omitted; the toolbar and footer are opt-in. `toolbar`, `rail`, and `footer` accept functions, which receive the hook state (`GranumGridState<Row>`) with its `api` handle. `panel` has no built-in part: it holds your own content between the toolbar and the rows, such as selection or bookmark tools.
 
-| Region    | Options object                          | Function                                    |
+| Region    | Built-in part                           | Function                                    |
 | --------- | --------------------------------------- | ------------------------------------------- |
-| `toolbar` | `{ actions, fullPageUrl }`              | `(grid) => ReactNode`                       |
+| `toolbar` | `true` or `{ actions, fullPageUrl }`    | `(grid) => ReactNode`                       |
 | `panel`   | Your element                            | `(grid) => ReactNode`, called every frame   |
 | `rail`    | `AtlasRailOptions`, including `actions` | `(grid, rail: AtlasRailProps) => ReactNode` |
-| `footer`  | —                                       | `(grid) => ReactNode`                       |
+| `footer`  | `true`                                  | `(grid) => ReactNode`                       |
 
 Open the built-in search dialog with `api.openSearch()`. A `rail` function also receives the built-in map's props as a second argument; spread them to wrap or adjust the map while keeping search highlights and map selection: `rail={(_, rail) => <AtlasRail {...rail} layout="expanded" />}`. The example `Button` below is your application's component; it can come from a React UI library or wrap a native button.
 
@@ -181,7 +183,7 @@ import 'granum-grid/base.css';
 />;
 ```
 
-Replacement renderers own their wrapper styling and accessibility; the replaced part's `classNames`/`styles` no longer apply. To keep the built-in toolbar and add your own controls to it, pass `toolbar={{ actions: <MyButtons /> }}`. `header`, `renderRow`, `renderPlaceholder(slot, retry)`, and `emptyContent` remain content slots. Use `styles={{ header: { display: 'none' } }}` to omit the default legend. For complete markup control, use the hook.
+Replacement renderers own their wrapper styling and accessibility; the replaced part's `classNames`/`styles` no longer apply. To keep the built-in toolbar and add your own controls to it, pass `toolbar={{ actions: <MyButtons /> }}`. `header`, `renderRow`, `renderPlaceholder(slot, retry)`, and `emptyContent` remain content slots. Passing `header` adds a heading row with the map's metric and overview accuracy; without it there is none. For complete markup control, use the hook.
 
 ## Build a headless list
 

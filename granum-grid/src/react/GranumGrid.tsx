@@ -35,9 +35,10 @@ export interface RowRenderContext<Row> {
   focused: boolean;
 }
 /**
- * The explorer, built from `useGranumGrid`, `AtlasRail`, and `JumpBar`. The `toolbar`,
- * `rail`, and `footer` regions take `false` to hide the region, an options object to
- * configure it, or a function to render your own. `panel` is empty unless the host fills it.
+ * The explorer, built from `useGranumGrid`, `AtlasRail`, and `JumpBar`. By default it shows
+ * rows and the dataset map. The `toolbar`, `rail`, and `footer` regions take `true` or an
+ * options object to show the built-in region, `false` to hide it, or a function to render
+ * your own; only `rail` is shown when omitted. `panel` is empty unless the host fills it.
  */
 export interface GranumGridProps<Row>
   extends Omit<UseGranumGridOptions<Row>, 'onOpenSearch'>, GranumGridAppearance {
@@ -48,14 +49,14 @@ export interface GranumGridProps<Row>
   renderPlaceholder?(slot: PendingRowSlot, retry: () => void): ReactNode;
   /** Stable React key for a loaded row. Default: its index. */
   getRowKey?(row: Row, index: number): Key;
-  /** Column headings above the rows. Default: "RECORDS". */
+  /** Column headings above the rows, with the map's metric and overview accuracy. */
   header?: ReactNode;
   emptyContent?: ReactNode;
   /** Keep the current provider chapter above the rows. */
   stickyChapters?: boolean;
   /** The mounted handle (`GranumGridApi`); null after unmount. */
   apiRef?: Ref<GranumGridApi<Row>>;
-  /** History, breadcrumb, and search. A function receives the hook state. */
+  /** History, breadcrumb, and search. Hidden unless set. A function receives the hook state. */
   toolbar?: boolean | ToolbarOptions | ((grid: GranumGridState<Row>) => ReactNode);
   /**
    * Host content between the toolbar and the rows, such as selection or bookmark tools.
@@ -71,7 +72,7 @@ export interface GranumGridProps<Row>
     | boolean
     | AtlasRailOptions
     | ((grid: GranumGridState<Row>, rail: AtlasRailProps<Row>) => ReactNode);
-  /** Current row and progress. A function receives the hook state. */
+  /** Current row and progress. Hidden unless set. A function receives the hook state. */
   footer?: boolean | ((grid: GranumGridState<Row>) => ReactNode);
   theme?: 'system' | 'dark' | 'light';
   /** Opt out of the optional skin, even when styles.css is loaded elsewhere. */
@@ -195,22 +196,24 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
     >
       {typeof props.toolbar === 'function'
         ? props.toolbar(grid)
-        : props.toolbar !== false && (
+        : props.toolbar && (
             <Toolbar grid={grid} appearance={props} {...optionsOf<ToolbarOptions>(props.toolbar)} />
           )}
       {typeof props.panel === 'function' ? props.panel(grid) : props.panel}
-      <div {...partProps('header', props, 'ds-legend')}>
-        <span>{props.header ?? 'RECORDS'}</span>
-        <span>
-          <i />
-          {props.provider.metric?.label ?? 'Dataset'} ·{' '}
-          {overviewAccuracy(session.overview, props.provider.metric?.kind ?? 'value', {
-            supported: !!props.provider.fetchOverview,
-            failed: !!session.metadataErrors.overview,
-          })}{' '}
-          overview
-        </span>
-      </div>
+      {props.header != null && (
+        <div {...partProps('header', props, 'ds-legend')}>
+          <span>{props.header}</span>
+          <span>
+            <i />
+            {props.provider.metric?.label ?? 'Dataset'} ·{' '}
+            {overviewAccuracy(session.overview, props.provider.metric?.kind ?? 'value', {
+              supported: !!props.provider.fetchOverview,
+              failed: !!session.metadataErrors.overview,
+            })}{' '}
+            overview
+          </span>
+        </div>
+      )}
       {append && (
         <div className="ds-live-status">
           <span>
@@ -314,7 +317,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
       <div {...grid.getAnnouncementProps()} />
       {typeof props.footer === 'function'
         ? props.footer(grid)
-        : props.footer !== false && <Footer grid={grid} appearance={props} />}
+        : props.footer && <Footer grid={grid} appearance={props} />}
     </section>
   );
 }
