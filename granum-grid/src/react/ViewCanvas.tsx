@@ -1,25 +1,27 @@
 import { useMemo, useRef } from 'react';
+import { clamp } from '../core/mappings.js';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
-import { observeCanvas, prepareCanvas } from '../visuals/atlas.js';
+import { bucketAt } from '../core/navigation.js';
+import { atlasDomain, observeCanvas, prepareCanvas, profileValue } from '../visuals/atlas.js';
 import type { GranumGridState } from './useGranumGrid.js';
+import { INTERNAL } from './internal.js';
 /** Size and theme change rarely; reading them every frame forces layout and style work. */
 interface Surface {
   size?: { width: number; height: number };
   colors?: { accent: string; muted: string; font: string };
 }
-export function ViewCanvas<Row>({ scroll }: { scroll: GranumGridState<Row> }) {
+/** The overview drawn behind the rows while a long jump or fast fling travels. */
+export function ViewCanvas<Row>({ grid }: { grid: GranumGridState<Row> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const { mapping, snapshot, session, aggregateMode } = scroll;
-  const visible = aggregateMode;
+  const { snapshot, traveling: visible } = grid;
+  const { mapping, session } = grid[INTERNAL];
   const surface = useRef<Surface>({});
-  const metricDomain = scroll.provider.metric?.domain;
+  const metricDomain = grid.provider.metric?.domain;
+  const kind = grid.provider.metric?.kind ?? 'value';
+  // The same scale and values as the dataset map, so both describe a group alike.
   const domain = useMemo(
-    () =>
-      metricDomain ?? [
-        Math.min(0, ...session.overview.map((b) => b.min ?? 0)),
-        Math.max(1, ...session.overview.map((b) => b.max ?? 1)),
-      ],
-    [metricDomain, session.overview],
+    () => atlasDomain(session.overview, metricDomain, kind),
+    [session.overview, metricDomain, kind],
   );
   const drawRef = useRef<() => void>(() => {});
   // Declared before the drawing effect so a newly shown canvas starts from fresh measurements.
@@ -51,21 +53,17 @@ export function ViewCanvas<Row>({ scroll }: { scroll: GranumGridState<Row> }) {
         };
       }
       const { accent, muted, font } = state.colors;
-      const buckets = session.aggregates.length ? session.aggregates : session.overview;
+      const buckets = session.overview;
       ctx.font = font;
       for (let y = 0; y < height; y += 5) {
         const row = mapping.toRow(y);
         if (row < 0 || row >= snapshot.rowCount) continue;
-        const bucket =
-          buckets.find((b) => row >= b.start && row < b.end) ??
-          session.overview.find((b) => row >= b.start && row < b.end);
-        const value = bucket?.avg;
+        const bucket = bucketAt(buckets, row);
+        const value = bucket ? profileValue(bucket, kind) : null;
         ctx.fillStyle = accent;
         const ratio =
-          value == null
-            ? 0.05
-            : Math.max(0.02, Math.min(1, (value - domain[0]) / Math.max(1, domain[1] - domain[0])));
-        ctx.globalAlpha = value == null ? 0.05 : 0.08 + ratio * 0.22;
+          value === null ? 0.05 : clamp((value - domain[0]) / (domain[1] - domain[0]), 0.02, 1);
+        ctx.globalAlpha = value === null ? 0.05 : 0.08 + ratio * 0.22;
         ctx.fillRect(0, y, width, 4);
         ctx.globalAlpha = 0.65;
         ctx.fillRect(width * 0.25, y, Math.max(2, width * 0.67 * ratio), 3);

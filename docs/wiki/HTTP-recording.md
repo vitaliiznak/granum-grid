@@ -1,6 +1,6 @@
 # 4. Investigate a recording over HTTP
 
-[All lessons](Home.md) · [Previous: Logs](Logs.md) · [Next steps](Next-steps.md)
+[All lessons](Home.md) · [Previous: Logs](Logs.md) · [Next: Compose](Compose.md)
 
 **Build:** an explorer whose rows stay on the server, then inspect a slow event,
 compare nearby ranges, and share a saved location and selection.
@@ -29,8 +29,8 @@ for this lesson.
 Read [`connectHttpTrace`](../../demo/src/data/http-trace.ts) alongside the following
 sequence. These are the actual operations implemented by the companion:
 
-1. `GET /__granum-grid/trace/meta` returns the dataset ID, revision, row count, metric,
-   and search hints.
+1. `GET /__granum-grid/trace/meta` returns the dataset ID, revision (a hash of the
+   recording's contents), row count, metric, and search hints.
 2. The client constructs a `DataProvider` with that metadata.
 3. When the library requests `fetchRows(start, count, signal)`, the adapter sends
    `GET /__granum-grid/trace/rows?revision=…&start=…&count=…`.
@@ -40,8 +40,8 @@ sequence. These are the actual operations implemented by the companion:
 
 For example, `start=10&count=2` must return event indices **10 and 11**. Pagination
 never changes their addresses. The cache normally requests 256-row pages; the server
-caps a row request at 1,024. A jump directly addresses the requested page without
-walking earlier pages. Request cancellation passes through the fetch `signal`.
+caps each request at 1,024 rows, 512 summary buckets, or 100 search matches. A jump
+directly addresses the requested page without walking earlier pages. Request cancellation passes through the fetch `signal`.
 
 Open your browser's Network panel to inspect the `meta`, `rows`, `overview`,
 `aggregates`, and `search` requests. The page's counters report JSON response bytes
@@ -98,4 +98,4 @@ Adapt the transport to your own ordered events. Keep the contract in this order:
 A saved view contains navigation and selection, not data or credentials. A URL works
 only while its dataset/revision remains available to the person opening it.
 
-**Continue with [live data, row layouts, and other datasets](Next-steps.md).**
+**Next: [Compose your own explorer](Compose.md).**

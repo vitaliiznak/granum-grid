@@ -1,4 +1,4 @@
-import type { RowRange } from '../data/types.js';
+import type { Chapter, RowRange } from '../data/types.js';
 
 /** Shared number formatters. Intl constructors are costly and these run during scroll frames. */
 const compact = new Intl.NumberFormat('en', { notation: 'compact' });
@@ -17,6 +17,15 @@ export function formatDecimal(value: number, maximumFractionDigits: number) {
   }
   return format.format(value);
 }
+
+/** A metric value and its unit, such as "12.5 ms" or "4.2%"; a percent sign is not spaced. */
+export function formatMetric(value: number, maximumFractionDigits: number, unit?: string) {
+  const number = formatDecimal(value, maximumFractionDigits);
+  return unit ? `${number}${unit === '%' ? '' : ' '}${unit}` : number;
+}
+
+/** A chapter's full name: its breadcrumb path when it has one. */
+export const chapterName = (chapter: Chapter) => chapter.breadcrumb?.join(' / ') ?? chapter.label;
 
 /** One-based visible address for a zero-based half-open range: "Row 5" or "Rows 1–10". */
 export const rangeAddress = (range: RowRange) =>

@@ -4,7 +4,8 @@
     "noEmit": true,
     "types": ["vite/client"],
     "paths": {
-      "granum-grid": ["./granum-grid/src/index.ts"]
+      "granum-grid": ["./granum-grid/src/index.ts"],
+      "granum-grid/headless": ["./granum-grid/src/headless.ts"]
     }
   }
 }

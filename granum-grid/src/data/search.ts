@@ -1,9 +1,12 @@
 import type { ProviderQuery, SearchHelp } from './types.js';
 
+/** Shown when a text query can only match named markers. */
+export const MARKERS_ONLY_SEARCH =
+  'Searching named markers only. This provider does not support row text search.';
+
 /** Early user feedback only; not a replacement for provider validation. */
 export function searchIssue(query: ProviderQuery, help?: SearchHelp): string | null {
-  if (query.kind === 'text')
-    return help?.text ? null : 'Row text search is unavailable; searching named markers only.';
+  if (query.kind === 'text') return help?.text ? null : MARKERS_ONLY_SEARCH;
   if (query.kind === 'date')
     return help?.dates === false ? 'This dataset does not support date search.' : null;
   if (!help?.fields) return null;

@@ -1,4 +1,12 @@
-import { expect, test, MOBILE, DESKTOP, fitsViewportWidth } from './fixtures';
+import {
+  expect,
+  test,
+  MOBILE,
+  DESKTOP,
+  fitsViewportWidth,
+  openDataset,
+  withMapSettings,
+} from './fixtures';
 
 for (const layout of ['expanded', 'compact', 'mobile'] as const) {
   test(`scroll handle stays outside the plot and events in ${layout} layout`, async ({
@@ -6,13 +14,12 @@ for (const layout of ['expanded', 'compact', 'mobile'] as const) {
   }, testInfo) => {
     await page.setViewportSize(layout === 'mobile' ? MOBILE : DESKTOP);
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/?dataset=logs');
-    await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
-    await page.getByRole('button', { name: 'Config', exact: true }).click();
-    await page
-      .getByRole('combobox', { name: 'Scrollbar width' })
-      .selectOption(layout === 'mobile' ? 'auto' : layout);
-    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await openDataset(page, '/?dataset=logs');
+    await withMapSettings(page, (panel) =>
+      panel
+        .getByRole('combobox', { name: 'Scrollbar width' })
+        .selectOption(layout === 'mobile' ? 'auto' : layout),
+    );
 
     const rail = page.getByRole('complementary', { name: 'Dataset scrollbar' });
     const slider = rail.getByRole('slider', { name: 'Dataset position' });
@@ -70,12 +77,11 @@ test('one named chart uses its own scale and preview without moving the current 
   await expect(page.getByRole('grid', { name: 'Synthetic server logs' })).toBeVisible();
   await page.getByRole('button', { name: /^Open the incident/ }).click();
   const position = await page.getByTestId('position').innerText();
-  const settings = page.getByRole('button', { name: 'Config', exact: true });
-  await settings.click();
-  await page.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
-  await page.getByRole('checkbox', { name: 'Show latency track' }).check();
-  await page.getByRole('combobox', { name: 'Scrollbar hover details' }).selectOption('summary');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, async (panel) => {
+    await panel.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
+    await panel.getByRole('checkbox', { name: 'Show latency track' }).check();
+    await panel.getByRole('combobox', { name: 'Scrollbar hover details' }).selectOption('summary');
+  });
 
   const rail = page.getByRole('complementary', { name: 'Dataset scrollbar' });
   const chart = rail.getByRole('combobox', { name: 'Scrollbar chart' });
@@ -140,23 +146,23 @@ test('one named chart uses its own scale and preview without moving the current 
   await expect(page.getByTestId('position')).toHaveText(position);
 
   await chart.selectOption({ label: 'p95 latency' });
-  await settings.click();
-  await page.getByRole('checkbox', { name: 'Show latency track' }).uncheck();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, (panel) =>
+    panel.getByRole('checkbox', { name: 'Show latency track' }).uncheck(),
+  );
   await expect(chart).toHaveCount(0);
   await expect(axis).toHaveAttribute('aria-label', 'Error rate scale: 0% to 30%');
-  await settings.click();
-  await page.getByRole('checkbox', { name: 'Show latency track' }).check();
-  await page.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('markers');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, async (panel) => {
+    await panel.getByRole('checkbox', { name: 'Show latency track' }).check();
+    await panel.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('markers');
+  });
   await expect(chart).toHaveCount(0);
   await expect(axis).toHaveCount(0);
 
   await page.getByRole('button', { name: /Human genome/ }).click();
-  await settings.click();
-  await page.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('auto');
-  await page.getByRole('checkbox', { name: 'Show genome tracks' }).check();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, async (panel) => {
+    await panel.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('auto');
+    await panel.getByRole('checkbox', { name: 'Show genome tracks' }).check();
+  });
   await expect(chart.locator('option')).toHaveText(['GC content', 'Gene density', 'Repeats']);
   await expect(chart).toHaveValue('primary');
   await expect(axis).toHaveAttribute('aria-label', 'GC content scale: 30% to 60%');

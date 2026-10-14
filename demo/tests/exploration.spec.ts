@@ -1,4 +1,12 @@
-import { expect, test, MOBILE, openSignal, fitsViewportWidth } from './fixtures';
+import {
+  expect,
+  test,
+  MOBILE,
+  enterRows,
+  fitsViewportWidth,
+  openSignal,
+  withMapSettings,
+} from './fixtures';
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -8,10 +16,7 @@ test.beforeEach(async ({ page }) => {
 test('range summaries, linked comparison, bookmarks and dialog focus', async ({ page }) => {
   await page.getByRole('button', { name: 'Select rows', exact: true }).click();
   await expect(page.getByLabel('From row', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Enter row numbers', exact: false }).click();
-  await page.getByLabel('From row', { exact: true }).fill('1000000');
-  await page.getByLabel('To row', { exact: true }).fill('1000100');
-  await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
+  await enterRows(page, '1000000', '1000100');
   const selected = page.getByRole('region', { name: 'Your selection', exact: true });
   await expect(selected).toContainText('101 rows selected');
   await expect(page.getByLabel('From row', { exact: true })).toHaveCount(0);
@@ -101,9 +106,7 @@ test('selection choices, validation and single-row summary stay contextual on a 
   await expect(selected).toContainText('selected');
   const original = await selected.textContent();
   await page.getByRole('button', { name: 'Change selection' }).click();
-  await page.getByRole('button', { name: /^Enter row numbers/ }).click();
-  await page.getByLabel('From row', { exact: true }).fill('0');
-  await page.getByRole('button', { name: 'Use these rows', exact: true }).click();
+  await enterRows(page, '0');
   await expect(page.getByRole('alert')).toContainText('Enter whole row numbers');
   await expect(page.getByLabel('From row', { exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
@@ -185,7 +188,6 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
       )
       .toBeLessThan(1);
     expect(await fitsViewportWidth(popup)).toBe(true);
-    await expect(popup.getByRole('combobox', { name: 'View', exact: true })).toBeVisible();
   } finally {
     await popup.close();
   }
@@ -205,10 +207,10 @@ test('map selection can be canceled and optional channel tracks stay bounded', a
   await page.mouse.up();
   await expect(page.locator('.ds-map-selection')).toHaveCount(0);
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
-  await page.getByRole('button', { name: 'Config', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Show channel tracks' }).check();
-  await page.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, async (panel) => {
+    await panel.getByRole('checkbox', { name: 'Show channel tracks' }).check();
+    await panel.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
+  });
   const chart = page.getByRole('combobox', { name: 'Scrollbar chart' });
   await expect(chart.locator('option')).toHaveCount(5);
   await chart.selectOption({ label: 'North' });
@@ -216,25 +218,6 @@ test('map selection can be canceled and optional channel tracks stay bounded', a
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
 });
 
-test('live append follows the end, preserves a reader and resumes explicitly', async ({
-  page,
-  pageErrors,
-}) => {
-  await page.getByText('Try a live feed', { exact: false }).first().click();
-  const grid = page.getByRole('grid', { name: 'Live example events' });
-  await expect(grid.locator('[aria-rowindex="200"]')).toHaveAttribute('data-status', 'ready');
-  await page.getByRole('button', { name: 'Start events', exact: true }).click();
-  await expect(grid.locator('[aria-rowindex="205"]')).toHaveAttribute('data-status', 'ready');
-  await grid.press('Home');
-  await expect(page.locator('.ds-live-status')).toContainText('new rows');
-  await page.getByRole('button', { name: 'Pause events', exact: true }).click();
-  await expect(grid.locator('[role=row]').first()).toHaveAttribute('aria-rowindex', '1');
-  const count = await grid.getAttribute('aria-rowcount');
-  await page.getByRole('button', { name: 'Jump to latest', exact: true }).click();
-  await expect(grid.locator(`[aria-rowindex="${count}"]`)).toHaveAttribute('data-status', 'ready');
-  await expect(page.locator('.ds-live-status')).toContainText('up to date');
-  expect(pageErrors).toEqual([]);
-});
 test('a shared full-page link restores its selected range', async ({ page }) => {
   const view = {
     version: 1,

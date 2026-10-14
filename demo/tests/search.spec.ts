@@ -1,9 +1,8 @@
 import type { Page } from '@playwright/test';
-import { expect, test, MOBILE } from './fixtures';
+import { expect, test, MOBILE, openDataset } from './fixtures';
 
 async function openLogSearch(page: Page) {
-  await page.goto('/?dataset=logs');
-  await expect(page.locator('[role="row"][data-status="ready"]').first()).toBeVisible();
+  await openDataset(page, '/?dataset=logs');
   await page.getByRole('button', { name: 'Go to…' }).click();
 }
 
@@ -99,8 +98,7 @@ test('named marker fallback discloses its scope for a provider without text sear
   page,
 }) => {
   // The sensor tutorial provider supplies markers but does not opt in to row text search.
-  await page.goto('/tutorials.html?lesson=sensors');
-  await expect(page.locator('[role="row"][data-status="ready"]').first()).toBeVisible();
+  await openDataset(page, '/tutorials.html?lesson=sensors');
   await page.getByRole('button', { name: 'Go to…' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('textbox').fill(' warm ');

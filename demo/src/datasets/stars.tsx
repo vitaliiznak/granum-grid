@@ -3,6 +3,7 @@ import {
   CONSTELLATIONS,
   GALACTIC_CENTER_INDEX,
   NAMED_STARS,
+  SIRIUS,
   STAR_COUNT,
   indexAtRa,
   starAt,
@@ -11,7 +12,7 @@ import {
 import { syntheticProvider } from '../data/synthetic';
 import type { CSSProperties } from 'react';
 import { StarsIcon } from './icons';
-import { formatCount, showAll, type DemoDataset } from './types';
+import { formatCount, type DemoDataset } from './types';
 
 const pad = (value: number, digits = 2) => String(value).padStart(digits, '0');
 function sexagesimal(value: number) {
@@ -98,7 +99,6 @@ const provider = syntheticProvider<Star>({
   },
 });
 
-const sirius = NAMED_STARS.find((s) => s.name === 'Sirius')!;
 export const stars: DemoDataset<Star> = {
   id: 'stars',
   name: 'Star catalog',
@@ -118,8 +118,8 @@ export const stars: DemoDataset<Star> = {
     `${formatRa(starAt(start).ra)}–${formatRa(starAt(end - 1).ra)} RA`,
   task: {
     title: 'Find a dense part of the catalog, then inspect its stars.',
-    action: 'See whole catalog',
-    run: showAll,
+    action: 'Inspect Sirius',
+    run: (api) => api.scrollToIndex(SIRIUS.index, { align: 'center' }),
   },
   atlas: { axisLabel: 'RA', formatValue: (v) => `${v.toFixed(1)}M` },
   map: {
@@ -145,38 +145,31 @@ export const stars: DemoDataset<Star> = {
       feature: 'Flight',
       label: 'Fly to Sirius',
       hint: 'The brightest star in the night sky, 380 million rows in. Hover the map to preview stars first.',
-      run: ({ controller }) => controller.goTo(sirius.index),
+      run: (api) => api.goTo(SIRIUS.index),
     },
     {
       feature: 'Markers',
       label: 'Visit the galactic center',
       hint: 'The densest stretch of sky. Compare how many rows one hour of right ascension takes here.',
-      run: ({ controller }) => controller.goTo(GALACTIC_CENTER_INDEX),
+      run: (api) => api.goTo(GALACTIC_CENTER_INDEX),
     },
     {
       feature: 'Search',
       label: 'Naked-eye stars',
       hint: 'About 9,000 stars are brighter than magnitude 6. Matches are plotted on the map.',
-      run: ({ search }) => search('mag < 6'),
+      run: (api) => api.openSearch('mag < 6'),
     },
     {
       feature: 'Search',
       label: 'Hottest O-type stars',
       hint: 'Rare, blue, and luminous. Search also takes distance < 100 or name = "Vega".',
-      run: ({ search }) => search('class = "O"'),
+      run: (api) => api.openSearch('class = "O"'),
     },
     {
       feature: 'Chapters',
       label: 'Next hour of sky',
       hint: 'Each chapter is one hour of right ascension, labeled with a constellation in that slice.',
-      run: ({ controller }) => controller.nextChapter(),
-    },
-    {
-      feature: 'Zoom',
-      requiredView: 'zoom',
-      label: 'The whole sky',
-      hint: '1.8 billion stars at once. The overview reveals both crossings of the Milky Way.',
-      run: ({ fit }) => fit(),
+      run: (api) => api.nextChapter(),
     },
   ],
   renderRow: ({ row }) => (

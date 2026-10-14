@@ -11,7 +11,7 @@ npm ci
 npm run release:check
 ```
 
-This runs lint, source/test type checks, documentation links, tutorial snippets, wiki export/sync tests, and unit tests, builds the library and demo, and packs the library through its `prepack` hook. It installs that exact archive in temporary, independent React 18.2 and React 19 applications, checks runtime imports, SSR, styles, source maps, and TypeScript declarations using NodeNext and Bundler resolution. Temporary consumers are removed even if a check fails. Consumer dependency installation needs npm registry access unless cached.
+[`release:check`](../AGENTS.md#validate-and-finish) ends with the package test, which packs the library through its `prepack` hook and installs that exact archive in temporary, independent React 18.2 and React 19 applications. It checks runtime imports, SSR, styles, source maps, and TypeScript declarations using NodeNext and Bundler resolution. Temporary consumers are removed even if a check fails. Consumer dependency installation needs npm registry access unless cached.
 
 Only a successful package check copies the archive to `output/granum-grid-0.1.0.tgz`. Source files are included so JavaScript and declaration maps resolve correctly. Tests, the demo, media, and workspace tooling are excluded. The canonical root `LICENSE` is copied into the package during its build.
 
@@ -43,7 +43,7 @@ GitHub Actions also uploads the checked archive as the `npm-package` artifact. I
 
    Complete npm's authentication/2FA prompt if requested. This is the only step above that publishes. A dry run does not verify publishing permissions, reserve the name, or claim success.
 
-6. Verify `npm view granum-grid@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/`, then replace the “not yet published” wording and local-archive install steps in `README.md`, `granum-grid/README.md`, `docs/QUICK_START.md`, and `docs/wiki/Setup.md`.
+6. Verify `npm view granum-grid@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/`, then replace the unpublished-release wording and local-archive install steps in `granum-grid/README.md`, `docs/QUICK_START.md`, `docs/wiki/Setup.md`, and `media/README.md`.
 
 Publishing a tarball uses its existing contents; it does not rebuild or run this repository's release checks. Always use an archive from the latest successful `release:check` for the intended source version. Publishing directly from the workspace with `npm publish -w granum-grid` runs `prepublishOnly` to verify the release and `prepack` to rebuild it.
 
@@ -64,15 +64,12 @@ The lifecycle hooks follow [npm's script lifecycle](https://docs.npmjs.com/cli/v
 
 [Frontend CI/CD](../.github/workflows/frontend.yml) verifies pull requests, pushes
 to `main`, and manual workflow runs. Node 22 comes from `.nvmrc`; `npm ci` installs
-the root lockfile. The verification job runs:
-
-- Lint, formatting, source/test types, documentation links, source-matched lesson
-  snippets, wiki export/sync tests, and unit tests.
-- Library, demo, media studio, and wiki builds; isolated React 18.2/19 tarball consumers.
-- Chromium, Firefox, and WebKit against the production demo, with navigation
-  performance measured in Chromium only.
-- A Pages smoke test under a project subdirectory, including workers, exact jumps,
-  full-page reloads, home navigation, and tutorial companions.
+the root lockfile. The verification job runs the
+[`check:full`](../AGENTS.md#validate-and-finish) steps separately, so each failure and
+artifact is easy to inspect. Browser tests run against the production demo, with
+navigation performance measured in Chromium only. The Pages smoke test runs under a
+project subdirectory and covers worker data, exact jumps, full-page reloads, home
+navigation, and tutorial companions.
 
 Only successful verification on `refs/heads/main` permits deployment. Merging a PR
 into `main` triggers a push run; **Actions → Frontend CI/CD → Run workflow → main**
@@ -86,7 +83,7 @@ Two jobs use the verified artifacts from the same run:
 | Deploy frontend | `demo/dist` → GitHub Pages                   | Pages and OIDC only      |
 | Deploy wiki     | `output/wiki` → the repository's `.wiki.git` | Repository contents only |
 
-The app includes the static gallery and first three tutorial companions. The HTTP
+The app includes the static gallery and every tutorial companion except HTTP. The HTTP
 lesson requires the local dev/preview server; GitHub Pages cannot host its API.
 Relative asset URLs keep the app usable at a domain root or project path.
 

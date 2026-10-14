@@ -56,6 +56,7 @@ export const GENES = [
   const chromosome = CHROMOSOMES.find((c) => c.name === gene.chr)!;
   return { ...gene, index: chromosome.start + gene.start - 1 };
 });
+export const BRCA1 = GENES.find((gene) => gene.name === 'BRCA1')!;
 
 export function locate(index: number) {
   let low = 0,

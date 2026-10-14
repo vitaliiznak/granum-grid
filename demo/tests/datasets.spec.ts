@@ -1,7 +1,5 @@
 import { expect, test } from './fixtures';
-import { GENES } from '../src/data/genome';
-
-const brca1 = GENES.find((gene) => gene.name === 'BRCA1')!;
+import { BRCA1 } from '../src/data/genome';
 
 test('the gallery switches datasets and a tour step flies to a gene', async ({ page }) => {
   await page.goto('/');
@@ -10,7 +8,7 @@ test('the gallery switches datasets and a tour step flies to a gene', async ({ p
   const grid = page.getByRole('grid', { name: 'Synthetic genome bases' });
   await expect(grid.locator('[aria-rowindex="10001"]')).toHaveAttribute('data-status', 'ready');
   await page.getByRole('button', { name: /Fly to BRCA1/ }).click();
-  await expect(grid.locator(`[aria-rowindex="${brca1.index + 1}"]`)).toContainText('BRCA1 exon 1', {
+  await expect(grid.locator(`[aria-rowindex="${BRCA1.index + 1}"]`)).toContainText('BRCA1 exon 1', {
     timeout: 8000,
   });
   await expect(page.locator('.tour-hint')).toContainText('Flight');
@@ -19,7 +17,7 @@ test('the gallery switches datasets and a tour step flies to a gene', async ({ p
 test('each dataset keeps its place while you visit another', async ({ page }) => {
   await page.goto('/?dataset=genome');
   await page.getByRole('button', { name: /Fly to BRCA1/ }).click();
-  const target = page.locator(`[role=row][aria-rowindex="${brca1.index + 1}"]`);
+  const target = page.locator(`[role=row][aria-rowindex="${BRCA1.index + 1}"]`);
   await expect(target).toHaveAttribute('data-status', 'ready', { timeout: 8000 });
   await page.getByRole('button', { name: /^Server logs/ }).click();
   await expect(page.getByRole('grid', { name: 'Synthetic server logs' })).toBeVisible();

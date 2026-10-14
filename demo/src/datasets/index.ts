@@ -8,7 +8,7 @@ import { stars } from './stars';
 import { performance } from './performance';
 import type { DemoDataset } from './types';
 
-export const datasets: DemoDataset[] = [
+const datasets: DemoDataset[] = [
   logs,
   signal,
   genome,
@@ -26,4 +26,4 @@ export const datasetGroups = (['synthetic', 'real'] as const).map((origin) => ({
 }));
 export const findDataset = (id: string | null) =>
   datasets.find((dataset) => dataset.id === id) ?? logs;
-export type { DemoDataset, TourContext } from './types';
+export type { DemoDataset } from './types';

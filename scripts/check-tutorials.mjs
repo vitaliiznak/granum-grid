@@ -7,7 +7,16 @@ const wiki = resolve(root, 'docs/wiki');
 let snippets = 0;
 let links = 0;
 const documents = [
-  ...['README.md', 'STYLING.md', 'DESIGN.md'].map((name) => resolve(root, name)),
+  ...[
+    'README.md',
+    'STYLING.md',
+    'DESIGN.md',
+    'AGENTS.md',
+    'granum-grid/README.md',
+    'media/README.md',
+    'media/MUSIC.md',
+    'demo/src/data/fixtures/README.md',
+  ].map((name) => resolve(root, name)),
   ...(await readdir(resolve(root, 'docs')))
     .filter((name) => extname(name) === '.md')
     .map((name) => resolve(root, 'docs', name)),
@@ -46,7 +55,7 @@ for (const path of documents) {
     links++;
   }
 }
-if (snippets !== 6) throw new Error(`Expected six complete tutorial files; found ${snippets}`);
+if (snippets !== 7) throw new Error(`Expected seven complete tutorial files; found ${snippets}`);
 console.log(
   `Documentation verified: ${snippets} source-matched code blocks and ${links} local links.`,
 );

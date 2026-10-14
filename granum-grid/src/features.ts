@@ -1,12 +1,8 @@
+/**
+ * Motion and data behavior of `useGranumGrid`. Map layers are `AtlasRailOptions`, and
+ * first-run hints are the `hints` prop of `GranumGrid`.
+ */
 export const defaultFeatures = {
-  overview: true,
-  chapters: true,
-  markers: true,
-  magnetism: true,
-  magnifier: true,
-  precision: true,
-  preview: true,
-  trail: true,
   inertia: true,
   edgeElasticity: true,
   automaticAggregation: false,
@@ -14,6 +10,5 @@ export const defaultFeatures = {
   transitions: true,
   progressiveEstimates: true,
   prefetch: true,
-  hints: true,
 };
 export type Features = typeof defaultFeatures;

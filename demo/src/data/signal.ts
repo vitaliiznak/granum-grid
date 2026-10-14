@@ -3,6 +3,8 @@ import { timeline } from './timeline';
 
 export const ROW_COUNT = 100_000_000;
 export const SPIKES = [0.12, 0.345, 0.617, 0.843];
+/** Rows of the four numbered spikes. */
+export const SPIKE_ROWS = SPIKES.map((p) => Math.round(p * (ROW_COUNT - 1)));
 /** Channels interleave by row: row `i` belongs to `CHANNELS[i % 4]`. */
 export const CHANNELS = ['North', 'East', 'West', 'South'];
 /** Readings span 2010 through 2029. */

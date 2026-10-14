@@ -202,58 +202,24 @@ it('speculative pages do not displace visible rows or overflow a tiny cache', as
   session.stop();
 });
 
-it('drops an aggregate error when its region is cleared or replaced', async () => {
-  let fail = true;
-  const session = open({
-    async fetchAggregates(range) {
-      if (fail) throw new Error('Region failed');
-      return [bucket(range)];
-    },
-  });
+it('row navigation and append do not request selection statistics', async () => {
+  const fetchAggregates = vi.fn(async () => []);
+  const session = open({ fetchAggregates });
   session.start();
-  session.requestAggregates({ start: 0, end: 10, buckets: 1 });
+  session.setRange('visible', 40, 4);
   await tick();
-  expect(session.metadataErrors.aggregates).toContain('Region failed');
-  // Moving to another region must not show the old region's failure while it loads.
-  session.requestAggregates({ start: 20, end: 30, buckets: 1 });
-  expect(session.metadataErrors.aggregates).toBeUndefined();
+  session.updateAppendProvider({ ...session.provider, rowCount: 120 });
+  session.setRange('visible', 100, 4);
   await tick();
-  expect(session.metadataErrors.aggregates).toContain('Region failed');
-  session.requestAggregates();
-  expect(session.metadataErrors.aggregates).toBeUndefined();
-  // Nothing is requested, so retry has no stale region to reload.
-  fail = false;
   session.retry();
   await tick();
-  expect(session.aggregates).toEqual([]);
-});
-it('aborts a replaced aggregate region, deduplicates repeats, and ignores stale results', async () => {
-  const pending: { range: AggregateRequest; signal: AbortSignal; resolve(b: Bucket[]): void }[] =
-    [];
-  const session = open({
-    fetchAggregates: (range, signal) =>
-      new Promise<Bucket[]>((resolve) => pending.push({ range, signal, resolve })),
-  });
-  session.start();
-  session.requestAggregates({ start: 0, end: 10, buckets: 2 });
-  session.requestAggregates({ start: 0, end: 10, buckets: 2 });
-  await tick();
-  expect(pending).toHaveLength(1);
-  session.requestAggregates({ start: 10, end: 20, buckets: 2 });
-  await tick();
-  expect(pending).toHaveLength(2);
-  expect(pending[0].signal.aborted).toBe(true);
-  pending[0].resolve([bucket(pending[0].range)]);
-  await tick();
-  expect(session.aggregates).toEqual([]);
-  pending[1].resolve([bucket(pending[1].range)]);
-  await tick();
-  expect(session.aggregates).toEqual([bucket({ start: 10, end: 20, buckets: 2 })]);
+  expect(fetchAggregates).not.toHaveBeenCalled();
+  expect(session.read(100)).toBe(100);
 });
 it('retries only failed metadata kinds that are not already loading', async () => {
-  const calls = { overview: 0, markers: 0, aggregates: 0 };
+  const calls = { overview: 0, markers: 0, chapters: 0 };
   let failOverview = true;
-  let finishAggregates!: (b: Bucket[]) => void;
+  let finishChapters!: () => void;
   const session = open({
     async fetchOverview() {
       calls.overview++;
@@ -264,27 +230,26 @@ it('retries only failed metadata kinds that are not already loading', async () =
       calls.markers++;
       return [];
     },
-    fetchAggregates: (range) => {
-      calls.aggregates++;
-      return new Promise<Bucket[]>((resolve) => {
-        finishAggregates = () => resolve([bucket(range)]);
+    fetchChapters: () => {
+      calls.chapters++;
+      return new Promise((resolve) => {
+        finishChapters = () => resolve([{ id: 'all', start: 0, end: 100, label: 'All rows' }]);
       });
     },
   });
   session.start();
-  session.requestAggregates({ start: 0, end: 10, buckets: 1 });
   await tick();
   expect(session.metadataErrors.overview).toContain('Overview failed');
   failOverview = false;
-  // An aggregate request is still in flight; the failed overview must still reload.
+  // A chapter request is still in flight; the failed overview must still reload.
   session.retry();
   await tick();
-  expect(calls).toEqual({ overview: 2, markers: 1, aggregates: 1 });
+  expect(calls).toEqual({ overview: 2, markers: 1, chapters: 1 });
   expect(session.metadataErrors.overview).toBeUndefined();
   expect(session.overview).toHaveLength(1);
-  finishAggregates([]);
+  finishChapters();
   await tick();
-  expect(session.aggregates).toHaveLength(1);
+  expect(session.chapters).toHaveLength(1);
 });
 it('rejects invalid metadata without accepting partial results', async () => {
   const session = open({
@@ -404,4 +369,28 @@ it('budgets prefetch with the measured row size, not a fixed estimate', async ()
   await tick();
   expect(session.has(40)).toBe(true);
   expect(session.getStats().budgetOverage).toBe(0);
+});
+it('counts a search as an active request and rejects addresses outside the revision', async () => {
+  let finish!: (result: {
+    matches: { id: string; index: number; label: string; kind: 'search' }[];
+    complete: boolean;
+  }) => void;
+  const session = open({
+    search: () => new Promise((resolve) => (finish = resolve)),
+  });
+  const context = { fromIndex: 0, limit: 2, signal: new AbortController().signal };
+  const query = { kind: 'text', value: 'x' } as const;
+  const pending = session.search(query, context);
+  expect(session.getStats().activeRequests).toBe(1);
+  finish({ matches: [{ id: 'a', index: 7, label: 'A', kind: 'search' }], complete: true });
+  await expect(pending).resolves.toMatchObject({ complete: true, matches: [{ index: 7 }] });
+  expect(session.getStats().activeRequests).toBe(0);
+  const outside = session.search(query, context);
+  finish({ matches: [{ id: 'b', index: 100, label: 'B', kind: 'search' }], complete: true });
+  await expect(outside).rejects.toThrow('invalid search addresses');
+  const excessive = session.search(query, { ...context, limit: 0 });
+  finish({ matches: [{ id: 'c', index: 1, label: 'C', kind: 'search' }], complete: true });
+  await expect(excessive).rejects.toThrow('invalid search addresses');
+  expect(session.getStats().activeRequests).toBe(0);
+  await expect(open({}).search(query, context)).rejects.toThrow('does not support search');
 });

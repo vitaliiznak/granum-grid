@@ -167,22 +167,4 @@ describe('dynamic height navigation', () => {
     ).toEqual(saved);
     expect(() => engine.restore({ ...saved, position: NaN })).toThrow();
   });
-
-  it('preserves the row under the pointer when crossing detail and aggregate Zoom', () => {
-    const engine = create();
-    engine.setViewport(400);
-    engine.goTo(73_500_000);
-    engine.measureRows([
-      { index: 73_500_000, height: 160 },
-      { index: 73_500_001, height: 90 },
-    ]);
-    const anchorY = 100;
-    const anchor = engine.rowSizes.advance(engine.getSnapshot().position, anchorY) - 0.5;
-    engine.setZoom(2, anchorY);
-    expect(engine.getSnapshot().position + (anchorY - 200) * 2).toBeCloseTo(anchor, 6);
-    engine.setZoom(1 / 40, anchorY);
-    expect(
-      engine.rowSizes.advance(engine.getSnapshot().position + 0.5, anchorY - 200) - 0.5,
-    ).toBeCloseTo(anchor, 6);
-  });
 });

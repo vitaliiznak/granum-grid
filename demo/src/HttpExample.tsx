@@ -43,7 +43,7 @@ export function HttpExample() {
   const selectNearby = () => {
     const mounted = api.current;
     if (!mounted) return;
-    const index = mounted.controller.getSnapshot().activeIndex ?? 0;
+    const index = mounted.getSnapshot().activeIndex ?? 0;
     mounted.setSelection({
       start: Math.max(0, index - 10),
       end: Math.min(mounted.provider.rowCount, index + 11),
@@ -51,7 +51,7 @@ export function HttpExample() {
   };
   return (
     <main className="example-page http-example">
-      <a href="./">← All examples</a>
+      <a href="./">← Dataset gallery</a>
       <h1>Investigate a recording over HTTP</h1>
       <p>Find a slow event, inspect its neighbours, select a range, then compare or save it.</p>
       <p>
@@ -111,10 +111,9 @@ export function HttpExample() {
             apiRef={api}
             ariaLabel="HTTP recording events"
             rowHeight={40}
-            initialLocation={shared?.location}
-            initialSelection={shared?.selection}
-            bookmarkStorageKey="http-trace-views"
-            features={{ hints: false }}
+            initialView={shared}
+            tools={{ storageKey: 'http-trace-views' }}
+            hints={false}
             reducedMotion
             header={
               <>
@@ -144,6 +143,7 @@ export function HttpExample() {
           />
         </>
       )}
+      <a href="./tutorials.html?lesson=compose">Continue to the next lesson →</a>
     </main>
   );
 }

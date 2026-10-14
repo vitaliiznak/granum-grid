@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MAX_TRACE_BYTES, parseTrace } from './data/trace';
+import { MAX_TRACE_BYTES, TRACE_LIMITS, TRACE_TOO_LARGE, parseTrace } from './data/trace';
 import { performance, performanceDataset } from './datasets/performance';
 import type { DemoDataset } from './datasets';
 
@@ -36,8 +36,7 @@ export function TraceImport({
             setError('');
             setBusy(true);
             try {
-              if (file.size > MAX_TRACE_BYTES)
-                throw new Error('Choose a JSON recording smaller than 25 MiB.');
+              if (file.size > MAX_TRACE_BYTES) throw new Error(TRACE_TOO_LARGE);
               const recording = parseTrace(await file.text());
               if (generation.current === current)
                 onLoad(performanceDataset(recording, file.name, `local-${crypto.randomUUID()}`));
@@ -62,7 +61,7 @@ export function TraceImport({
           Restore bundled recording
         </button>
       )}
-      <span>Local only · JSON up to 25 MiB / 150,000 events · X and I/i events</span>
+      <span>Local only · JSON up to {TRACE_LIMITS} · X and I/i events</span>
       {imported && (
         <span>Your file stays in this tab; reloading restores the bundled recording.</span>
       )}

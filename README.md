@@ -12,26 +12,26 @@ A playground for looking at data that is too large to open as a file. Pick a dat
 
 [![Watch the Granum Grid playground film](media/images/hero.png)](media/granum-grid-launch.mp4)
 
-Granum Grid is a playground for data too large to open as a file. The film is two minutes of the real page: jump to a row, read the shape, compare two stretches, and come back. Generated sets label sampled summaries and partial search. Bitcoin and Hacker News are live public sources.
+Granum Grid is a playground for data too large to open as a file. The film records an earlier version of the demo, before the reading controls were simplified: jump to a row, read the shape, compare two stretches, and come back. Generated sets label sampled summaries and partial search. Bitcoin and Hacker News are live public sources.
 
-[Play granum-grid-launch.mp4](media/granum-grid-launch.mp4) · [Captions](media/granum-grid-launch.srt) · [Marketing notes](media/MARKETING.md)
+[Play granum-grid-launch.mp4](media/granum-grid-launch.mp4) · [Captions](media/granum-grid-launch.srt) · [Description](media/granum-grid-launch-description.txt)
 
 Music: 'Firefly' by Scott Buckley, released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). [scottbuckley.com.au](https://www.scottbuckley.com.au) · [track](https://www.scottbuckley.com.au/library/firefly/). The film trims, fades, and levels the recording.
 
-You never download the full set. The page asks for the slice you are looking at, and for a summary when you zoom out. Five sets are generated in the browser. Three are real: Bitcoin from Binance, Hacker News from its public API, and a recorded browser trace. The billion-scale counts are addresses you can visit, not billions of rows sitting in memory.
+You never download the full set. The page asks for the slice you are looking at, and for a coarse summary of the whole set to draw the map. Five sets are generated in the browser. Three are real: Bitcoin from Binance, Hacker News from its public API, and a recorded browser trace. The billion-scale counts are addresses you can visit, not billions of rows sitting in memory.
 
 ## The datasets
 
-| Dataset | What you are looking at |
-| --- | --- |
-| **Server logs** | 4 billion synthetic request lines from six fictional services in September 2026. Search a status, then read the incident around it. |
-| **Signal archive** | 100 million readings, four channels, twenty years. The picture used in the screenshots below. |
-| **Human genome** | 3,088,269,832 base addresses at GRCh38 chromosome lengths. The sequence is synthetic; gene landmarks sit near their real positions. |
-| **Market tape** | 750 million generated trades in a fictional 24/7 market, with crashes and block trades marked on the map. |
-| **Star catalog** | 1,811,709,771 addresses ordered by right ascension. Named stars use real coordinates; the rest of the catalog is generated. This is not a Gaia download. |
-| **Bitcoin (live)** | About 289 million seconds of BTC/USDT on Binance since August 2017. Candles load as you move. Summaries use the coarsest candles that fit a group and are exact only where those candles tile it. The page stays under half of Binance's request budget and pauses when asked. Some regions are blocked by Binance. [Source](demo/src/data/binance.ts). |
-| **Hacker News (live)** | About 50 million items since October 2006, one row per item id, from the official API. The count starts from a clock estimate and grows as new items appear. Dates, `points > 3000`, `by = "pg"`, and the busiest threads come from Algolia's public index, ranked rather than exhaustive. [Source](demo/src/data/hackernews.ts). |
-| **Performance** | A real, redacted Chromium recording of this playground, held in memory. You can also open a local Chrome trace, up to 25 MiB and 150,000 source events. Reload returns to the bundled recording. [Where it came from](demo/src/data/fixtures/README.md). |
+| Dataset                | What you are looking at                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Server logs**        | 4 billion synthetic request lines from six fictional services in September 2026. Search a status, then read the incident around it.                                                                                                                                                                                                                                                                      |
+| **Signal archive**     | 100 million readings, four channels, twenty years. The picture used in the screenshots below.                                                                                                                                                                                                                                                                                                            |
+| **Human genome**       | 3,088,269,832 base addresses at GRCh38 chromosome lengths. The sequence is synthetic; gene landmarks sit near their real positions.                                                                                                                                                                                                                                                                      |
+| **Market tape**        | 750 million generated trades in a fictional 24/7 market, with crashes and block trades marked on the map.                                                                                                                                                                                                                                                                                                |
+| **Star catalog**       | 1,811,709,771 addresses ordered by right ascension. Named stars use real coordinates; the rest of the catalog is generated. This is not a Gaia download.                                                                                                                                                                                                                                                 |
+| **Bitcoin (live)**     | About 289 million seconds of BTC/USDT on Binance since August 2017. Candles load as you move. Summaries use the coarsest candles that fit a group and are exact only where those candles tile it. The page stays under half of Binance's request budget and pauses when asked. Some regions are blocked by Binance. [Source](demo/src/data/binance.ts).                                                  |
+| **Hacker News (live)** | About 50 million items since October 2006, one row per item id, from the official API. The count starts from a clock estimate and grows as new items appear. Open a row to read its text, links, and the parent and direct replies. Dates, `points > 3000`, `by = "pg"`, and the busiest threads come from Algolia's public index, ranked rather than exhaustive. [Source](demo/src/data/hackernews.ts). |
+| **Performance**        | A real, redacted Chromium recording of this playground, held in memory. You can also open a local Chrome trace, up to 25 MiB and 150,000 source events. Reload returns to the bundled recording. [Where it came from](demo/src/data/fixtures/README.md).                                                                                                                                                 |
 
 ## Visual tour
 
@@ -45,27 +45,27 @@ Type `73,500,000`, `50%`, a loaded event name, or a query the dataset understand
 
 ### See the shape, then read the records
 
-**Rows** is one record per line. **Range summaries** groups those records so a pattern can show up. **Group size** sets how much each card covers, **Zoom into group** splits a card, and **Inspect rows** opens the records inside it. **Fit dataset** shows everything at once. The map on the right always covers the whole dataset.
+Read one record per line. The map on the right always covers the whole dataset; click an event or drag to a new address, then inspect the nearby rows. Back returns to your previous position.
 
-[![Overview of 100 million synthetic readings, rendered as sampled aggregate bands](media/images/overview.png)](media/images/overview.png)
+[![Readings at Spike 3, row 61,700,000 of 100 million, chosen from the sampled whole-dataset map](media/images/overview.png)](media/images/overview.png)
 
 On the generated sets, means and extremes are **sampled estimates**, and the cards say so.
 
 ### The same gestures, different data
 
-| Genome | Market |
-| --- | --- |
+| Genome                                                                                                                                       | Market                                                                                                                    |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | [![Synthetic genome rows at the BRCA1 landmark, with sequence context and chromosome map](media/images/genome.png)](media/images/genome.png) | [![Generated trade records at a named event, with a price-profile map](media/images/market.png)](media/images/market.png) |
 
-| Logs | Stars |
-| --- | --- |
+| Logs                                                                                                                                                                  | Stars                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Provider-backed search for server responses with status greater than or equal to 500, explicitly marked as partial](media/images/logs.png)](media/images/logs.png) | [![Dark-themed synthetic star catalog at Sirius, showing coordinates, magnitude, and spectral class](media/images/stars.png)](media/images/stars.png) |
 
 ### A browser recording
 
-[![Recorded browser events as interactive summary bands](media/images/performance.png)](media/images/performance.png)
+[![Recorded browser events beside the recording map](media/images/performance.png)](media/images/performance.png)
 
-Open **Performance** and **See whole recording**. Zoom from busy windows down to single events. Each dataset starts with a task; the guided action switches to the view that task needs. Select a summary or drag the map and the selection card offers **View selection**, **Compare ranges**, and **Save bookmark**.
+Open **Performance** and choose **Inspect longest event**. The recording map shows where longer events occur; the rows show their duration, start time, and thread. Select rows to compare ranges or save a bookmark.
 
 ### Rows that grow
 
@@ -79,7 +79,7 @@ Turn on measured heights when a row wraps or expands. The playground measures wh
 
 [![Two selected ranges with estimated summaries and linked virtualized comparison panes](media/images/compare.png)](media/images/compare.png)
 
-Bookmarks remember a place, a zoom, and a selection, and they show up on the map next to the dataset's own markers.
+Bookmarks remember a place and a selection, and they show up on the map next to the dataset's own markers.
 
 ## Run it locally
 
@@ -90,9 +90,9 @@ npm ci
 npm run dev
 ```
 
-Open the URL Vite prints. `/tutorials.html` is a set of short lessons on the same page. The HTTP lesson needs this local server and is not on GitHub Pages.
+Open the URL Vite prints. `/tutorials.html` runs the [tutorial lessons](docs/wiki/Home.md).
 
-The navigation the playground uses can also be embedded in another React app. That package, its provider contract, and styling live in [`granum-grid/`](granum-grid/README.md) and the [integration guide](docs/GUIDE.md). This repository is the playground those docs are about.
+The navigation the playground uses can also be embedded in another React app. It comes in [layers you can stop at](granum-grid/README.md#layers): the ready-made `GranumGrid`, the map and search widgets, the headless `useGranumGrid` hook, and a React-free engine and data session. Its API fits in [four ideas](granum-grid/README.md#the-api-in-four-ideas): a provider describes the data, three props render it, each explorer region is one prop (`false`, options, or your own renderer), and one handle acts on it. That package, its provider contract, and styling live in [`granum-grid/`](granum-grid/README.md) and the [integration guide](docs/GUIDE.md). This repository is the playground those docs are about.
 
 ## Demo limitations
 
@@ -100,21 +100,21 @@ The generated examples are for moving through an index. **Sampled search and fak
 
 - **Generated rows are made when you ask for them.** The same index returns the same content until the generator changes. The full synthetic set is never built. A delay slider does not measure a real server.
 - **Search on generated data is partial.** It checks a bounded sample of roughly 20,000 candidate rows, plus a few direct lookups for dates and known places. Matches you see are real. Matches you do not see may still exist. An empty sample is not proof the dataset has none. Overview numbers are estimates where the card says so.
-- **What is remembered.** Bookmarks stay in the browser. A full-page view URL restores position, zoom, and selection for the same dataset revision. The embedded page does not keep your latest position on its own, and search text is not saved across reload. Row caches are memory and are filled again as you move.
+- **What is remembered.** Bookmarks stay in the browser. A full-page view URL restores position and selection for the same dataset revision. The embedded page does not keep your latest position on its own, and search text is not saved across reload. Row caches are memory and are filled again as you move.
 - **Performance is the exception.** The recording stays in memory, its supported events have exact summaries, and search says when it stopped early. An imported file lasts for the tab; reload restores the bundled recording.
 
 Search in the page returns at most **100 matches** and does not page further. The generated sampling rules are not applied to Bitcoin or Hacker News.
 
 ## Scope and current limits
 
-| You can | Current edge |
-| --- | --- |
-| Fixed or measured row heights | The dataset needs a known, indexable count |
-| Keyboard navigation, ARIA row addresses, reduced motion | Screen-reader sessions and phones in hand are still unchecked |
-| A server-rendered placeholder | Measuring rows starts in the browser |
-| A feed that only grows | A stream of unknown length, or new rows inserted at the top, is not supported |
-| Custom cells and controls | No cell editing, column resize, pinned columns, horizontal virtualization, or RTL scrolling |
-| The window as the scroller | The page scrollbar is a compressed range; typed jumps and local scrolling stay exact |
+| You can                                                 | Current edge                                                                                |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Fixed or measured row heights                           | The dataset needs a known, indexable count                                                  |
+| Keyboard navigation, ARIA row addresses, reduced motion | Screen-reader sessions and phones in hand are still unchecked                               |
+| A server-rendered placeholder                           | Measuring rows starts in the browser                                                        |
+| A feed that only grows                                  | A stream of unknown length, or new rows inserted at the top, is not supported               |
+| Custom cells and controls                               | No cell editing, column resize, pinned columns, horizontal virtualization, or RTL scrolling |
+| The window as the scroller                              | The page scrollbar is a compressed range; typed jumps and local scrolling stay exact        |
 
 There is no CSV import and no database connector on this page. A new dataset is a count plus a way to fetch a slice by index. [How that fits together](docs/GUIDE.md).
 
@@ -123,12 +123,12 @@ There is no CSV import and no database connector on this page. A new dataset is 
 Capture, film export, and music credit are in the [media studio](media/README.md). Scene sources, the images above, and the launch film live in `media/`.
 
 ```sh
-npm run ai:doctor     # setup, read-only
-npm run check         # types, docs, unit tests
-npm run check:full    # lint, format, builds, browsers
+npm run ai:doctor
+npm run check
+npm run check:full
 ```
 
-[How this repo is developed](AGENTS.md) · [workflow](docs/AI_WORKFLOW.md) · [all guides](docs/README.md)
+[What each check covers](AGENTS.md#validate-and-finish) · [workflow](docs/AI_WORKFLOW.md) · [all guides](docs/README.md)
 
 Verified `main` builds are published to [GitHub Pages](https://vitaliiznak.github.io/granum-grid/). Chromium, Firefox, and WebKit run the functional browser tests. Navigation timing and synthetic touch run in Chromium only. Native Safari, a physical touch device, and a screen-reader pass are separate checks.
 

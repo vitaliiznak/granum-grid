@@ -6,9 +6,10 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { clamp, progressToRow, rowToProgress } from '../core/mappings.js';
-import { chapterAt } from '../core/navigation.js';
+import { bucketAt, chapterAt } from '../core/navigation.js';
 import {
   atlasDomain,
   atlasTicks,
@@ -17,11 +18,12 @@ import {
   overviewAccuracy,
   profileValue,
 } from '../visuals/atlas.js';
-import { formatCompact, formatDecimal } from '../visuals/format.js';
+import { formatCompact, formatMetric } from '../visuals/format.js';
 import { atlasPeaks, attractToPeak } from '../visuals/atlasGravity.js';
 import { MarkerLayer } from './MarkerLayer.js';
-import type { RowRange } from '../data/types.js';
+import type { Marker, RowRange } from '../data/types.js';
 import type { GranumGridState } from './useGranumGrid.js';
+import { INTERNAL } from './internal.js';
 export interface AtlasRailOptions {
   /** Map configuration does not change the current row or provider. */
   variant?: 'profile' | 'markers';
@@ -34,7 +36,7 @@ export interface AtlasRailOptions {
   showTracks?: boolean;
   /** Maximum axis labels, limited to 2–12 and available height. Default 5. */
   maxAxisTicks?: number;
-  /** These layers are visible by default. Feature flags still take precedence. */
+  /** These layers are visible by default. */
   showMarkers?: boolean;
   showVisibleRange?: boolean;
   showTrail?: boolean;
@@ -46,20 +48,28 @@ export interface AtlasRailOptions {
   previewRows?: number;
   /** Crop of the overview beside hover details; reuses its buckets. Default false. */
   showMagnifier?: boolean;
+  /** Slow scrubbing while the pointer moves sideways during a drag. Default true. */
+  precision?: boolean;
   /** Snap slow drags to visible provider markers. Default true. */
   snapToMarkers?: boolean;
   /** Attract hover, clicks, and slow full-speed drags to visible chart peaks. Default true. */
   snapToPeaks?: boolean;
   formatValue?(value: number): string;
+  /** Host controls displayed beside the map title and help button. */
+  actions?: ReactNode;
 }
-export interface AtlasRailProps<Row> {
-  scroll: GranumGridState<Row>;
-  options?: AtlasRailOptions;
+export interface AtlasRailProps<Row> extends AtlasRailOptions {
+  /** The `useGranumGrid` result. */
+  grid: GranumGridState<Row>;
+  /** Extra places drawn with the markers, such as search results. N/P does not visit them. */
+  highlights?: readonly Marker[];
+  /** While true, dragging on the map draws `selection` instead of navigating. */
+  selecting?: boolean;
+  /** Called with false when a map selection ends or is cancelled. */
+  onSelectingChange?(selecting: boolean): void;
   ariaLabel?: string;
   className?: string;
   style?: CSSProperties;
-  /** Host controls displayed beside the map title and help button. */
-  headerActions?: ReactNode;
   renderPreviewRow?(row: Row, index: number): ReactNode;
 }
 interface HoverTarget {
@@ -84,25 +94,50 @@ function previewText(row: unknown) {
     : String(row);
 }
 
+const NO_HIGHLIGHTS: readonly Marker[] = [];
+
+/** An element's rendered height, followed while `key` keeps the same element mounted. */
+function useElementHeight(
+  ref: RefObject<HTMLElement | null>,
+  initial: number,
+  box: 'clientHeight' | 'offsetHeight',
+  key?: unknown,
+) {
+  const [height, setHeight] = useState(initial);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setHeight(element[box]));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, box, key]);
+  return height;
+}
+
 export function AtlasRail<Row>({
-  scroll,
+  grid,
+  highlights = NO_HIGHLIGHTS,
+  selecting = false,
+  onSelectingChange,
   ariaLabel = 'Dataset position',
   renderPreviewRow,
   className,
   style,
-  headerActions,
-  options = {},
+  actions,
+  ...options
 }: AtlasRailProps<Row>) {
   const helpId = useId();
   const rangeDrag = useRef<{ anchor: number; previous: RowRange | null } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [chart, setChart] = useState<{ session: GranumGridState<Row>['session']; id: string }>();
-  const [trackHeight, setTrackHeight] = useState(400);
+  const { engine, session, mapping, features, reduceMotion } = grid[INTERNAL];
+  const { snapshot, provider, selection } = grid;
+  const setSelection = grid.api.setSelection;
+  const [chart, setChart] = useState<{ session: typeof session; id: string }>();
   const track = useRef<HTMLDivElement>(null);
+  const trackHeight = useElementHeight(track, 400, 'clientHeight');
   const canvas = useRef<HTMLCanvasElement>(null);
   const magnifier = useRef<HTMLCanvasElement>(null);
   const previewElement = useRef<HTMLDivElement>(null);
-  const [previewHeight, setPreviewHeight] = useState(180);
   const [hover, setHoverState] = useState<HoverTarget | null>(null);
   // Pointer moves arrive every frame; keep the same state when the target has not changed.
   const setHover = (next: HoverTarget | null) =>
@@ -129,11 +164,10 @@ export function AtlasRail<Row>({
   } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
-  const { session, snapshot, features } = scroll;
   // Release the previous dataset's session as well as resetting its chart choice.
   if (chart && chart.session !== session) setChart(undefined);
   useEffect(() => {
-    const controller = scroll.controller;
+    const controller = engine;
     let previous = controller.getSnapshot().position;
     let settle: ReturnType<typeof setTimeout> | undefined;
     setScrollDirection(null);
@@ -151,15 +185,15 @@ export function AtlasRail<Row>({
       unsubscribe();
       clearTimeout(settle);
     };
-  }, [scroll.controller]);
+  }, [engine]);
   const total = snapshot.rowCount;
   const markers = useMemo(
-    () => [...scroll.markers, ...scroll.searchMarkers],
-    [scroll.markers, scroll.searchMarkers],
+    () => (highlights.length ? [...grid.markers, ...highlights] : grid.markers),
+    [grid.markers, highlights],
   );
-  const hasBookmarks = scroll.markers.some((marker) => marker.kind === 'bookmark');
-  const visibleStart = Math.max(0, scroll.mapping.toRow(0));
-  const visibleEnd = Math.min(total, scroll.mapping.toRow(snapshot.height));
+  const hasBookmarks = grid.markers.some((marker) => marker.kind === 'bookmark');
+  const visibleStart = Math.max(0, mapping.toRow(0));
+  const visibleEnd = Math.min(total, mapping.toRow(snapshot.height));
   /** Place a half-open row span on the track. */
   const spanStyle = (start: number, end: number) => ({
     top: `${(start / Math.max(1, total)) * 100}%`,
@@ -172,7 +206,7 @@ export function AtlasRail<Row>({
       ? session.tracks.find((item) => item.id === chart.id)
       : undefined;
   const overview = selectedTrack?.buckets ?? session.overview;
-  const metric = selectedTrack ? selectedTrack.metric : scroll.provider.metric;
+  const metric = selectedTrack ? selectedTrack.metric : provider.metric;
   const metricLabel = selectedTrack?.label ?? metric?.label ?? 'Value';
   const metricDomain = metric?.domain;
   const metricKind = metric?.kind;
@@ -181,19 +215,19 @@ export function AtlasRail<Row>({
     [overview, metricDomain, metricKind],
   );
   const kind = metricKind ?? 'value';
-  const showProfile = options.variant !== 'markers' && features.overview;
-  const showMarkers = options.showMarkers !== false && features.markers;
-  const peakGravity = features.magnetism && showProfile && options.snapToPeaks !== false;
+  const showProfile = options.variant !== 'markers';
+  const showMarkers = options.showMarkers !== false;
+  const precisionDrag = options.precision !== false;
+  const peakGravity = showProfile && options.snapToPeaks !== false;
   const peaks = useMemo(
     () => (peakGravity ? atlasPeaks(overview, domain, kind) : []),
     [peakGravity, overview, domain, kind],
   );
   const preview = options.preview ?? 'rows';
-  const showPreviewRows = preview === 'rows' && features.preview;
-  const showMagnifier =
-    preview !== 'none' && options.showMagnifier === true && features.magnifier && showProfile;
-  const previewVisible =
-    !!hover && !helpOpen && (dragging || preview === 'summary' || showPreviewRows || showMagnifier);
+  const showPreviewRows = preview === 'rows';
+  const showMagnifier = preview !== 'none' && options.showMagnifier === true && showProfile;
+  const previewVisible = !!hover && !helpOpen && (dragging || preview !== 'none');
+  const previewHeight = useElementHeight(previewElement, 180, 'offsetHeight', previewVisible);
   const previewRows = Number.isFinite(options.previewRows)
     ? clamp(Math.floor(options.previewRows!), 1, 5)
     : 3;
@@ -203,12 +237,11 @@ export function AtlasRail<Row>({
   const showRange = !!options.showRange && kind === 'value';
   const axis = options.axis ?? 'chapters';
   const tickLimit = Math.min(maxAxisTicks, Math.max(2, Math.floor(trackHeight / 70)));
-  const tickChapters = features.chapters ? session.chapters : null;
   const ticks = useMemo(
-    () => atlasTicks(total, tickChapters ?? [], axis, tickLimit),
-    [total, tickChapters, axis, tickLimit],
+    () => atlasTicks(total, session.chapters, axis, tickLimit),
+    [total, session.chapters, axis, tickLimit],
   );
-  const hasChapterAxis = axis === 'chapters' && features.chapters && session.chapters.length > 0;
+  const hasChapterAxis = axis === 'chapters' && session.chapters.length > 0;
   const axisLabel =
     axis === 'chapters' && !hasChapterAxis
       ? 'Row'
@@ -216,12 +249,12 @@ export function AtlasRail<Row>({
   // The host formatter describes the primary metric, not unrelated track units.
   const formatValue = (value: number) => {
     if (!selectedTrack && options.formatValue) return options.formatValue(value);
-    return `${formatDecimal(value, 1)}${metric?.unit ? `${metric.unit === '%' ? '' : ' '}${metric.unit}` : ''}`;
+    return formatMetric(value, 1, metric?.unit);
   };
   const profileLabel = kind === 'density' ? 'Density' : 'Average';
   const overviewSupported = !!(selectedTrack
-    ? scroll.provider.fetchOverviewTracks
-    : scroll.provider.fetchOverview);
+    ? provider.fetchOverviewTracks
+    : provider.fetchOverview);
   const overviewFailed = !!(selectedTrack
     ? session.metadataErrors.tracks
     : session.metadataErrors.overview);
@@ -233,16 +266,8 @@ export function AtlasRail<Row>({
       }),
     [overview, kind, overviewSupported, overviewFailed],
   );
-  const hoverBucket = hover
-    ? overview.find((b) => hover.index >= b.start && hover.index < b.end)
-    : undefined;
+  const hoverBucket = hover ? bucketAt(overview, hover.index) : undefined;
   const hoverValue = hoverBucket ? profileValue(hoverBucket, kind) : null;
-  useEffect(() => {
-    if (!track.current) return;
-    const observer = new ResizeObserver(() => setTrackHeight(track.current?.clientHeight ?? 400));
-    observer.observe(track.current);
-    return () => observer.disconnect();
-  }, []);
   useEffect(() => {
     if (!canvas.current) return;
     const draw = () =>
@@ -267,13 +292,6 @@ export function AtlasRail<Row>({
     );
     return () => session.setRange('preview', 0, 0);
   }, [session, previewIndex, previewRows, total, showPreviewRows, dragging]);
-  useEffect(() => {
-    const element = previewElement.current;
-    if (!element) return;
-    const resize = new ResizeObserver(() => setPreviewHeight(element.offsetHeight));
-    resize.observe(element);
-    return () => resize.disconnect();
-  }, [previewVisible]);
   useEffect(() => {
     if (!magnifier.current || hoverIndex === undefined) return;
     const range = Math.max(1, total * 0.045),
@@ -300,18 +318,18 @@ export function AtlasRail<Row>({
   };
   const finish = (cancel = false) => {
     if (rangeDrag.current) {
-      if (cancel) scroll.setSelection(rangeDrag.current.previous);
+      if (cancel) setSelection(rangeDrag.current.previous);
       rangeDrag.current = null;
-      scroll.setSelectionMode(false);
+      onSelectingChange?.(false);
       setDragging(false);
       return;
     }
     if (drag.current) {
       const state = drag.current;
       if (!state.moved && !cancel) {
-        scroll.controller.endScrub(true);
-        scroll.controller.goTo(Math.round(state.destination));
-      } else scroll.controller.endScrub(cancel);
+        engine.endScrub(true);
+        engine.goTo(Math.round(state.destination));
+      } else engine.endScrub(cancel);
     }
     drag.current = null;
     setDragging(false);
@@ -327,7 +345,7 @@ export function AtlasRail<Row>({
       data-marker-labels={options.markerLabels ?? 'label'}
       data-show-markers={showMarkers}
       data-scrolling={scrollDirection ?? undefined}
-      data-scroll-motion={!scroll.reduceMotion && features.transitions ? 'on' : 'off'}
+      data-scroll-motion={!reduceMotion && features.transitions ? 'on' : 'off'}
       onKeyDown={(event) => {
         if (event.key === 'Escape') setHelpOpen(false);
       }}
@@ -347,7 +365,7 @@ export function AtlasRail<Row>({
           >
             ?
           </button>
-          {headerActions}
+          {actions}
         </div>
       </div>
       <div id={helpId} className="ds-map-help" hidden={!helpOpen} role="note" tabIndex={0}>
@@ -388,7 +406,7 @@ export function AtlasRail<Row>({
           </p>
         )}
       </div>
-      {scroll.selectionMode && (
+      {selecting && (
         <p className="ds-selection-hint" role="status">
           Drag on the scrollbar to select a range. Escape cancels.
         </p>
@@ -420,7 +438,7 @@ export function AtlasRail<Row>({
                   setHover(null);
                 }}
               >
-                <option value="primary">{scroll.provider.metric?.label ?? 'Value'}</option>
+                <option value="primary">{provider.metric?.label ?? 'Value'}</option>
                 {session.tracks.map((item) => (
                   <option key={item.id} value={`track:${item.id}`}>
                     {item.label}
@@ -463,16 +481,16 @@ export function AtlasRail<Row>({
             ?.focus({ preventScroll: true });
           event.currentTarget.setPointerCapture(event.pointerId);
           const raw = atPointer(event.clientY),
-            target = atPointer(event.clientY, !event.shiftKey && !scroll.selectionMode),
+            target = atPointer(event.clientY, !event.shiftKey && !selecting),
             rect = track.current!.getBoundingClientRect();
           const nearThumb = Math.abs(target.y - snapshot.progress * rect.height) <= 14;
-          if (scroll.selectionMode) {
-            rangeDrag.current = { anchor: target.index, previous: scroll.selection };
-            scroll.setSelection({ start: target.index, end: target.index + 1 });
+          if (selecting) {
+            rangeDrag.current = { anchor: target.index, previous: selection };
+            setSelection({ start: target.index, end: target.index + 1 });
             setDragging(true);
             return;
           }
-          scroll.controller.beginScrub();
+          engine.beginScrub();
           drag.current = {
             x: event.clientX,
             y: event.clientY,
@@ -489,19 +507,19 @@ export function AtlasRail<Row>({
         onPointerMove={(event) => {
           const target = atPointer(event.clientY);
           if (rangeDrag.current) {
-            scroll.setSelection({
+            setSelection({
               start: Math.min(target.index, rangeDrag.current.anchor),
               end: Math.max(target.index, rangeDrag.current.anchor) + 1,
             });
             return;
           }
           if (!drag.current) {
-            setHover(atPointer(event.clientY, !event.shiftKey && !scroll.selectionMode));
+            setHover(atPointer(event.clientY, !event.shiftKey && !selecting));
             return;
           }
           const state = drag.current,
             rect = track.current!.getBoundingClientRect();
-          const away = features.precision ? Math.abs(event.clientX - state.x) : 0;
+          const away = precisionDrag ? Math.abs(event.clientX - state.x) : 0;
           const step = PRECISION_STEPS.find((item) => away > item.away);
           const rate = step?.rate ?? 1;
           if (rate !== state.rate) {
@@ -522,13 +540,12 @@ export function AtlasRail<Row>({
           let markerSnapped = false;
           if (
             delta !== 0 &&
-            features.magnetism &&
             showMarkers &&
             options.snapToMarkers !== false &&
             !event.shiftKey &&
             Math.abs(delta) < 40
           ) {
-            const nearby = scroll.markers
+            const nearby = grid.markers
               .filter(
                 (marker) =>
                   (Math.abs(marker.index - position) / Math.max(1, total - 1)) * rect.height <
@@ -553,7 +570,7 @@ export function AtlasRail<Row>({
             peak = attracted.peak;
           }
           state.destination = position;
-          scroll.controller.scrub(position);
+          engine.scrub(position);
           setHover({ index: Math.round(position), y: target.y, peak });
         }}
         onPointerUp={(event) => {
@@ -576,13 +593,11 @@ export function AtlasRail<Row>({
           }
           if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault();
-            scroll.controller.pan(
-              event.key === 'ArrowDown' ? snapshot.rowHeight : -snapshot.rowHeight,
-            );
+            engine.pan(event.key === 'ArrowDown' ? snapshot.rowHeight : -snapshot.rowHeight);
           }
           if (event.key === 'Home' || event.key === 'End') {
             event.preventDefault();
-            scroll.controller.goTo(event.key === 'Home' ? 0 : Math.max(0, total - 1));
+            engine.goTo(event.key === 'Home' ? 0 : Math.max(0, total - 1));
           }
         }}
       >
@@ -614,7 +629,7 @@ export function AtlasRail<Row>({
             markers={markers}
             total={total}
             height={trackHeight}
-            controller={scroll.controller}
+            controller={engine}
             labels={options.markerLabels}
           />
         )}
@@ -625,15 +640,14 @@ export function AtlasRail<Row>({
             style={spanStyle(visibleStart, visibleEnd)}
           />
         )}
-        {scroll.selection && (
+        {selection && (
           <span
             className="ds-map-selection"
             aria-hidden="true"
-            style={spanStyle(scroll.selection.start, scroll.selection.end)}
+            style={spanStyle(selection.start, selection.end)}
           />
         )}
-        {features.trail &&
-          options.showTrail !== false &&
+        {options.showTrail !== false &&
           snapshot.trail.map((position, i) => (
             <span
               key={i}
@@ -669,7 +683,7 @@ export function AtlasRail<Row>({
           </span>
         </span>
         <span className="ds-track-line" style={{ top: `${snapshot.progress * 100}%` }} />
-        {hover && !dragging && !scroll.selectionMode && (
+        {hover && !dragging && !selecting && (
           <span
             className="ds-map-hover"
             aria-hidden="true"
@@ -741,7 +755,7 @@ export function AtlasRail<Row>({
             ) : (
               dragging && (
                 <small>
-                  {features.precision && precision === FULL_SPEED
+                  {precisionDrag && precision === FULL_SPEED
                     ? 'Move left for precision'
                     : precision}
                 </small>

@@ -9,15 +9,16 @@ import type {
   SearchResult,
 } from 'granum-grid';
 import { splitRange } from './ranges';
-import { checkPredicate } from './search';
+import { datePeriod, iso, reach, remember, sharedLoad, type Fetch } from './remote';
+import { checkPredicate, dateResult, type Predicate } from './search';
 
 /**
  * Hacker News' public Firebase API: no key, any origin, one item per request. Item IDs
  * start at 1 and are never reused, so row `i` is item `i + 1` and addresses never move.
  */
-export const HN_API = 'https://hacker-news.firebaseio.com/v0';
+const HN_API = 'https://hacker-news.firebaseio.com/v0';
 /** Algolia's public Hacker News index: full-text search, posting times, and points. */
-export const ALGOLIA_API = 'https://hn.algolia.com/api/v1';
+const ALGOLIA_API = 'https://hn.algolia.com/api/v1';
 const SECOND = 1000;
 const HOUR = 3600 * SECOND;
 const DAY = 24 * HOUR;
@@ -68,9 +69,28 @@ const CACHED_SEARCHES = 32;
 /** A date search steps over at most this many unindexed items after Algolia's answer. */
 const DATE_STEPS = 8;
 const TEXT_LENGTH = 280;
+/** Inspector text kept per loaded item. Pages stay small; the rest is not stored. */
+const BODY_LIMIT = 12_000;
+const LINK_LIMIT = 40;
+/** Direct reply ids kept on the row. `replies` is still the full count. */
+const KID_LIMIT = 48;
 
 export type ItemType = 'story' | 'comment' | 'job' | 'poll' | 'pollopt';
 const ITEM_TYPES: readonly string[] = ['story', 'comment', 'job', 'poll', 'pollopt'];
+/** One inline run. `href` is present only for an http(s) link. */
+export interface ItemPart {
+  text: string;
+  href?: string;
+}
+export interface ItemParagraph {
+  /** Code blocks keep their line breaks; other paragraphs are prose. */
+  code: boolean;
+  parts: ItemPart[];
+}
+export interface ItemLink {
+  href: string;
+  label: string;
+}
 export type HackerNewsItem =
   | {
       id: number;
@@ -80,14 +100,23 @@ export type HackerNewsItem =
       time: number;
       by: string;
       title: string;
-      /** Plain text with markup removed, at most 280 characters. */
+      /** Plain preview with markup removed, at most 280 characters. */
       text: string;
+      /** Full text kept for the inspector, markup removed and links preserved. */
+      body: ItemParagraph[];
+      /** http(s) links from the text, in order. */
+      links: ItemLink[];
+      /** True when `body` was cut at the storage limit. */
+      textTruncated: boolean;
+      /** Article URL, or empty. Only http(s) is kept. */
       url: string;
       score: number | null;
       /** Comments in a story's whole thread. */
       descendants: number | null;
       /** Direct replies. */
       replies: number;
+      /** Direct reply item ids kept for the inspector. `replies` is the full count. */
+      kids: number[];
       parent: number | null;
       deleted: boolean;
       dead: boolean;
@@ -107,20 +136,144 @@ const ENTITIES: Record<string, string> = {
   apos: "'",
   nbsp: ' ',
 };
+function decodeEntities(value: string) {
+  return value.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, code: string) => {
+    if (code[0] !== '#') return ENTITIES[code.toLowerCase()] ?? entity;
+    const hex = code[1] === 'x' || code[1] === 'X';
+    const point = parseInt(code.slice(hex ? 2 : 1), hex ? 16 : 10);
+    return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : entity;
+  });
+}
 /** Text of an HN HTML fragment for display as plain text; markup is dropped, not rendered. */
 export function plainText(html: string, max = TEXT_LENGTH) {
-  const text = html
-    .replace(/<p>/gi, ' ')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, code: string) => {
-      if (code[0] !== '#') return ENTITIES[code.toLowerCase()] ?? entity;
-      const hex = code[1] === 'x' || code[1] === 'X';
-      const point = parseInt(code.slice(hex ? 2 : 1), hex ? 16 : 10);
-      return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : entity;
-    })
+  const text = decodeEntities(html.replace(/<p>/gi, ' ').replace(/<[^>]*>/g, ''))
     .replace(/\s+/g, ' ')
     .trim();
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+function inlineText(html: string) {
+  return decodeEntities(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ');
+}
+/** http(s) only, so a comment cannot carry a script or data URL into the page. */
+export function safeHttpUrl(raw: string) {
+  const href = decodeEntities(raw).trim();
+  if (!href) return null;
+  try {
+    const url = new URL(href);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+export function httpHost(href: string) {
+  try {
+    return new URL(href).hostname.replace(/^www\./, '');
+  } catch {
+    return href;
+  }
+}
+function attr(attrs: string, name: string) {
+  const match = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>]+))`, 'i').exec(
+    attrs,
+  );
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
+}
+function blocks(html: string) {
+  const result: { code: boolean; html: string }[] = [];
+  const re = /<pre\b[^>]*>([\s\S]*?)<\/pre>|<p\b[^>]*>|<\/p>|<br\s*\/?>/gi;
+  let last = 0;
+  let buf = '';
+  let match: RegExpExecArray | null;
+  const flush = () => {
+    if (inlineText(buf).trim()) result.push({ code: false, html: buf });
+    buf = '';
+  };
+  while ((match = re.exec(html))) {
+    buf += html.slice(last, match.index);
+    last = match.index + match[0].length;
+    if (match[0].toLowerCase().startsWith('<pre')) {
+      flush();
+      if (match[1].trim()) result.push({ code: true, html: match[1] });
+    } else flush();
+  }
+  buf += html.slice(last);
+  flush();
+  return result;
+}
+export interface CommentBody {
+  paragraphs: ItemParagraph[];
+  links: ItemLink[];
+  truncated: boolean;
+}
+/**
+ * Comment HTML as paragraphs and links. Tags are not rendered: Hacker News HTML is
+ * untrusted, and the row only needs the text and the http(s) anchors.
+ */
+export function commentBody(html: string, max = BODY_LIMIT): CommentBody {
+  const paragraphs: ItemParagraph[] = [];
+  const links: ItemLink[] = [];
+  let used = 0;
+  let truncated = false;
+  const take = (text: string) => {
+    if (truncated || !text) return '';
+    const room = max - used;
+    if (room <= 0) {
+      truncated = true;
+      return '';
+    }
+    const slice = text.length > room ? text.slice(0, room) : text;
+    if (slice.length < text.length) truncated = true;
+    used += slice.length;
+    return slice;
+  };
+  for (const block of blocks(html)) {
+    if (truncated) break;
+    const parts: ItemPart[] = [];
+    const re = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+    let last = 0;
+    let match: RegExpExecArray | null;
+    const pushText = (raw: string, href?: string) => {
+      const text = take(block.code ? decodeEntities(raw.replace(/<[^>]*>/g, '')) : inlineText(raw));
+      if (!text) return;
+      const prev = parts[parts.length - 1];
+      if (prev && !href && !prev.href) prev.text += text;
+      else parts.push(href ? { text, href } : { text });
+      if (href) links.push({ href, label: text });
+    };
+    while ((match = re.exec(block.html))) {
+      pushText(block.html.slice(last, match.index));
+      const href = links.length < LINK_LIMIT ? safeHttpUrl(attr(match[1], 'href')) : null;
+      const label = inlineText(match[2]).trim();
+      if (href && label) pushText(label, href);
+      else pushText(match[2]);
+      last = match.index + match[0].length;
+      if (truncated) break;
+    }
+    if (!truncated) pushText(block.html.slice(last));
+    if (parts.length && !block.code) {
+      parts[0] = { ...parts[0], text: parts[0].text.trimStart() };
+      const end = parts[parts.length - 1];
+      parts[parts.length - 1] = { ...end, text: end.text.trimEnd() };
+    }
+    const filled = parts.filter((part) => part.text);
+    if (filled.length) paragraphs.push({ code: block.code, parts: filled });
+  }
+  return { paragraphs, links, truncated };
+}
+function parsedText(html: string) {
+  const body = commentBody(html);
+  return { body: body.paragraphs, links: body.links, textTruncated: body.truncated };
+}
+function replyIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  const ids: number[] = [];
+  for (const kid of value) {
+    if (typeof kid !== 'number' || !Number.isSafeInteger(kid) || kid < 1) continue;
+    ids.push(kid);
+    if (ids.length === KID_LIMIT) break;
+  }
+  return ids;
 }
 
 const str = (value: unknown) => (typeof value === 'string' ? value : '');
@@ -142,10 +295,12 @@ function parseItem(id: number, value: unknown): HackerNewsItem {
     by: str(item.by),
     title: plainText(str(item.title)),
     text: plainText(str(item.text)),
-    url: str(item.url),
+    ...parsedText(str(item.text)),
+    url: safeHttpUrl(str(item.url)) ?? '',
     score: num(item.score),
     descendants: num(item.descendants),
     replies: Array.isArray(item.kids) ? item.kids.length : 0,
+    kids: replyIds(item.kids),
     parent: num(item.parent),
     deleted: item.deleted === true,
     dead: item.dead === true,
@@ -220,14 +375,9 @@ function linked(signal: AbortSignal) {
     done: () => signal.removeEventListener('abort', abort),
   };
 }
-const remember = <K, V>(map: Map<K, V>, key: K, value: V, limit: number) => {
-  map.delete(key);
-  map.set(key, value);
-  if (map.size > limit) map.delete(map.keys().next().value!);
-};
 
 export interface HackerNewsClientOptions {
-  fetch?: (url: string, init: { signal: AbortSignal }) => Promise<Response>;
+  fetch?: Fetch;
 }
 /** Item, latest-item, and Algolia reads with one shared concurrency limit and small caches. */
 export function createHackerNewsClient(options: HackerNewsClientOptions = {}) {
@@ -236,13 +386,7 @@ export function createHackerNewsClient(options: HackerNewsClientOptions = {}) {
   const times = new Map<number, number>();
   const searches = new Map<string, AlgoliaPage>();
   async function json(url: string, signal: AbortSignal, source: string): Promise<unknown> {
-    let response: Response;
-    try {
-      response = await request(url, { signal });
-    } catch (error) {
-      if (signal.aborted) throw error;
-      throw new Error(`Could not reach ${source}. Check the connection and retry.`);
-    }
+    const response = await reach(request, url, signal, source);
     if (response.status === 429)
       throw new Error(`${source} rate limit reached. Wait a minute and retry.`);
     if (!response.ok) throw new Error(`${source} request failed (HTTP ${response.status}).`);
@@ -295,8 +439,6 @@ export function createHackerNewsClient(options: HackerNewsClientOptions = {}) {
 }
 export type HackerNewsClient = ReturnType<typeof createHackerNewsClient>;
 
-const iso = (time: number) => new Date(time).toISOString();
-export const timeLabel = (time: number) => iso(time).slice(0, 19).replace('T', ' ');
 /** Posting dates a group spans, to the minute within a day. */
 function rangeLabel(t0: number, t1: number) {
   const [a, b] = [iso(t0), iso(t1)];
@@ -315,7 +457,6 @@ function hitLabel(hit: AlgoliaHit) {
   return `Comment by ${hit.author ?? 'unknown'}${on} · ${day}`;
 }
 
-type Predicate = Extract<ProviderQuery, { kind: 'predicate' }>;
 /** Algolia parameters for a supported predicate. */
 function predicateParams(query: Predicate): Record<string, string> {
   if (query.field === 'points' || query.field === 'comments') {
@@ -358,7 +499,7 @@ export function hackerNewsProvider(
     const start = Math.max(0, range.start),
       end = Math.min(rowCount, range.end);
     if (end <= start || range.buckets < 1) return [];
-    const parts = splitRange(start, end, Math.min(range.buckets, end - start, groups));
+    const parts = splitRange(start, end, Math.min(range.buckets, groups));
     const edges = [...parts.map((part) => part.start + 1), end < rowCount ? end + 1 : end];
     const times = await Promise.all(edges.map((id) => client.time(id, signal)));
     const ends = await Promise.all(
@@ -415,18 +556,10 @@ export function hackerNewsProvider(
   }
   /** First row of a `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` period, or null outside the data. */
   async function dateIndex(value: string, signal: AbortSignal) {
-    const parts = value.split('-').map(Number);
-    const [year, month = 1, day = 1] = parts;
-    const start = Date.UTC(year, month - 1, day);
-    const end =
-      parts.length === 1
-        ? Date.UTC(year + 1, 0, 1)
-        : parts.length === 2
-          ? Date.UTC(year, month, 1)
-          : Date.UTC(year, month - 1, day + 1);
+    const { start, end, year } = datePeriod(value);
     if (!Number.isFinite(start) || end <= FIRST_TIME || start > Date.now()) return null;
     if (start <= FIRST_TIME) return 0;
-    const known = parts.length === 1 && YEAR_STARTS.find(([y]) => y === year);
+    const known = year !== null && YEAR_STARTS.find(([y]) => y === year);
     const index = known ? known[1] - 1 : await indexAt(start, signal);
     return index !== null && index < rowCount ? index : null;
   }
@@ -474,20 +607,11 @@ export function hackerNewsProvider(
   }
   async function search(query: ProviderQuery, context: SearchContext): Promise<SearchResult> {
     context.signal.throwIfAborted();
-    if (query.kind === 'date') {
-      const index = await dateIndex(query.value, context.signal);
-      return {
-        matches:
-          index === null
-            ? []
-            : [{ id: `date-${query.value}`, index, label: query.value, kind: 'search' }],
-        complete: true,
-      };
-    }
+    if (query.kind === 'date')
+      return dateResult(query.value, await dateIndex(query.value, context.signal));
     if (query.kind === 'text') return matches('search', { query: query.value }, context);
     return matches('search', predicateParams(query), context);
   }
-  let markers: Promise<Marker[]> | null = null;
   async function computeMarkers(signal: AbortSignal): Promise<Marker[]> {
     const fields = { attributesToRetrieve: 'created_at_i,title,points,num_comments' };
     const [upvoted, discussed] = await Promise.all([
@@ -526,19 +650,7 @@ export function hackerNewsProvider(
       .filter((marker) => Number.isSafeInteger(marker.index) && marker.index < rowCount)
       .sort((a, b) => a.index - b.index);
   }
-  function loadMarkers(signal: AbortSignal) {
-    // Shared once complete; a canceled or failed load is retried by the next caller.
-    const pending = (markers ??= computeMarkers(new AbortController().signal).catch((error) => {
-      markers = null;
-      throw error;
-    }));
-    return new Promise<Marker[]>((resolve, reject) => {
-      signal.throwIfAborted();
-      const abort = () => reject(signal.reason);
-      signal.addEventListener('abort', abort, { once: true });
-      pending.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
-    });
-  }
+  const loadMarkers = sharedLoad(computeMarkers);
   async function fetchChapters(signal: AbortSignal): Promise<Chapter[]> {
     const lastYear = YEAR_STARTS[YEAR_STARTS.length - 1][0];
     const later: [number, number][] = [];

@@ -36,6 +36,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      # These steps mirror `check:full` in package.json one command at a time; keep them in sync.
       - name: Lint hooks and library browser APIs
         run: npm run lint
 

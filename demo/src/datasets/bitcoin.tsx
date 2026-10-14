@@ -1,12 +1,7 @@
-import {
-  bitcoinProvider,
-  liveRowCount,
-  secondLabel,
-  timeAt,
-  type BitcoinSecond,
-} from '../data/binance';
+import { bitcoinProvider, liveRowCount, timeAt, type BitcoinSecond } from '../data/binance';
+import { secondLabel } from '../data/remote';
 import { BitcoinIcon } from './icons';
-import { compact, formatCount, showAll, type DemoDataset } from './types';
+import { compact, flyToMarker, formatCount, inspectLatest, type DemoDataset } from './types';
 
 const provider = bitcoinProvider(liveRowCount());
 const price = (value: number) =>
@@ -31,32 +26,10 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
     'Live data from Binance’s public market-data API (BTC/USDT 1-second candles), requested directly by this page without a key. The demo spends at most half of Binance’s per-address rate limit and pauses when Binance asks it to.',
   formatRange: ({ start, end }) =>
     `${secondLabel(timeAt(start))} – ${secondLabel(timeAt(end - 1))} UTC`,
-  summaryBucketSizes: [
-    { label: '1 minute', rows: 60 },
-    { label: '1 hour', rows: 3600 },
-    { label: '1 day', rows: 86400 },
-    { label: '1 week', rows: 604800 },
-    { label: '30 days', rows: 2592000 },
-    { label: '365 days', rows: 31536000 },
-  ],
-  formatBucketSize: (rows) => {
-    const [unit, seconds] =
-      rows >= 31_536_000
-        ? ['years', 31_536_000]
-        : rows >= 86400
-          ? ['days', 86400]
-          : rows >= 3600
-            ? ['hours', 3600]
-            : rows >= 60
-              ? ['minutes', 60]
-              : ['seconds', 1];
-    const value = rows / seconds;
-    return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })} ${value === 1 ? unit.slice(0, -1) : unit}`;
-  },
   task: {
     title: 'Find the sharpest one-day fall, then read the seconds around it.',
-    action: 'See whole history',
-    run: showAll,
+    action: 'Inspect latest rows',
+    run: inspectLatest,
   },
   atlas: { axisLabel: 'Year', formatValue: (v) => `$${compact(v)}` },
   map: {
@@ -78,41 +51,73 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
       <span className="bt-col-buy">Taker buy</span>
     </>
   ),
+  renderDetails: (row) => (
+    <>
+      <p className="inspector-market">BTC / USDT · 1-second candle</p>
+      <p className="inspector-timestamp">
+        <time dateTime={new Date(row.time).toISOString()}>
+          {new Date(row.time).toISOString().replace('T', ' ').replace('.000Z', ' UTC')}
+        </time>
+      </p>
+      {row.missing ? (
+        <p>No candle published for this second. Values are unavailable.</p>
+      ) : (
+        <>
+          <dl className="candle-details">
+            {(
+              [
+                ['Open', row.open, 'USDT'],
+                ['High', row.high, 'USDT'],
+                ['Low', row.low, 'USDT'],
+                ['Close', row.close, 'USDT'],
+                ['Volume', row.volume, 'BTC'],
+                ['Quote volume', row.quoteVolume, 'USDT'],
+                ['Trades', row.trades, ''],
+                ['Taker buy volume', row.takerBuyVolume, 'BTC'],
+              ] as const
+            ).map(([label, value, unit]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>
+                  {String(value)}
+                  {unit && <span> {unit}</span>}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {row.trades === 0 && <p>No trades occurred in this second.</p>}
+        </>
+      )}
+      <p className="inspector-source">
+        Source: Binance BTC/USDT candle. Values shown at the precision supplied by the loaded
+        record.
+      </p>
+    </>
+  ),
   tour: [
     {
       feature: 'Flight',
       label: 'Fly to the highest trade',
       hint: 'Found from the data: weekly, daily, hourly, and minute candles narrow it to one second.',
-      run: async ({ controller }) => {
-        const markers = await provider.loadMarkers(new AbortController().signal);
-        const peak = markers.find((marker) => marker.id === 'highest');
-        if (peak) controller.goTo(peak.index);
-      },
+      run: flyToMarker(provider, 'highest'),
     },
     {
       feature: 'Search',
       label: 'Next trade above $100k',
       hint: 'Price thresholds descend from weeks to the exact second in a handful of requests.',
-      run: ({ search }) => search('high >= 100000'),
+      run: (api) => api.openSearch('high >= 100000'),
     },
     {
       feature: 'Dates',
       label: 'Jump to 12 March 2020',
       hint: 'Type any date — 2020, 2020-03, or 2020-03-12 — and press Enter. Row addresses are seconds.',
-      run: ({ search }) => search('2020-03-12'),
+      run: (api) => api.openSearch('2020-03-12'),
     },
     {
       feature: 'Markers',
       label: 'Next big move',
       hint: 'Markers are the largest daily rises and falls in the data. N and P step between them.',
-      run: ({ controller }) => controller.nextMarker(),
-    },
-    {
-      feature: 'Zoom',
-      requiredView: 'zoom',
-      label: 'Nine years at once',
-      hint: 'Summaries come from coarser candles as you zoom out, so a few requests cover any range.',
-      run: ({ fit }) => fit(),
+      run: (api) => api.nextMarker(),
     },
   ],
   renderRow: ({ row }) => {
@@ -137,17 +142,26 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
         </>
       );
     const trend = row.close > row.open ? 'up' : row.close < row.open ? 'down' : 'flat';
+    // A second without trades repeats the last price; muting it lets active seconds stand out.
+    const quiet = row.trades === 0 || undefined;
+    const buyShare = row.volume > 0 ? Math.round((row.takerBuyVolume / row.volume) * 100) : null;
     return (
       <>
         {when}
-        <span role="gridcell" className="bt-close" data-trend={trend}>
-          <i aria-hidden="true">{trend === 'up' ? '▲' : trend === 'down' ? '▼' : '·'}</i>
+        <span
+          role="gridcell"
+          className="bt-close"
+          data-trend={trend}
+          data-quiet={quiet}
+          title={quiet && 'No trades in this second'}
+        >
+          <i aria-hidden="true">{trend === 'up' ? '▲' : trend === 'down' ? '▼' : ''}</i>
           {price(row.close)}
         </span>
         <span role="gridcell" className="bt-range">
-          {price(row.low)} – {price(row.high)}
+          {row.low === row.high ? price(row.low) : `${price(row.low)} – ${price(row.high)}`}
         </span>
-        <span role="gridcell" className="bt-volume">
+        <span role="gridcell" className="bt-volume" data-quiet={quiet}>
           <span className="mk-size-bar">
             <i style={{ width: `${Math.min(100, Math.log10(1 + row.volume * 100) * 25)}%` }} />
           </span>
@@ -157,7 +171,16 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
           {formatCount(row.trades)}
         </span>
         <span role="gridcell" className="bt-buy">
-          {row.volume > 0 ? `${Math.round((row.takerBuyVolume / row.volume) * 100)}%` : '—'}
+          {buyShare === null ? (
+            '—'
+          ) : (
+            <>
+              <span className="bt-buy-bar" aria-hidden="true">
+                <i style={{ width: `${buyShare}%` }} />
+              </span>
+              {buyShare}%
+            </>
+          )}
         </span>
       </>
     );

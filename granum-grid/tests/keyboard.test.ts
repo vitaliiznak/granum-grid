@@ -19,14 +19,14 @@ const key = (
   };
   return event;
 };
-const setup = (rowCount = 1000) => {
+const setup = (rowCount = 1000, { search = true } = {}) => {
   const engine = createEngine({ rowCount, rowHeight: 20 });
   engine.setViewport(200);
   engine.setMotion(false);
   const calls = { jump: 0, announcements: [] as string[] };
   const options = {
     engine,
-    openJump: () => calls.jump++,
+    openSearch: search ? () => calls.jump++ : undefined,
     announce: (message: string) => calls.announcements.push(message),
   };
   return {
@@ -106,6 +106,15 @@ it('leaves browser shortcuts alone', () => {
     expect(event.prevented).toBe(false);
   }
   expect(engine.getSnapshot().position).toBe(0);
+});
+
+it('leaves search shortcuts to the browser without a search UI', () => {
+  const { calls, press } = setup(1000, { search: false });
+  for (const event of [key('/'), key('k', { ctrl: true }), key('k', { meta: true })]) {
+    press(event);
+    expect(event.prevented).toBe(false);
+  }
+  expect(calls.jump).toBe(0);
 });
 
 it('pages with Space only where document scrolling is replaced', () => {

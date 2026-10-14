@@ -23,8 +23,7 @@ function summarize(
   };
 }
 function aggregate(model: Model, range: AggregateRequest): Bucket[] {
-  const parts = Math.min(range.buckets, range.end - range.start);
-  return splitRange(range.start, range.end, parts).map(({ start, end }) => ({
+  return splitRange(range.start, range.end, range.buckets).map(({ start, end }) => ({
     start,
     end,
     count: end - start,

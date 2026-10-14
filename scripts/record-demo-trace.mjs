@@ -22,10 +22,7 @@ try {
   await page.getByRole('button', { name: 'Try row 73,500,000' }).click();
   await page.locator('.demo-explorer [role=grid]').hover();
   await page.mouse.wheel(0, 960);
-  await page.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
-  await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
-  await page.locator('.ds-summary-band').first().waitFor();
-  await page.getByRole('button', { name: 'Inspect these rows', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
   await page.locator('.demo-explorer [data-status=ready]').first().waitFor();
   let deadline;
   try {
@@ -52,7 +49,7 @@ try {
     metadata: {
       source: 'Chromium CDP recording of the local Granum Grid signal demo',
       recordedOn: new Date().toISOString().slice(0, 10),
-      activity: 'Jump to row 73500000, scroll, fit overview, inspect a summary range',
+      activity: 'Jump to row 73500000, scroll, jump to Spike 3, inspect nearby rows',
       redaction: 'Event arguments and environment metadata omitted',
     },
   };

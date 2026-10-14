@@ -1,4 +1,4 @@
-import { expect, test, MOBILE } from './fixtures';
+import { expect, test, MOBILE, fitsViewportWidth } from './fixtures';
 
 test('inventory tutorial reaches the documented product and preserves history', async ({
   page,
@@ -27,8 +27,6 @@ test('sensor tutorial gives the documented exact selected-range summary', async 
   await expect(
     page.getByRole('grid', { name: 'Sensor readings' }).locator('[data-status="ready"]').first(),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'See the whole day' }).click();
-  await expect(page.getByRole('combobox', { name: 'View' })).toHaveValue('zoom');
   await page.getByRole('button', { name: 'Inspect warm interval' }).click();
   const selection = page.getByRole('region', { name: 'Your selection' });
   await expect(selection).toContainText('20 rows selected');
@@ -48,7 +46,7 @@ test('log tutorial teaches complete and partial search on a narrow viewport', as
   await expect(
     page.getByRole('grid', { name: 'Application logs' }).locator('[data-status="ready"]').first(),
   ).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  expect(await fitsViewportWidth(page)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('logs-mobile.png'), fullPage: true });
   const open = page.getByRole('button', { name: 'Find errors', exact: true });
   await open.click();
@@ -63,5 +61,39 @@ test('log tutorial teaches complete and partial search on a narrow viewport', as
   await expect(dialog).not.toBeVisible();
   await expect(page.getByTestId('position')).toHaveText('Row 31 of 600');
   await expect(open).toBeFocused();
+  expect(pageErrors).toEqual([]);
+});
+
+test('compose tutorial builds an explorer from the headless hook and controlled widgets', async ({
+  page,
+  pageErrors,
+}) => {
+  await page.goto('/tutorials.html?lesson=compose');
+  const rows = page.getByRole('grid', { name: 'Composed inventory' });
+  await expect(rows.locator('[data-status="ready"]').first()).toBeVisible();
+  const position = page.getByLabel('Current row');
+  await expect(position).toHaveText('Row 1 of 120');
+  // A host marker with its own kind reaches the map and its styling hook.
+  await expect(page.locator('.ds-marker[data-kind="restock"]')).toHaveCount(1);
+  await rows.focus();
+  await page.keyboard.press('n');
+  await expect(position).toHaveText('Row 100 of 120');
+  await expect(rows.getByRole('gridcell', { name: '100. SKU-100 · Notebook' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(position).toHaveText('Row 1 of 120');
+  const open = page.getByRole('button', { name: 'Search products' });
+  await open.click();
+  const dialog = page.getByRole('dialog', { name: 'Jump to a location' });
+  // The host passes the dialog's matches to the map as highlights.
+  await dialog.getByRole('textbox').fill('50');
+  await expect(page.locator('.ds-marker[data-kind="search"]')).toHaveCount(1);
+  await dialog.getByRole('textbox').fill('restock');
+  await dialog.getByRole('button', { name: /^Restock SKU-100 Row 100/ }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(position).toHaveText('Row 100 of 120');
+  await expect(page.locator('.ds-marker[data-kind="search"]')).toHaveCount(0);
+  await expect(open).toBeFocused();
+  await page.setViewportSize(MOBILE);
+  expect(await fitsViewportWidth(page)).toBe(true);
   expect(pageErrors).toEqual([]);
 });

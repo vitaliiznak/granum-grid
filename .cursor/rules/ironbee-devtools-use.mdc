@@ -5,13 +5,8 @@ alwaysApply: true
 
 # Repository workflow
 
-Read the root `AGENTS.md` before editing or reviewing code. Use
-`docs/AI_WORKFLOW.md` for setup, focused validation, and browser cleanup.
-Keep durable repository guidance in those files rather than duplicating it here.
-
-For changes with observable runtime effects, exercise the affected behavior after
-implementation, inspect the result, and check for browser errors. Use connected
-IronBee DevTools when available; otherwise use the repository's Playwright tests
-or an available browser tool. IronBee is optional and is not a project dependency.
-Docs, CI configuration, and tooling-only changes need their relevant checks rather
-than an unrelated UI run. Never leave browsers or servers you started running.
+Read the root `AGENTS.md` before editing or reviewing code. It contains the shared
+repository map, contracts, validation commands, and browser cleanup rules. Use
+`docs/AI_WORKFLOW.md` for setup, focused checks, browser debugging (including
+optional IronBee DevTools), and task handoffs. Keep durable instructions there
+instead of duplicating them in this file.

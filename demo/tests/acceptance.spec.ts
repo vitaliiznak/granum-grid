@@ -1,4 +1,4 @@
-import { expect, test, openSignal } from './fixtures';
+import { expect, test, enterRows, openSignal } from './fixtures';
 test.beforeEach(async ({ page }) => {
   await openSignal(page);
 });
@@ -40,36 +40,15 @@ test('orientation is consistent and the final row is reachable without a tall sp
   }));
   expect(heights.scrollHeight).toBeLessThan(heights.height + 150);
 });
-test('all views preserve the selected row and summaries open grouped then refine to real rows', async ({
-  page,
-}) => {
-  await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
-  await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
-  const menu = page.getByRole('combobox', { name: 'View', exact: true });
-  await expect(menu.locator('option')).toHaveText(['Rows', 'Range summaries']);
-  for (const label of ['Range summaries', 'Rows']) {
-    await page.getByRole('combobox', { name: 'View', exact: true }).selectOption({ label });
-    await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
-    await expect(page.getByRole('slider', { name: 'Dataset position' })).toHaveAttribute(
-      'aria-valuenow',
-      '61700000',
-    );
-    if (label === 'Range summaries') {
-      // Selecting the view itself must show summaries without requiring another zoom action.
-      await expect(page.locator('[data-ds-part="aggregate"]').first()).toBeVisible();
-      await expect(page.locator('[data-status="ready"]')).toHaveCount(0);
-      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-      await expect(page.locator('[role=row][aria-rowindex="61700000"]')).toBeVisible();
-      await expect(page.locator('.ds-view-guide > summary')).toContainText(
-        'Individual rows at this scale',
-      );
-      await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
-    }
-  }
-  await page.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
-  await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
-  await expect(page.locator('.ds-scale')).toContainText('Grouped rows');
-  await page.getByRole('button', { name: 'Inspect rows', exact: true }).click();
-  await expect(page.locator('[role=row][aria-rowindex="50000001"]')).toBeVisible();
+test('a typed row selection opens its exact rows', async ({ page }) => {
+  await page.getByRole('button', { name: 'Select rows', exact: true }).click();
+  await enterRows(page, '1000', '2000');
+  await page.getByRole('button', { name: 'View selection', exact: true }).click();
+  await expect(page.getByTestId('position')).toHaveText('Row 1,000 of 100,000,000');
+  await expect(page.locator('[role=row][aria-rowindex="1000"]')).toHaveAttribute(
+    'data-status',
+    'ready',
+  );
+  await expect(page.getByTestId('overview')).toBeVisible();
+  expect(await page.getByRole('grid').locator('[role=row]').count()).toBeLessThan(60);
 });

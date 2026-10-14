@@ -1,4 +1,3 @@
-import type { AggregateRenderContext } from 'granum-grid';
 import rawTrace from '../data/fixtures/exploration-trace.json?raw';
 import {
   elapsed,
@@ -9,52 +8,68 @@ import {
   type TraceRecording,
   type TraceRow,
 } from '../data/trace';
-import { splitRange } from '../data/ranges';
 import { SignalIcon } from './icons';
-import { showAll, type DemoDataset } from './types';
+import { type DemoDataset } from './types';
 
-function TraceSummary({
-  recording,
-  context,
-}: {
-  recording: TraceRecording;
-  context: AggregateRenderContext;
-}) {
-  const { bucket } = context;
-  const count = bucket.end - bucket.start;
-  const wide = count > 32;
-  const names = new Map<string, number>();
-  for (let i = bucket.start; i < bucket.end; i++)
-    names.set(recording.rows[i].name, (names.get(recording.rows[i].name) ?? 0) + 1);
-  const common = [...names].sort((a, b) => b[1] - a[1]).slice(0, 3);
-  return (
-    <div className="trace-summary" data-level={wide ? 'activity' : 'group'}>
-      <div className="trace-summary-line">
-        <b>{wide ? 'Activity window' : 'Event group'}</b>
-        <span>{count.toLocaleString()} events</span>
-        <span>Longest {elapsed(bucket.max ?? 0)}</span>
-      </div>
-      {wide ? (
-        <div className="trace-duration-bars" aria-label="Maximum event duration in each subgroup">
-          {splitRange(bucket.start, bucket.end, Math.min(32, count)).map(({ start, end }, i) => {
-            let max = 0;
-            for (let j = start; j < end; j++) max = Math.max(max, recording.rows[j].duration);
-            return (
-              <span
-                key={i}
-                style={{
-                  height: `${Math.max(8, (max / Math.max(0.001, bucket.max ?? 0)) * 100)}%`,
-                }}
-              />
-            );
-          })}
-        </div>
-      ) : (
-        <p>{common.map(([name, n]) => `${name}${n > 1 ? ` ×${n}` : ''}`).join(' · ')}</p>
-      )}
-    </div>
-  );
+/** DevTools-style work groups, so the reader can tell script from layout and paint at a glance. */
+type Phase = 'scripting' | 'rendering' | 'painting' | 'gc' | 'timing' | 'other';
+const PHASE_LABELS: Record<Phase, string> = {
+  scripting: 'Scripting',
+  rendering: 'Rendering',
+  painting: 'Painting',
+  gc: 'GC',
+  timing: 'Timing',
+  other: 'Other',
+};
+const RENDERING = new Set([
+  'UpdateLayoutTree',
+  'RecalculateStyles',
+  'Layout',
+  'HitTest',
+  'PrePaint',
+  'Layerize',
+  'UpdateLayerTree',
+  'ScheduleStyleRecalculation',
+  'InvalidateLayout',
+]);
+const PAINTING = new Set([
+  'Paint',
+  'PaintImage',
+  'RasterTask',
+  'Composite',
+  'CompositeLayers',
+  'DecodeImage',
+  'Commit',
+]);
+const SCRIPTING = new Set([
+  'FunctionCall',
+  'EventDispatch',
+  'EvaluateScript',
+  'CompileScript',
+  'RunMicrotasks',
+  'TimerFire',
+  'TimerInstall',
+  'TimerRemove',
+  'FireAnimationFrame',
+  'RequestAnimationFrame',
+  'FireIdleCallback',
+  'XHRReadyStateChange',
+]);
+export function tracePhase(name: string): Phase {
+  if (RENDERING.has(name)) return 'rendering';
+  if (PAINTING.has(name)) return 'painting';
+  if (SCRIPTING.has(name)) return 'scripting';
+  if (/^V8\.GC|GC$|scavenge|Weakness/i.test(name)) return 'gc';
+  if (name === 'TimeStamp' || name.startsWith('UserTiming')) return 'timing';
+  return 'other';
 }
+/**
+ * Durations span microseconds to tens of milliseconds, so a linear bar hides almost every
+ * event. The bar is logarithmic from 1 µs to the longest event; the label stays exact.
+ */
+const durationShare = (duration: number, longest: number) =>
+  Math.log10(1 + duration * 1000) / Math.log10(1 + Math.max(duration, longest, 0.001) * 1000);
+
 export function performanceDataset(
   recording: TraceRecording,
   filename: string,
@@ -68,7 +83,7 @@ export function performanceDataset(
     unit: 'events',
     title: 'Inside a browser recording',
     description:
-      'Explore recorded browser activity. Zoom from activity windows into event groups, then inspect individual events without losing your place.',
+      'Explore recorded browser activity. Use the recording map to find long events, then inspect the surrounding rows.',
     facts: [elapsed(recording.duration), filename],
     icon: <SignalIcon />,
     origin: 'real',
@@ -82,11 +97,10 @@ export function performanceDataset(
     ariaLabel: 'Performance recording events',
     task: {
       title: `Find the longest recorded event (${elapsed(longest.duration)}), then inspect its neighbours.`,
-      action: 'See whole recording',
-      run: showAll,
+      action: 'Inspect longest event',
+      run: (api) => api.scrollToIndex(recording.longestIndex, { align: 'center' }),
     },
     formatRange: (range) => traceRangeLabel(recording, range),
-    renderAggregate: (context) => <TraceSummary recording={recording} context={context} />,
     atlas: {
       axisLabel: 'Elapsed',
       title: 'Recording map',
@@ -104,60 +118,76 @@ export function performanceDataset(
     header: (
       <>
         <span>Event</span>
-        <span>Start</span>
-        <span>Duration</span>
+        <span>Phase</span>
+        <span className="trace-col-start">Start</span>
+        <span title="Bars use a log scale from 1 µs to the longest event">
+          Duration <small>log bar</small>
+        </span>
         <span>Thread</span>
       </>
     ),
     tour: [
       {
-        feature: 'Zoom',
-        label: 'Whole recording',
-        hint: 'Each card summarizes consecutive events. Zoom into a card to reveal smaller groups.',
-        run: ({ fit }) => fit(),
-      },
-      {
         feature: 'Investigate',
         label: 'Around longest event',
         hint: `${longest.name} lasts ${elapsed(longest.duration)}. Inspect its surrounding events; overlapping durations are not added together.`,
-        run: ({ controller }) =>
-          controller.zoomToRange({
-            start: Math.max(0, recording.longestIndex - 32),
-            end: Math.min(provider.rowCount, recording.longestIndex + 33),
-          }),
+        run: (api) =>
+          api.scrollToIndex(Math.max(0, recording.longestIndex - 32), { align: 'start' }),
       },
       {
         feature: 'Inspect',
         label: 'Longest event',
         hint: 'Exact event duration and relative start time from the recording.',
-        run: ({ controller }) =>
-          controller.scrollToIndex(recording.longestIndex, { align: 'center' }),
+        run: (api) => api.scrollToIndex(recording.longestIndex, { align: 'center' }),
       },
       {
         feature: 'Search',
         label: 'Events over 10 ms',
         hint: 'Search supported events in this local recording. Search results report when truncated.',
-        run: ({ search }) => search('duration > 10'),
+        run: (api) => api.openSearch('duration > 10'),
       },
     ],
-    renderRow: ({ row, rowNumber }) => (
-      <>
-        <span role="gridcell" className="trace-event">
-          <small>#{rowNumber}</small>
-          <strong title={row.category}>{row.name}</strong>
-        </span>
-        <span role="gridcell">{elapsed(row.time)}</span>
-        <span role="gridcell" className="trace-duration">
-          <i
-            style={{
-              width: `${Math.max(1, (row.duration / Math.max(1, longest.duration)) * 100)}%`,
-            }}
-          />
-          <span>{row.kind === 'instant' ? 'Instant' : elapsed(row.duration)}</span>
-        </span>
-        <span role="gridcell">{row.thread}</span>
-      </>
-    ),
+    renderRow: ({ row, rowNumber }) => {
+      const phase = tracePhase(row.name);
+      return (
+        <>
+          <span role="gridcell" className="trace-event" data-phase={phase}>
+            <small>#{rowNumber}</small>
+            <strong title={row.category}>{row.name}</strong>
+          </span>
+          <span role="gridcell" className="trace-phase" data-phase={phase}>
+            {PHASE_LABELS[phase]}
+          </span>
+          <span role="gridcell" className="trace-start">
+            {elapsed(row.time)}
+          </span>
+          <span role="gridcell" className="trace-duration" data-phase={phase}>
+            {row.kind === 'instant' ? (
+              <>
+                <span className="trace-duration-bar" data-instant aria-hidden="true">
+                  <i />
+                </span>
+                <span>Instant</span>
+              </>
+            ) : (
+              <>
+                <span className="trace-duration-bar" aria-hidden="true">
+                  <i
+                    style={{
+                      width: `${Math.max(4, durationShare(row.duration, longest.duration) * 100)}%`,
+                    }}
+                  />
+                </span>
+                <span>{elapsed(row.duration)}</span>
+              </>
+            )}
+          </span>
+          <span role="gridcell" className="trace-thread">
+            {row.thread}
+          </span>
+        </>
+      );
+    },
   };
 }
 /** A content-derived revision, so saved views never restore against a re-recorded trace. */

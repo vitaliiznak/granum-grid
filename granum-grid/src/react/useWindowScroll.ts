@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { GranumGridEngine } from '../core/engine.js';
-import { isWithin, ownsKeys } from './dom.js';
+import { progressToRow } from '../core/mappings.js';
+import { NATIVE_SCROLL, isWithin, ownsKeys } from './dom.js';
 import { handleMovementKey } from './keyboard.js';
 
 /** A bounded document scroll range representing the same global position as Atlas. */
@@ -55,7 +56,7 @@ export function useWindowScroll(engine: GranumGridEngine, enabled: boolean) {
       try {
         // Native scrollbar drags address the entire dataset. Wheel/touch input
         // pans the engine directly so compressed scroll pixels never skip rows.
-        engine.scrub(limit ? (y / limit) * Math.max(0, engine.getSnapshot().rowCount - 1) : 0);
+        engine.scrub(limit ? progressToRow(y / limit, engine.getSnapshot().rowCount) : 0);
       } finally {
         handling = false;
       }
@@ -64,11 +65,7 @@ export function useWindowScroll(engine: GranumGridEngine, enabled: boolean) {
       if (!handling) sync();
     });
     const key = (event: KeyboardEvent) => {
-      if (
-        event.defaultPrevented ||
-        ownsKeys(event.target) ||
-        isWithin(event.target, 'dialog,[data-ds-native-scroll]')
-      )
+      if (event.defaultPrevented || ownsKeys(event.target) || isWithin(event.target, NATIVE_SCROLL))
         return;
       handleMovementKey(event, engine, { space: true });
     };

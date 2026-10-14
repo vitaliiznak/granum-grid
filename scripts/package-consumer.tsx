@@ -1,8 +1,10 @@
 import {
+  AtlasRail,
   GranumGrid,
   JumpBar,
   ViewCanvas,
   createArrayProvider,
+  createCursorProvider,
   encodeView,
   decodeView,
   type SavedView,
@@ -11,14 +13,20 @@ import {
   type GranumGridAppearance,
   type AtlasRailOptions,
   type GranumGridApi,
-  type AggregateRenderContext,
-  type NavigationController,
+  type Features,
 } from 'granum-grid';
-import { createEngine } from 'granum-grid/core';
-import { PageCache, rangeProvider } from 'granum-grid/data';
-import { createRef } from 'react';
+import { useGranumGrid as useHeadlessGrid, type Marker } from 'granum-grid/headless';
+import { createEngine, type NavigationController } from 'granum-grid/core';
+import { PageCache, acceptServerRevision, rangeProvider } from 'granum-grid/data';
+import { createRef, useMemo, useState } from 'react';
+// @ts-expect-error The engine and its adapters live in granum-grid/core, not the root entry.
 import type { GranumGridEngine } from 'granum-grid';
-const controller = createRef<GranumGridEngine>();
+// @ts-expect-error Server validation helpers live in granum-grid/data.
+import { serverActionIssue } from 'granum-grid';
+export const unusedRootImports: unknown[] = [serverActionIssue];
+export type UnusedEngine = GranumGridEngine;
+// @ts-expect-error Map layers are AtlasRailOptions, not hook features.
+export const mapFeature: Partial<Features> = { overview: false };
 const api = createRef<GranumGridApi<{ value: number }>>();
 const appearance: GranumGridAppearance = {
   classNames: { row: 'px-4 border-b', toolbar: 'flex gap-2' },
@@ -30,9 +38,11 @@ const atlas: AtlasRailOptions = {
   showRange: true,
   showTracks: true,
   snapToPeaks: true,
+  precision: false,
   markerLabels: 'label',
   layout: 'auto',
   formatValue: (value) => value.toFixed(1),
+  actions: <button>Map settings</button>,
 };
 const provider: DataProvider<{ value: number }> = {
   id: 'consumer',
@@ -59,51 +69,93 @@ export const example = (
     provider={provider}
     ariaLabel="Consumer fixture"
     {...appearance}
-    atlas={atlas}
+    rail={atlas}
     unstyled
     layout="embedded"
-    initialSelection={{ start: 100, end: 200 }}
+    initialView={{
+      version: 1,
+      dataset: 'consumer',
+      revision: '1',
+      location: { position: 100 },
+      selection: { start: 100, end: 200 },
+    }}
     onSelectionChange={(range) => range?.start}
-    bookmarkStorageKey="consumer-bookmarks"
-    fullPageUrl={(view) => `/explore#view=${encodeView(view)}`}
+    onRowActivate={({ row, index, rowNumber }) => row.value + index + rowNumber}
+    tools={{
+      storageKey: 'consumer-bookmarks',
+      formatRange: ({ start, end }) => `${start + 1}–${end}`,
+    }}
+    hints={{ storageKey: 'consumer-hints' }}
     stickyChapters
-    showStats
-    followOutput={false}
-    dataMode="append"
+    dataMode="follow"
     cache={{ requestTimeoutMs: 5000 }}
-    renderToolbar={({ controller, setJumpOpen }) => (
+    toolbar={({ api, chapter }) => (
       <nav>
-        <button onClick={() => controller.scrollToIndex(0)}>First</button>
-        <button onClick={() => setJumpOpen(true)}>Search</button>
+        <button onClick={() => api.scrollToIndex(0)}>First</button>
+        <button onClick={() => api.openSearch()}>Search</button>
+        <span>{chapter?.label}</span>
       </nav>
     )}
-    renderFooter={({ snapshot }) => <output>{snapshot.rowCount}</output>}
-    renderRail={() => null}
-    controllerRef={controller}
+    footer={({ snapshot }) => <output>{snapshot.rowCount}</output>}
     apiRef={api}
     dynamicRowHeight
     overscan={3}
-    aggregateRowHeight={140}
-    summaryBucketSizes={[{ label: '100 readings', rows: 100 }]}
-    formatBucketSize={(rows) => `${rows} readings`}
-    formatRange={({ start, end }) => `${start + 1}–${end}`}
-    renderAggregate={({ bucket }: AggregateRenderContext) => <p>{bucket.max ?? 'Unavailable'}</p>}
     getRowKey={(row) => row.value}
+    renderPlaceholder={(slot, retry) => (
+      <button role="gridcell" onClick={retry}>
+        {slot.status}
+      </button>
+    )}
     renderRow={({ row }) => <span role="gridcell">{row.value}</span>}
   />
 );
 export function HeadlessConsumer() {
-  const scroll = useGranumGrid({ provider, dynamicRowHeight: true });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [highlights, setHighlights] = useState<Marker[]>([]);
+  const [selecting, setSelecting] = useState(false);
+  const notes = useMemo<Marker[]>(
+    () => [{ id: 'note', index: 42, label: 'Note', kind: 'event' }],
+    [],
+  );
+  const scroll = useGranumGrid({
+    provider,
+    dynamicRowHeight: true,
+    markers: notes,
+    onOpenSearch: () => setSearchOpen(true),
+    onRowActivate: ({ row }) => row.value,
+  });
+  // @ts-expect-error Explorer UI state belongs to the host, not the hook.
+  scroll.setJumpOpen(true);
+  // @ts-expect-error The data session is internal; providers and `api` cover host needs.
+  scroll.session.retry();
   const integration: GranumGridApi<{ value: number }> = scroll.api;
-  const navigation: NavigationController = integration.controller;
+  // The handle navigates like the framework-independent controller, minus raw locations.
+  const navigation: Omit<NavigationController, 'getLocation' | 'restore'> = integration;
   // @ts-expect-error Input and measurement adapters are not part of the host API.
-  integration.controller.pan(10);
+  integration.pan(10);
+  // @ts-expect-error There is one handle; no separate controller.
+  integration.controller.goTo(0);
   return (
     <>
       <button onClick={() => navigation.goTo(0)}>First</button>
-      <JumpBar scroll={scroll} className="my-search" />
+      <button onClick={() => setSelecting(true)}>Select on map</button>
+      <JumpBar
+        grid={scroll}
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        onHighlightsChange={setHighlights}
+        className="my-search"
+      />
+      <AtlasRail
+        grid={scroll}
+        highlights={highlights}
+        selecting={selecting}
+        onSelectingChange={setSelecting}
+        variant="markers"
+        actions={<span>{scroll.traveling ? 'Travelling' : scroll.chapter?.label}</span>}
+      />
       <div {...scroll.getViewportProps({ style: { height: 320 }, 'aria-label': 'Headless rows' })}>
-        <ViewCanvas scroll={scroll} />
+        <ViewCanvas grid={scroll} />
         {scroll.rows.map((slot) => (
           <div
             key={slot.index}
@@ -120,6 +172,10 @@ export function HeadlessConsumer() {
       </div>
     </>
   );
+}
+export function RowsOnly() {
+  const grid = useHeadlessGrid({ provider, onRowActivate: ({ row }) => row.value });
+  return <div {...grid.getViewportProps({ 'aria-label': 'Rows only' })} />;
 }
 export const engine = createEngine({ rowCount: provider.rowCount });
 export const getMountedTable = (): GranumGridApi<{ value: number }> | null => api.current;
@@ -145,6 +201,12 @@ export const catalogExample = (
     provider={catalog}
     apiRef={catalogApi}
     ariaLabel="Mixed catalog"
+    onRowActivate={({ row }) => {
+      if (row == null) return;
+      // @ts-expect-error Activation must retain the provider's payload type.
+      row.value;
+      return row.kind === 'document' ? row.content.title : row.source.href;
+    }}
     renderRow={({ row }) => {
       if (row == null) return 'Missing';
       // @ts-expect-error The generic must retain the host schema, not widen to any.
@@ -158,13 +220,22 @@ export const textExample = (
     provider={createArrayProvider(['alpha', 'beta'], { id: 'text', revision: '1' })}
     ariaLabel="Plain text"
     renderRow={({ row }) => row.toUpperCase()}
+    toolbar={{
+      actions: <button>Export</button>,
+      fullPageUrl: (view) => `/explore#view=${encodeView(view)}`,
+    }}
+    footer={false}
+    rail={(_, rail) => (
+      <div className="my-rail">
+        <AtlasRail {...rail} layout="expanded" />
+      </div>
+    )}
   />
 );
 export const cache = new PageCache<{ value: number }>();
-controller.current?.scrollToIndex(73_500_000, { align: 'center' });
-controller.current?.zoomToRange({ start: 100, end: 200 });
-const location = controller.current?.getLocation();
-if (location) controller.current?.restore(location);
+api.current?.goTo(73_500_000);
+api.current?.retry();
+export const selected = api.current?.getSelection()?.start;
 
 const view: SavedView = {
   version: 1,
@@ -176,3 +247,5 @@ const view: SavedView = {
 export const restored = decodeView(encodeView(view), provider);
 export const range = rangeProvider(provider, { start: 100, end: 200 });
 engine.appendRows(provider.rowCount + 10, true);
+export const accepted = acceptServerRevision;
+export const cursor = createCursorProvider;

@@ -2,10 +2,9 @@ import type {
   AtlasRailOptions,
   CacheOptions,
   DataProvider,
-  NavigationController,
+  GranumGridApi,
+  Marker,
   RowRenderContext,
-  View,
-  AggregateRenderContext,
   RowRange,
 } from 'granum-grid';
 import type { ReactNode } from 'react';
@@ -15,21 +14,15 @@ interface RowExtras {
   dynamic: boolean;
   expanded: ReadonlySet<number>;
   toggle(index: number): void;
-}
-export interface TourContext {
-  controller: NavigationController;
-  /** Open the explorer's search UI with a query. */
-  search(text: string): void;
-  /** Switch to Overview and fit every row. */
-  fit(): void;
+  /** Move the table to a zero-based row. Out-of-range indexes do not move. */
+  show(index: number): void;
 }
 interface TourStep {
   feature: string;
   label: string;
   hint: string;
-  /** Switch to this view before running the action. */
-  requiredView?: View;
-  run?(tour: TourContext): void | Promise<void>;
+  /** Act through the mounted explorer's handle, as a host button would. */
+  run?(api: GranumGridApi<unknown>): void | Promise<void>;
 }
 export interface DemoDataset<Row = any> {
   id: string;
@@ -59,12 +52,15 @@ export interface DemoDataset<Row = any> {
   bytesPerRow: number;
   header: ReactNode;
   renderRow(context: RowRenderContext<Row>, extras: RowExtras): ReactNode;
-  renderAggregate?(context: AggregateRenderContext): ReactNode;
+  /** Opt into row inspection; the page owns the panel and copies the loaded record. */
+  renderDetails?(row: Row, navigate: { show(index: number): void }): ReactNode;
+  /** Extra class on the inspection panel, for a dataset that needs a wider reading view. */
+  inspectorClassName?: string;
+  /** Idle text beside the copy button. Defaults to the candle inspector's label. */
+  copyLabel?: string;
   formatRange?(range: RowRange): string;
-  summaryBucketSizes?: readonly { label: string; rows: number }[];
-  formatBucketSize?(rows: number): string;
   /** The suggested first action, shown before any tour step runs. */
-  task: { title: string; action: string; run(controller: NavigationController): void };
+  task: { title: string; action: string; run(api: GranumGridApi<unknown>): void };
   /** Materialized demo adapters must not imply only cached rows occupy memory. */
   sourceNote?: string;
   /** Where the rows come from, shown with `sourceNote`; defaults to the browser trace. */
@@ -75,6 +71,18 @@ export interface DemoDataset<Row = any> {
   map: { chapters: string; profile: string; tracks: string; explain: string; sampling: string };
   tour: TourStep[];
 }
+/** A tour step that flies to one of a live provider's data-derived markers, once it is known. */
+export const flyToMarker =
+  (provider: { loadMarkers(signal: AbortSignal): Promise<Marker[]> }, id: string) =>
+  async (api: GranumGridApi<unknown>) => {
+    const markers = await provider.loadMarkers(new AbortController().signal);
+    const marker = markers.find((candidate) => candidate.id === id);
+    if (marker) api.goTo(marker.index);
+  };
+/** A live source's newest rows. `grow` may replace the provider, so read the explorer's count. */
+export const inspectLatest = (api: GranumGridApi<unknown>) =>
+  api.scrollToIndex(api.getSnapshot().rowCount - 1, { align: 'end' });
+
 const formatter = new Intl.NumberFormat('en-US');
 const compactFormatter = new Intl.NumberFormat('en-US', {
   notation: 'compact',
@@ -82,8 +90,3 @@ const compactFormatter = new Intl.NumberFormat('en-US', {
 });
 export const formatCount = (value: number) => formatter.format(value);
 export const compact = (value: number) => compactFormatter.format(value);
-/** Fit every row in Range summaries. */
-export function showAll(controller: NavigationController) {
-  const { rowCount } = controller.getSnapshot();
-  if (rowCount) controller.zoomToRange({ start: 0, end: rowCount });
-}

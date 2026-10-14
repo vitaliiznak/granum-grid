@@ -1,14 +1,8 @@
-import { clamp, rowToProgress, ROW_DETAIL_MAX_ROWS_PER_PIXEL } from './mappings.js';
-import type { Chapter, Marker, RowRange } from '../data/types.js';
-import { validRange } from '../data/bounds.js';
+import { clamp, rowToProgress } from './mappings.js';
+import type { Chapter, Marker } from '../data/types.js';
 import { RowSizes, type RowMeasurement, type RowSizeReader } from './rowSizes.js';
-export type View = 'rows' | 'zoom';
-/** Every view, in menu order. */
-export const VIEWS: readonly View[] = ['rows', 'zoom'];
 export interface NavigationLocation {
   position: number;
-  view: View;
-  rowsPerPixel: number;
 }
 export interface NavigationEvent {
   from: NavigationLocation;
@@ -45,18 +39,15 @@ export interface EngineOptions {
   rowCount: number;
   rowHeight?: number;
   initialIndex?: number;
-  initialView?: View;
   initialLocation?: NavigationLocation;
   dynamicRowHeight?: boolean;
   maxMeasuredRows?: number;
 }
 /**
- * Navigation for host integrations, such as custom controls and `apiRef`. An explicit interface
- * keeps the published API independent of the implementation.
+ * Framework-independent navigation. React hosts use `GranumGridApi`, which adds selection,
+ * saved views, and search, and replaces `getLocation`/`restore` with validated views.
  */
 export interface NavigationController {
-  /** Append-only count updates preserve addresses, measurements, and history. */
-  appendRows(rowCount: number, follow?: boolean): void;
   getLocation(): NavigationLocation;
   /** Immutable snapshot; identity changes only when a value changes. */
   getSnapshot(): NavigationSnapshot;
@@ -65,19 +56,14 @@ export interface NavigationController {
   onNavigate(listener: (event: NavigationEvent) => void): () => void;
   /** Jump to a row, animating long distances unless `motion: 'instant'`. */
   goTo(index: number, config?: GoToOptions): void;
-  /** Fit a half-open range in Overview, recording the previous location once. */
-  zoomToRange(range: RowRange): void;
-  /** Align a row in the Rows view; new measurements keep the target aligned until input. */
+  /** Align a row in the viewport; new measurements keep the target aligned until input. */
   scrollToIndex(index: number, config?: ScrollToOptions): void;
   restore(to: NavigationLocation): void;
-  setView(view: View): void;
-  /** Rows per CSS pixel, keeping the row under `anchorY` in place. */
-  setZoom(rowsPerPixel: number, anchorY?: number): void;
   nextMarker(kind?: Marker['kind']): void;
   previousMarker(kind?: Marker['kind']): void;
   nextChapter(): void;
   previousChapter(): void;
-  /** Return to the previous location, including its view and zoom. */
+  /** Return to the previous location, including its row offset. */
   back(): void;
   /** Revisit the location left by `back`. */
   forward(): void;
@@ -90,6 +76,8 @@ export interface NavigationController {
 export interface GranumGridEngine extends NavigationController {
   /** Sparse measured row heights (dynamic row height mode). Read-only; use `measureRows`. */
   readonly rowSizes: RowSizeReader;
+  /** Adapter: append-only count updates preserve addresses, measurements, and history. */
+  appendRows(rowCount: number, follow?: boolean): void;
   /** Adapter: move by CSS pixels; returns the pixels left over at either end. */
   pan(pixels: number): number | undefined;
   /** Adapter: start, move, and finish a drag that records one history entry. */
@@ -110,8 +98,13 @@ export interface GranumGridEngine extends NavigationController {
   step(time: number): boolean;
   destroy(): void;
 }
-const sameLocation = (a: NavigationLocation, b: NavigationLocation) =>
-  a.position === b.position && a.view === b.view && a.rowsPerPixel === b.rowsPerPixel;
+/** Whether the end of the last row is in view, within one pixel. Internal to the library. */
+export function atEnd(
+  rowSizes: RowSizeReader,
+  { position, rowCount, height }: Pick<NavigationSnapshot, 'position' | 'rowCount' | 'height'>,
+) {
+  return rowSizes.distance(position, rowCount) <= height + 1;
+}
 export function createEngine(options: EngineOptions): GranumGridEngine {
   if (!Number.isSafeInteger(options.rowCount) || options.rowCount < 0)
     throw new RangeError('rowCount must be a nonnegative safe integer');
@@ -119,16 +112,12 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
   if (!Number.isFinite(rowHeight) || rowHeight < 1)
     throw new RangeError('rowHeight must be positive');
   const rowSizes = new RowSizes(options.rowCount, rowHeight, options.maxMeasuredRows);
-  // Zoom runs from one row per row height to the whole dataset in the viewport.
-  const minRowsPerPixel = 1 / rowHeight;
-  const maxRowsPerPixel = () => Math.max(minRowsPerPixel, options.rowCount / snapshot.height);
   const lastIndex = () => Math.max(0, options.rowCount - 1);
   /** Validate a host-supplied row index and clamp it to the dataset. */
   const clampIndex = (index: number) => {
     if (!Number.isSafeInteger(index)) throw new RangeError('index must be a safe integer');
     return clamp(index, 0, lastIndex());
   };
-  let fittedRange: RowRange | undefined;
   let alignment: { index: number; align: Exclude<ScrollAlignment, 'auto'> } | undefined;
   const listeners = new Set<() => void>(),
     navigationListeners = new Set<(event: NavigationEvent) => void>();
@@ -149,8 +138,6 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     | undefined;
   let snapshot: NavigationSnapshot = {
     position: 0,
-    view: options.initialView ?? 'rows',
-    rowsPerPixel: minRowsPerPixel,
     rowCount: options.rowCount,
     activeIndex: options.rowCount ? 0 : null,
     progress: 0,
@@ -168,8 +155,6 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
   };
   const location = (): NavigationLocation => ({
     position: snapshot.position,
-    view: snapshot.view,
-    rowsPerPixel: snapshot.rowsPerPixel,
   });
   function update(patch: Partial<NavigationSnapshot>) {
     const next = {
@@ -180,10 +165,9 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       backLocation: backStack.at(-1) ?? null,
     };
     const last = Math.max(0, next.rowCount - 1);
-    const maxPosition =
-      options.dynamicRowHeight && next.view === 'rows'
-        ? last + Math.max(0, 1 - next.height / rowSizes.size(last))
-        : last;
+    const maxPosition = options.dynamicRowHeight
+      ? last + Math.max(0, 1 - next.height / rowSizes.size(last))
+      : last;
     next.position = clamp(next.position, 0, maxPosition);
     next.activeIndex = next.rowCount ? Math.floor(next.position) : null;
     next.progress = rowToProgress(next.position, next.rowCount);
@@ -199,7 +183,7 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
   }
   function notify(from: NavigationLocation, reason: NavigationEvent['reason']) {
     const to = location();
-    if (sameLocation(from, to)) return;
+    if (from.position === to.position) return;
     addToTrail([from.position, to.position]);
     navigationListeners.forEach((listener) => listener({ from, to, reason }));
   }
@@ -215,11 +199,10 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       if (!trail.some((p) => Math.abs(p - position) < near)) trail.push(position);
     if (trail.length !== snapshot.trail.length) update({ trail: trail.slice(-100) });
   }
-  /** New input replaces any flight, pending alignment, and fitted range. */
+  /** New input replaces any flight and pending alignment. */
   function takeOver() {
     interrupt();
     alignment = undefined;
-    fittedRange = undefined;
   }
   function alignedPosition(index: number, align: Exclude<ScrollAlignment, 'auto'>) {
     const height = rowSizes.size(index);
@@ -267,7 +250,6 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
   /** Back or forward: move the current location onto the opposite stack. */
   function revisit(from: NavigationLocation[], to: NavigationLocation[]) {
     alignment = undefined;
-    fittedRange = undefined;
     const target = from.pop();
     if (!target) return;
     to.push(location());
@@ -279,11 +261,7 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     takeOver();
     if (index === snapshot.position) return;
     if (config.history !== 'skip') record(location());
-    travel(
-      { ...location(), position: index },
-      config.reason ?? 'jump',
-      config.motion !== 'instant',
-    );
+    travel({ position: index }, config.reason ?? 'jump', config.motion !== 'instant');
   }
   const engine: GranumGridEngine = {
     rowSizes,
@@ -291,9 +269,7 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       if (!Number.isSafeInteger(rowCount) || rowCount < options.rowCount)
         throw new RangeError('Append count must not decrease');
       if (rowCount === options.rowCount) return;
-      const nearEnd =
-        snapshot.view === 'rows' &&
-        rowSizes.distance(snapshot.position, options.rowCount) <= snapshot.height + 1;
+      const nearEnd = atEnd(rowSizes, snapshot);
       options.rowCount = rowCount;
       rowSizes.rowCount = rowCount;
       update({ rowCount });
@@ -317,10 +293,6 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     setViewport: (height: number) => {
       if (Number.isFinite(height) && height > 0) {
         update({ height });
-        if (fittedRange)
-          update({
-            rowsPerPixel: Math.max(minRowsPerPixel, (fittedRange.end - fittedRange.start) / height),
-          });
         if (alignment) update({ position: alignedPosition(alignment.index, alignment.align) });
       }
     },
@@ -338,58 +310,29 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       chapters = nextChapters;
     },
     goTo,
-    zoomToRange: (range: RowRange) => {
-      if (!validRange(range, snapshot.rowCount)) throw new RangeError('Invalid navigation range');
-      takeOver();
-      const from = location();
-      const to: NavigationLocation = {
-        position: Math.min(snapshot.rowCount - 1, range.start + (range.end - range.start) / 2),
-        view: 'zoom',
-        rowsPerPixel: Math.max(minRowsPerPixel, (range.end - range.start) / snapshot.height),
-      };
-      fittedRange = { ...range };
-      if (sameLocation(from, to)) return;
-      record(from);
-      travel(to, 'jump', false);
-    },
     scrollToIndex: (index: number, config: ScrollToOptions = {}) => {
       index = clampIndex(index);
       let align = config.align ?? 'auto';
       if (align === 'auto') {
         const top = rowSizes.distance(snapshot.position, index);
         const bottom = top + rowSizes.size(index);
-        if (
-          snapshot.view === 'rows' &&
-          ((top >= 0 && bottom <= snapshot.height) || (top <= 0 && bottom >= snapshot.height))
-        )
+        if ((top >= 0 && bottom <= snapshot.height) || (top <= 0 && bottom >= snapshot.height))
           return;
         align = top < 0 || rowSizes.size(index) > snapshot.height ? 'start' : 'end';
       }
       interrupt();
       const from = location();
-      fittedRange = undefined;
       alignment = { index, align };
       const position = alignedPosition(index, align);
-      if (config.history !== 'skip' && (position !== from.position || from.view !== 'rows'))
-        record(from);
+      if (config.history !== 'skip' && position !== from.position) record(from);
       // Measurements can change the target during travel, so aligned navigation is immediate.
-      update({ position, view: 'rows' });
+      update({ position });
       notify(from, config.reason ?? 'jump');
     },
     restore: (to: NavigationLocation) => {
-      if (
-        !Number.isFinite(to.position) ||
-        !Number.isFinite(to.rowsPerPixel) ||
-        to.rowsPerPixel <= 0 ||
-        !VIEWS.includes(to.view)
-      )
-        throw new RangeError('Invalid navigation location');
+      if (!Number.isFinite(to.position)) throw new RangeError('Invalid navigation location');
       takeOver();
-      update({
-        position: to.position,
-        view: to.view,
-        rowsPerPixel: clamp(to.rowsPerPixel, minRowsPerPixel, maxRowsPerPixel()),
-      });
+      update({ position: to.position });
     },
     measureRows: (rows: readonly RowMeasurement[], retained: readonly number[] = []) => {
       if (options.dynamicRowHeight)
@@ -400,21 +343,16 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       if (!Number.isFinite(pixels)) return;
       takeOver();
       const from = snapshot.position;
-      const measured =
-        options.dynamicRowHeight &&
-        (snapshot.view !== 'zoom' || snapshot.rowsPerPixel <= ROW_DETAIL_MAX_ROWS_PER_PIXEL);
-      const scale = snapshot.view === 'zoom' ? snapshot.rowsPerPixel : minRowsPerPixel;
-      const origin = from + (measured && snapshot.view !== 'rows' ? 0.5 : 0);
       update({
-        position: measured
-          ? rowSizes.advance(origin, pixels) - (origin - from)
-          : from + pixels * scale,
+        position: options.dynamicRowHeight
+          ? rowSizes.advance(from, pixels)
+          : from + pixels / rowHeight,
       });
       return (
         pixels -
-        (measured
-          ? rowSizes.distance(origin, snapshot.position + (origin - from))
-          : (snapshot.position - from) / scale)
+        (options.dynamicRowHeight
+          ? rowSizes.distance(from, snapshot.position)
+          : (snapshot.position - from) * rowHeight)
       );
     },
     beginScrub: () => {
@@ -437,34 +375,6 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
         update({});
         notify(origin, 'scrub');
       }
-    },
-    setView: (view: View) => {
-      takeOver();
-      update({ view });
-    },
-    setZoom: (rowsPerPixel: number, anchorY = snapshot.height / 2) => {
-      if (!Number.isFinite(rowsPerPixel) || rowsPerPixel <= 0) return;
-      takeOver();
-      const next = clamp(rowsPerPixel, minRowsPerPixel, maxRowsPerPixel());
-      const old = snapshot.view === 'zoom' ? snapshot.rowsPerPixel : minRowsPerPixel;
-      const anchorOffset = anchorY - (snapshot.view === 'rows' ? 0 : snapshot.height / 2);
-      let anchorRow = snapshot.position + anchorOffset * old;
-      if (
-        options.dynamicRowHeight &&
-        (snapshot.view === 'rows' || old <= ROW_DETAIL_MAX_ROWS_PER_PIXEL)
-      ) {
-        const origin = snapshot.position + (snapshot.view === 'rows' ? 0 : 0.5);
-        anchorRow = rowSizes.advance(origin, anchorOffset) - 0.5;
-      }
-      const position =
-        options.dynamicRowHeight && next <= ROW_DETAIL_MAX_ROWS_PER_PIXEL
-          ? rowSizes.advance(anchorRow + 0.5, -(anchorY - snapshot.height / 2)) - 0.5
-          : anchorRow - (anchorY - snapshot.height / 2) * next;
-      update({
-        position,
-        rowsPerPixel: next,
-        view: 'zoom',
-      });
     },
     nextMarker: (kind?: Marker['kind']) => {
       const marker = markers.find((m) => m.index > snapshot.position && (!kind || m.kind === kind));

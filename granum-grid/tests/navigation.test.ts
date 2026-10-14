@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { createEngine } from '../src/core/index';
-import { chapterAt, parseJump } from '../src/core/navigation';
+import { bucketAt, chapterAt, parseJump } from '../src/core/navigation';
+import type { Bucket } from '../src/data/types';
 it('records a whole scrub once and restores pre-jump fractional state', () => {
   const e = createEngine({ rowCount: 100_000_000 });
   e.pan(8);
@@ -92,4 +93,26 @@ it('finds the chapter containing a fractional position, including gaps and endpo
   expect(chapterAt(chapters, 4_000_000_000)).toBeUndefined();
   expect(chapterAt(chapters, -1)).toBeUndefined();
   expect(chapterAt([], 5)).toBeUndefined();
+});
+it('finds the overview bucket containing a row, including boundaries and the ends', () => {
+  const bucket = (start: number, end: number): Bucket => ({
+    start,
+    end,
+    count: end - start,
+    avg: start,
+    min: start,
+    max: start,
+    accuracy: 'exact',
+  });
+  // Contiguous coverage, as `checkBuckets` guarantees.
+  const buckets = [bucket(0, 10), bucket(10, 11), bucket(11, 4_000_000_000)];
+  expect(bucketAt(buckets, 0)).toBe(buckets[0]);
+  expect(bucketAt(buckets, 9)).toBe(buckets[0]);
+  expect(bucketAt(buckets, 9.5)).toBe(buckets[0]);
+  expect(bucketAt(buckets, 10)).toBe(buckets[1]);
+  expect(bucketAt(buckets, 11)).toBe(buckets[2]);
+  expect(bucketAt(buckets, 3_999_999_999)).toBe(buckets[2]);
+  expect(bucketAt(buckets, 4_000_000_000)).toBeUndefined();
+  expect(bucketAt(buckets, -1)).toBeUndefined();
+  expect(bucketAt([], 0)).toBeUndefined();
 });

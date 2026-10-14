@@ -41,21 +41,27 @@ export function handleMovementKey(
   return true;
 }
 
-export interface ViewportKeyOptions {
+/** Ctrl/Cmd+K, which opens search from the viewport and from anywhere in the explorer. */
+export function isSearchShortcut(event: Pick<KeyInput, 'key' | 'metaKey' | 'ctrlKey'>): boolean {
+  return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
+}
+
+interface ViewportKeyOptions {
   engine: GranumGridEngine;
-  openJump(): void;
+  /** Without a search UI, `/` and Ctrl/Cmd+K stay with the browser. */
+  openSearch?(): void;
   announce(message: string): void;
 }
 
 /** Explorer keyboard navigation for a focused viewport. Reads the engine's current state. */
 export function handleViewportKey(
   event: KeyInput,
-  { engine, openJump, announce }: ViewportKeyOptions,
+  { engine, openSearch, announce }: ViewportKeyOptions,
 ) {
   const key = event.key;
-  if (key === '/' || ((event.metaKey || event.ctrlKey) && key.toLowerCase() === 'k')) {
+  if (openSearch && (key === '/' || isSearchShortcut(event))) {
     event.preventDefault();
-    openJump();
+    openSearch();
     return;
   }
   if (event.altKey && (key === 'ArrowLeft' || key === 'ArrowRight')) {

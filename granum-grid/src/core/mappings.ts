@@ -1,5 +1,3 @@
-/** Zoom shows individual rows while each row gets at least 22 px; beyond this it aggregates. */
-export const ROW_DETAIL_MAX_ROWS_PER_PIXEL = 1 / 22;
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 export const rowToPixel = (row: number, position: number, rowHeight: number) =>

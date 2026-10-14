@@ -1,9 +1,13 @@
 import type { RowRange } from 'granum-grid';
 
-/** Split `[start, end)` into `parts` contiguous ranges whose sizes differ by at most one. */
+/**
+ * Split `[start, end)` into `parts` contiguous ranges whose sizes differ by at most one.
+ * Never more parts than rows, so no range is empty; an empty range has no parts.
+ */
 export function splitRange(start: number, end: number, parts: number): RowRange[] {
-  return Array.from({ length: parts }, (_, i) => ({
-    start: start + Math.floor((i * (end - start)) / parts),
-    end: start + Math.floor(((i + 1) * (end - start)) / parts),
+  const count = Math.max(0, Math.min(parts, end - start));
+  return Array.from({ length: count }, (_, i) => ({
+    start: start + Math.floor((i * (end - start)) / count),
+    end: start + Math.floor(((i + 1) * (end - start)) / count),
   }));
 }

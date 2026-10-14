@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog.js';
 import type { RowRange } from '../data/types.js';
 import type { GranumGridEngine } from '../core/engine.js';
+import { engineOf, type GranumGridApi } from '../core/api.js';
 import { rangeProvider } from '../data/range.js';
 import { GranumGrid, type GranumGridProps } from './GranumGrid.js';
 import { RangeSummary } from './RangeSummary.js';
 
 /** The host explorer settings both comparison panes reuse. */
-export type ComparisonHost<Row> = Pick<
+type ComparisonHost<Row> = Pick<
   GranumGridProps<Row>,
   | 'provider'
   | 'rowHeight'
@@ -31,8 +32,8 @@ export function CompareRanges<Row>({
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const left = useRef<GranumGridEngine>(null),
-    right = useRef<GranumGridEngine>(null);
+  const left = useRef<GranumGridApi<Row>>(null),
+    right = useRef<GranumGridApi<Row>>(null);
   const [linked, setLinked] = useState(true);
   // Depend on the bounds, not the objects, so equal ranges keep their providers and caches.
   const [aStart, aEnd, bStart, bEnd] = [a.start, a.end, b.start, b.end];
@@ -45,7 +46,9 @@ export function CompareRanges<Row>({
   );
   useModalDialog(dialog, true);
   useEffect(() => {
-    if (!linked || !left.current || !right.current) return;
+    const l = left.current && engineOf(left.current),
+      r = right.current && engineOf(right.current);
+    if (!linked || !l || !r) return;
     let syncing = false;
     const sync = (from: GranumGridEngine, to: GranumGridEngine) => {
       if (syncing) return;
@@ -59,8 +62,6 @@ export function CompareRanges<Row>({
         syncing = false;
       }
     };
-    const l = left.current,
-      r = right.current;
     const offL = l.subscribe(() => sync(l, r)),
       offR = r.subscribe(() => sync(r, l));
     sync(l, r);
@@ -103,24 +104,20 @@ export function CompareRanges<Row>({
             <GranumGrid
               provider={providers[i]}
               ariaLabel={`${i === 0 ? 'First' : 'Second'} range rows`}
-              controllerRef={i === 0 ? left : right}
+              apiRef={i === 0 ? left : right}
               rowHeight={host.rowHeight}
               dynamicRowHeight={host.dynamicRowHeight}
               theme={host.theme}
               unstyled={host.unstyled}
               classNames={host.classNames}
               styles={host.styles}
-              exploration={false}
-              features={{
-                flight: false,
-                automaticAggregation: false,
-                hints: false,
-                prefetch: false,
-              }}
+              toolbar={false}
+              tools={false}
+              rail={false}
+              footer={false}
+              hints={false}
+              features={{ flight: false, automaticAggregation: false, prefetch: false }}
               reducedMotion
-              renderToolbar={() => null}
-              renderRail={() => null}
-              renderFooter={() => null}
               header="Records in selected range"
               style={{ height: 320 }}
               renderRow={(context) =>

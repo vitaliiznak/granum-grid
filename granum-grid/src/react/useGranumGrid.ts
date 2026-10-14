@@ -7,9 +7,7 @@ import {
   useState,
   useSyncExternalStore,
   type CSSProperties,
-  type Dispatch,
   type HTMLAttributes,
-  type SetStateAction,
 } from 'react';
 import {
   createEngine,
@@ -17,19 +15,18 @@ import {
   pixelToRow,
   rowToPixel,
   type CoordinateMapping,
-  type GranumGridEngine,
   type NavigationEvent,
   type NavigationSnapshot,
-  type View,
-  type NavigationLocation,
 } from '../core/index.js';
-import { clamp, ROW_DETAIL_MAX_ROWS_PER_PIXEL } from '../core/mappings.js';
+import { clamp } from '../core/mappings.js';
 import { validRange } from '../data/bounds.js';
 import { createGranumGridApi, type GranumGridApi } from '../core/api.js';
+import { readView, type SavedView } from '../core/exploration.js';
+import { INTERNAL, type GridInternals } from './internal.js';
 import { useWindowScroll } from './useWindowScroll.js';
 import { useRowMeasurements } from './useRowMeasurements.js';
 import { bindInputs } from './input.js';
-import { isControl } from './dom.js';
+import { isControl, ownsKeys } from './dom.js';
 import { useFrameRate } from './useFrameRate.js';
 import { useKeyed } from './useKeyed.js';
 import { useReducedMotion } from './useReducedMotion.js';
@@ -37,10 +34,17 @@ import { useLatest } from './useLatest.js';
 import { useFollowOutput } from './useFollowOutput.js';
 import { useRowRequests } from './useRowRequests.js';
 import { handleViewportKey } from './keyboard.js';
-import { chapterAt } from '../core/navigation.js';
+import { bucketAt, chapterAt } from '../core/navigation.js';
 import { DataSession } from '../data/session.js';
 import { defaultFeatures, type Features } from '../features.js';
-import type { CacheOptions, DataProvider, Marker, RowSlot, RowRange } from '../data/types.js';
+import type {
+  CacheOptions,
+  Chapter,
+  DataProvider,
+  Marker,
+  RowSlot,
+  RowRange,
+} from '../data/types.js';
 export interface ScrollStats {
   cachedRows: number;
   cachedBytes: number;
@@ -51,37 +55,58 @@ export interface ScrollStats {
   fps: number | null;
   measuredRows: number;
 }
+export interface RowActivationContext<Row> {
+  row: Row;
+  /** Zero-based address in the current provider. */
+  index: number;
+  /** One-based display number. */
+  rowNumber: number;
+}
 export interface UseGranumGridOptions<Row> {
   provider: DataProvider<Row>;
-  scrollMode?: 'embedded' | 'window';
-  /** Snapshot by default. Append allows increasing counts without changing existing rows. */
-  dataMode?: 'snapshot' | 'append';
-  /** With `dataMode="append"`, follow new rows when already at the end. */
-  followOutput?: boolean;
-  selection?: RowRange | null;
-  initialSelection?: RowRange | null;
-  onSelectionChange?(range: RowRange | null): void;
+  /** `page` scrolls the document instead of an embedded viewport; mount one per page. */
+  layout?: 'embedded' | 'page';
+  /**
+   * `snapshot` (default) rebuilds on any count change. `append` accepts a growing count
+   * with the same rows and addresses; `follow` also stays at the end while already there.
+   */
+  dataMode?: 'snapshot' | 'append' | 'follow';
+  cache?: CacheOptions<Row>;
+  /** Row height in CSS pixels, or the estimate for unmeasured rows with `dynamicRowHeight`. */
   rowHeight?: number;
   /** Automatically measure loaded row content; rowHeight becomes the estimate. */
   dynamicRowHeight?: boolean;
-  maxMeasuredRows?: number;
-  /** Extra rows on each side in Rows/detail Zoom views. Default: 2. */
+  /** Extra rows on each side in the rows view. Default: 2. */
   overscan?: number;
-  /** Target summary band height in pixels; controls bounded aggregate resolution. */
-  aggregateRowHeight?: number;
-  initialLocation?: NavigationLocation;
+  /** First row shown when there is no matching `initialView`. Default: 0. */
   initialIndex?: number;
-  initialView?: View;
-  cache?: CacheOptions<Row>;
+  /**
+   * A saved location and selection to start from, such as a decoded link. Ignored when it
+   * belongs to another dataset or revision. Initial value, not a controlled prop.
+   */
+  initialView?: SavedView | null;
+  /** Controlled half-open selection. Omit it to let the explorer own the selection. */
+  selection?: RowRange | null;
+  onSelectionChange?(range: RowRange | null): void;
+  /**
+   * Host places, such as saved bookmarks, added to the provider's markers for N/P and
+   * marker snapping. They belong to the current provider; keep the array stable between renders.
+   */
+  markers?: readonly Marker[];
+  /**
+   * Open the host's search UI. `/`, Ctrl/Cmd+K, and `api.openSearch(query)` call it;
+   * without it they do nothing.
+   */
+  onOpenSearch?(query: string): void;
+  /** Click or Enter on a loaded row. The host owns the action; activation does not navigate. */
+  onRowActivate?(context: RowActivationContext<Row>): void;
+  /** Committed jumps, not every animation frame. */
+  onNavigate?(event: NavigationEvent): void;
+  /** Cache and request counts, measured rows, and frame rate (sampled only with this callback). */
+  onStats?(stats: ScrollStats): void;
+  /** Motion and data behavior; see `defaultFeatures`. */
   features?: Partial<Features>;
   reducedMotion?: 'system' | boolean;
-  onNavigate?(event: NavigationEvent): void;
-  onStats?(stats: ScrollStats): void;
-  /**
-   * Sample frame delivery while moving for `stats.fps`; each sample re-renders the explorer.
-   * Default: true when `onStats` is provided, otherwise `stats.fps` is null.
-   */
-  measureFrameRate?: boolean;
 }
 // Keep React's DOM attributes as a named type. Inferred object spreads otherwise
 // bake the build-time React version's event handlers into the published .d.ts.
@@ -95,6 +120,7 @@ interface RowElementProps extends HTMLAttributes<HTMLDivElement> {
   'data-status': RowSlot<unknown>['status'];
   'data-selected': boolean | undefined;
   'data-focused': boolean | undefined;
+  'data-activatable': boolean | undefined;
 }
 interface AnnouncementProps {
   className: string;
@@ -104,95 +130,80 @@ interface AnnouncementProps {
 }
 /** What `useGranumGrid` returns. Declared explicitly so published types never follow internals. */
 export interface GranumGridState<Row> {
-  /** Prefix for element ids within this explorer. */
-  id: string;
-  /** Mounted provider and controller for host integrations. */
+  /** The imperative handle: navigation, selection, saved views, search, and retry. */
   api: GranumGridApi<Row>;
-  controller: GranumGridEngine;
   provider: DataProvider<Row>;
-  /** Row pages, metadata, and requests for the current provider revision. */
-  session: DataSession<Row>;
+  /** Position, progress, row count, and history availability. Changes while moving. */
   snapshot: NavigationSnapshot;
   /** Bounded row slots to render: ready rows or placeholders. */
   rows: RowSlot<Row>[];
-  mapping: CoordinateMapping;
   /** Rows in view as a half-open range. */
   visibleRange: RowRange;
-  /** The latest visible range, for event handlers that should not re-render on scroll. */
-  getVisibleRange: () => RowRange;
-  aggregateMode: boolean;
-  aggregateBuckets: number;
-  scrollMode: 'embedded' | 'window';
-  dataMode: 'snapshot' | 'append';
-  features: Features;
-  reduceMotion: boolean;
-  stats: ScrollStats;
-  /** Rows appended while the reader was away from the end (`followOutput`). */
-  unseenRows: number;
+  /** Keyboard row focus, independent of the scroll anchor when row activation is enabled. */
+  focusedIndex: number | null;
   selection: RowRange | null;
-  setSelection: (value: RowRange | null) => void;
-  selectionMode: boolean;
-  setSelectionMode: Dispatch<SetStateAction<boolean>>;
-  /** Whether the search dialog is open. Custom toolbars open it with `setJumpOpen(true)`. */
-  jumpOpen: boolean;
-  setJumpOpen: Dispatch<SetStateAction<boolean>>;
-  /** Search dialog state shared with `JumpBar` and the map; not needed by custom rows. */
-  searchQuery: string;
-  setSearchQuery: Dispatch<SetStateAction<string>>;
-  searchMarkers: Marker[];
-  setSearchMarkers: Dispatch<SetStateAction<Marker[]>>;
-  /** Provider markers and saved bookmarks in row order, used by the map, N/P, and search. */
+  /** Provider markers and the host's `markers` in row order, used by the map, N/P, and search. */
   markers: Marker[];
-  /** Show saved places as `bookmark` markers; `ExplorerTools` publishes its bookmarks here. */
-  setBookmarkMarkers: (markers: Marker[]) => void;
-  setSearchBusy: Dispatch<SetStateAction<boolean>>;
-  /** Polite screen reader announcement for the latest navigation. */
-  announcement: string;
-  /** Edge elasticity offset in pixels. */
+  /** The provider chapter containing the current row, for a breadcrumb. */
+  chapter: Chapter | null;
+  /** A long jump or fast fling is showing the overview instead of rows. */
+  traveling: boolean;
+  /** Elastic edge offset in pixels; translate the rows by it. */
   edgeOffset: number;
+  stats: ScrollStats;
+  /** Rows appended while the reader was away from the end (`dataMode: 'follow'`). */
+  unseenRows: number;
   getViewportProps: (props?: HTMLAttributes<HTMLDivElement>) => ViewportElementProps;
   getRowProps: (slot: RowSlot<Row>, props?: HTMLAttributes<HTMLDivElement>) => RowElementProps;
   getAnnouncementProps: () => AnnouncementProps;
+  /** Read by the library's widgets; not part of the public API. */
+  readonly [INTERNAL]: GridInternals<Row>;
 }
 export function useGranumGrid<Row>({
   provider,
-  scrollMode = 'embedded',
-  followOutput: requestedFollowOutput,
-  dataMode,
+  layout = 'embedded',
+  dataMode = 'snapshot',
   selection: controlledSelection,
-  initialSelection = null,
   onSelectionChange,
+  onRowActivate,
+  markers: hostMarkers,
+  onOpenSearch,
   rowHeight = 32,
   dynamicRowHeight = false,
-  maxMeasuredRows = 4096,
   overscan = 2,
-  aggregateRowHeight = 4,
-  initialLocation,
+  initialView,
   initialIndex = 0,
-  initialView = 'rows',
   cache,
   features: overrides,
   reducedMotion = 'system',
   onNavigate,
   onStats,
-  measureFrameRate = onStats !== undefined,
 }: UseGranumGridOptions<Row>): GranumGridState<Row> {
-  const append = dataMode === 'append';
-  if (!append && requestedFollowOutput !== undefined)
-    throw new Error('followOutput requires dataMode="append"');
-  const followOutput = append ? (requestedFollowOutput ?? false) : undefined;
+  if (dataMode !== 'snapshot' && dataMode !== 'append' && dataMode !== 'follow')
+    throw new RangeError('dataMode must be "snapshot", "append", or "follow"');
+  const append = dataMode !== 'snapshot';
+  const followOutput = append ? dataMode === 'follow' : undefined;
+  const windowScroll = layout === 'page';
+  // Hosts may pass a fresh view on every render, such as `api.getView()`; the selection keeps
+  // one identity while its bounds are unchanged. The location is read only by a new engine.
+  const initial = initialView ? readView(initialView, provider) : null;
+  const initialStart = initial?.selection?.start;
+  const initialEnd = initial?.selection?.end;
+  const initialSelection = useMemo(
+    () =>
+      initialStart === undefined || initialEnd === undefined
+        ? null
+        : { start: initialStart, end: initialEnd },
+    [initialStart, initialEnd],
+  );
   if (!Number.isSafeInteger(overscan) || overscan < 0 || overscan > 1000)
     throw new RangeError('overscan must be an integer from 0 to 1000');
-  if (!Number.isFinite(aggregateRowHeight) || aggregateRowHeight < 1)
-    throw new RangeError('aggregateRowHeight must be positive');
   const features = { ...defaultFeatures, ...overrides };
   const id = useId();
   const [speedSpan, setSpeedSpan] = useState(0);
   const [edgeOffset, setEdgeOffset] = useState(0);
   const velocity = useRef(0);
-  const [searchBusy, setSearchBusy] = useState(false);
   const [announcement, setAnnouncement] = useState('');
-  const [searchMarkers, setSearchMarkers] = useState<Marker[]>([]);
   const reduceMotion = useReducedMotion(reducedMotion);
   // Reduced motion turns off every animated or momentum behavior; resolve it once here.
   const flight = !reduceMotion && features.flight;
@@ -205,10 +216,8 @@ export function useGranumGrid<Row>({
         rowCount: provider.rowCount,
         rowHeight,
         initialIndex,
-        initialView,
         dynamicRowHeight,
-        maxMeasuredRows,
-        initialLocation,
+        initialLocation: initial?.location,
       }),
     [
       provider.id,
@@ -218,44 +227,10 @@ export function useGranumGrid<Row>({
       append,
       rowHeight,
       dynamicRowHeight,
-      maxMeasuredRows,
     ],
   );
-  const [searchState, setSearchState] = useState({ engine, open: false, query: '' });
-  const jumpOpen = searchState.engine === engine && searchState.open;
-  const searchQuery = searchState.engine === engine ? searchState.query : '';
-  const setJumpOpen = useCallback<Dispatch<SetStateAction<boolean>>>(
-    (value) => {
-      setSearchState((current) => {
-        const wasOpen = current.engine === engine && current.open;
-        const open = typeof value === 'function' ? value(wasOpen) : value;
-        return { engine, open, query: open && !wasOpen ? '' : current.query };
-      });
-    },
-    [engine],
-  );
-  const setSearchQuery = useCallback<Dispatch<SetStateAction<string>>>(
-    (value) => {
-      setSearchState((current) => ({
-        engine,
-        open: current.engine === engine && current.open,
-        query:
-          typeof value === 'function'
-            ? value(current.engine === engine ? current.query : '')
-            : value,
-      }));
-    },
-    [engine],
-  );
-  const openSearch = useCallback(
-    (query: string) => {
-      setSearchState({ engine, open: true, query });
-    },
-    [engine],
-  );
-  useWindowScroll(engine, scrollMode === 'window');
+  useWindowScroll(engine, windowScroll);
   const [selectionState, setSelectionState] = useState({ engine, value: initialSelection });
-  const [selectionMode, setSelectionMode] = useState(false);
   const candidate =
     controlledSelection !== undefined
       ? controlledSelection
@@ -268,6 +243,8 @@ export function useGranumGrid<Row>({
   const latestOnSelectionChange = useLatest(onSelectionChange);
   const latestOnNavigate = useLatest(onNavigate);
   const latestOnStats = useLatest(onStats);
+  const latestOnOpenSearch = useLatest(onOpenSearch);
+  const latestSession = useRef<DataSession<Row> | null>(null);
   const uncontrolledSelection = controlledSelection === undefined;
   const setSelection = useCallback(
     (value: RowRange | null) => {
@@ -285,18 +262,18 @@ export function useGranumGrid<Row>({
       createGranumGridApi(provider, engine, {
         getSelection: () => latestSelection.current,
         setSelection,
-        openSearch,
+        openSearch: (query) => latestOnOpenSearch.current?.(query),
+        retry: () => latestSession.current?.retry(),
       }),
-    [provider, engine, setSelection, openSearch, latestSelection],
+    [provider, engine, setSelection, latestOnOpenSearch, latestSelection],
   );
-  useEffect(() => setSelectionMode(false), [engine]);
   const measurements = useRowMeasurements(engine);
   const sizes = engine.rowSizes;
   const snapshot = useSyncExternalStore(engine.subscribe, engine.getSnapshot, engine.getSnapshot);
   useEffect(() => {
     if (dynamicRowHeight && snapshot.measuredRows === 0) measurements.measure();
   }, [dynamicRowHeight, measurements, snapshot.layoutVersion, snapshot.measuredRows]);
-  const fps = useFrameRate(snapshot.position, measureFrameRate);
+  const fps = useFrameRate(snapshot.position, onStats !== undefined);
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
   const session = useKeyed(
     () => new DataSession(provider, cache),
@@ -312,28 +289,28 @@ export function useGranumGrid<Row>({
       cache?.requestTimeoutMs,
     ],
   );
+  const [rowFocus, setRowFocus] = useState<{
+    session: DataSession<Row>;
+    position: number;
+    index: number;
+  } | null>(null);
+  const currentFocus = rowFocus?.session === session && rowFocus.position === snapshot.position;
+  // A scroll or provider replacement discards pointer focus, even if the reader later returns.
+  if (rowFocus && !currentFocus) setRowFocus(null);
+  const focusedIndex = onRowActivate && currentFocus ? rowFocus.index : snapshot.activeIndex;
   const unseenRows = useFollowOutput(engine, session, provider, followOutput, snapshot);
   useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   useEffect(() => {
+    latestSession.current = session;
     session.start();
     return () => session.stop();
   }, [session]);
-  const identity = `${provider.id}:${provider.revision}`;
-  // Keyed by dataset so a provider switch never shows the previous dataset's bookmarks.
-  const [bookmarks, setBookmarks] = useState({ identity, markers: [] as Marker[] });
-  const setBookmarkMarkers = useCallback(
-    (markers: Marker[]) => setBookmarks({ identity, markers }),
-    [identity],
-  );
   const markers = useMemo(() => {
-    const saved =
-      bookmarks.identity === identity
-        ? bookmarks.markers.filter((marker) => marker.index < provider.rowCount)
-        : [];
-    return saved.length
-      ? [...session.markers, ...saved].sort((a, b) => a.index - b.index)
+    const own = hostMarkers?.filter((marker) => marker.index < provider.rowCount) ?? [];
+    return own.length
+      ? [...session.markers, ...own].sort((a, b) => a.index - b.index)
       : session.markers;
-  }, [session.markers, bookmarks, identity, provider.rowCount]);
+  }, [session.markers, hostMarkers, provider.rowCount]);
   useEffect(() => {
     engine.setMetadata(markers, session.chapters);
   }, [engine, markers, session.chapters]);
@@ -361,9 +338,6 @@ export function useGranumGrid<Row>({
   const temporarySpan = Math.max(snapshot.flightSpan, automaticAggregation ? speedSpan : 0);
   // Long flights and fast flings show the overview instead of rows they would skip past.
   const traveling = temporarySpan > (snapshot.height / rowHeight) * 3;
-  const aggregateMode =
-    traveling ||
-    (snapshot.view === 'zoom' && snapshot.rowsPerPixel > ROW_DETAIL_MAX_ROWS_PER_PIXEL);
   const mapping = useMemo(() => {
     if (traveling)
       return createZoomMapping(
@@ -371,16 +345,13 @@ export function useGranumGrid<Row>({
         snapshot.height,
         Math.max(1 / rowHeight, temporarySpan / snapshot.height),
       );
-    if (dynamicRowHeight && !aggregateMode) {
-      const origin = snapshot.position + (snapshot.view === 'zoom' ? 0.5 : 0);
-      const offset = snapshot.view === 'zoom' ? snapshot.height / 2 : 0;
+    if (dynamicRowHeight) {
+      const origin = snapshot.position;
       return {
-        toPixel: (row: number) => offset + sizes.distance(origin, row),
-        toRow: (pixel: number) => sizes.advance(origin, pixel - offset),
+        toPixel: (row: number) => sizes.distance(origin, row),
+        toRow: (pixel: number) => sizes.advance(origin, pixel),
       };
     }
-    if (snapshot.view === 'zoom')
-      return createZoomMapping(snapshot.position, snapshot.height, snapshot.rowsPerPixel);
     return {
       toPixel: (row: number) => rowToPixel(row, snapshot.position, rowHeight),
       toRow: (pixel: number) => pixelToRow(pixel, snapshot.position, rowHeight),
@@ -389,22 +360,19 @@ export function useGranumGrid<Row>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     snapshot.position,
-    snapshot.view,
     snapshot.height,
-    snapshot.rowsPerPixel,
     temporarySpan,
     traveling,
     snapshot.rowCount,
     rowHeight,
     dynamicRowHeight,
-    aggregateMode,
     sizes,
     snapshot.layoutVersion,
   ]);
-  const start = aggregateMode
+  const start = traveling
     ? Math.floor(snapshot.position)
     : Math.max(0, Math.floor(mapping.toRow(0)) - overscan);
-  const count = aggregateMode
+  const count = traveling
     ? 0
     : Math.max(
         0,
@@ -413,25 +381,14 @@ export function useGranumGrid<Row>({
           Math.ceil(mapping.toRow(snapshot.height)) - start + overscan,
         ),
       );
-  const aggregateStart = Math.max(0, Math.floor(mapping.toRow(0)));
-  const aggregateEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)));
-  const visibleRange = { start: aggregateStart, end: aggregateEnd };
+  const visibleStart = Math.max(0, Math.floor(mapping.toRow(0)));
+  const visibleEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)));
+  const visibleRange = { start: visibleStart, end: visibleEnd };
   // Actions read the latest range without making their components render on every frame.
   const latestVisibleRange = useLatest(visibleRange);
   const getVisibleRange = useCallback(
     (): RowRange => latestVisibleRange.current,
     [latestVisibleRange],
-  );
-  // At either endpoint, only part of the centered viewport contains data.
-  // Size summary bands for that occupied area so their actions remain readable.
-  const aggregateHeight = Math.max(
-    0,
-    Math.min(snapshot.height, mapping.toPixel(aggregateEnd)) -
-      Math.max(0, mapping.toPixel(aggregateStart)),
-  );
-  const aggregateBuckets = Math.max(
-    1,
-    Math.min(160, Math.floor(aggregateHeight / aggregateRowHeight)),
   );
   useEffect(() => {
     if (!viewport) return;
@@ -450,7 +407,7 @@ export function useGranumGrid<Row>({
   useEffect(() => {
     if (!viewport) return;
     return bindInputs(viewport, engine, {
-      windowScroll: scrollMode === 'window',
+      windowScroll,
       inertia,
       elasticity,
       automaticAggregation,
@@ -460,22 +417,17 @@ export function useGranumGrid<Row>({
         velocity.current = value;
       },
     });
-  }, [viewport, scrollMode, engine, inertia, elasticity, automaticAggregation]);
+  }, [viewport, windowScroll, engine, inertia, elasticity, automaticAggregation]);
   useRowRequests(engine, session, snapshot.moving, snapshot.targetIndex, {
     start,
     count,
     destinationCount: Math.ceil(snapshot.height / rowHeight) + overscan,
     prefetch: features.prefetch,
     velocity,
-    aggregates:
-      aggregateMode && !snapshot.moving && aggregateEnd > aggregateStart
-        ? { start: aggregateStart, end: aggregateEnd, buckets: aggregateBuckets }
-        : null,
   });
-  const sessionStats = session.getStats();
+  // Session statistics include searches started through `session.search`.
   const stats: ScrollStats = {
-    ...sessionStats,
-    activeRequests: sessionStats.activeRequests + (searchBusy ? 1 : 0),
+    ...session.getStats(),
     fps,
     measuredRows: snapshot.measuredRows,
   };
@@ -500,21 +452,21 @@ export function useGranumGrid<Row>({
     const common = {
       index,
       y: mapping.toPixel(index),
-      height: dynamicRowHeight
-        ? sizes.size(index)
-        : snapshot.view === 'zoom'
-          ? 1 / snapshot.rowsPerPixel
-          : rowHeight,
+      height: dynamicRowHeight ? sizes.size(index) : rowHeight,
     };
     const row = session.read(index);
     const error = session.error(index);
-    const estimate = features.progressiveEstimates
-      ? session.overview.find((bucket) => index >= bucket.start && index < bucket.end)
-      : undefined;
+    const estimate = features.progressiveEstimates ? bucketAt(session.overview, index) : undefined;
     return session.has(index)
       ? { ...common, status: 'ready', row: row as Row }
       : { ...common, status: error ? 'error' : 'loading', error, estimate };
   });
+  const activateRow = (slot: RowSlot<Row>) => {
+    if (!onRowActivate || slot.status !== 'ready') return;
+    setRowFocus({ session, position: snapshot.position, index: slot.index });
+    viewport?.focus({ preventScroll: true });
+    onRowActivate({ row: slot.row, index: slot.index, rowNumber: slot.index + 1 });
+  };
   const getViewportProps = (props: HTMLAttributes<HTMLDivElement> = {}): ViewportElementProps => ({
     ...props,
     ref: setViewport,
@@ -522,9 +474,12 @@ export function useGranumGrid<Row>({
     role: 'grid',
     tabIndex: 0,
     'aria-rowcount': provider.rowCount,
-    'aria-activedescendant': rows.some((row) => row.index === snapshot.activeIndex)
-      ? `${id}-row-${snapshot.activeIndex}`
+    'aria-activedescendant': rows.some((row) => row.index === focusedIndex)
+      ? `${id}-row-${focusedIndex}`
       : undefined,
+    'aria-description':
+      props['aria-description'] ??
+      (onRowActivate ? 'Press Enter to inspect the focused row.' : undefined),
     className: `ds-viewport ${props.className ?? ''}`,
     'data-ds-part': 'viewport',
     style: {
@@ -532,13 +487,13 @@ export function useGranumGrid<Row>({
       overflow: 'hidden',
       minWidth: 0,
       flex: 1,
-      touchAction: 'none',
+      touchAction: 'pan-x pinch-zoom',
       ...props.style,
     } as CSSProperties,
     onClick: (event: React.MouseEvent<HTMLDivElement>) => {
       props.onClick?.(event);
       if (event.defaultPrevented || isControl(event.target)) return;
-      if (aggregateMode) {
+      if (traveling) {
         const index = Math.round(
           clamp(
             mapping.toRow(event.clientY - event.currentTarget.getBoundingClientRect().top),
@@ -547,52 +502,87 @@ export function useGranumGrid<Row>({
           ),
         );
         engine.goTo(index, { reason: 'jump' });
+      } else if (
+        onRowActivate &&
+        event.target === event.currentTarget &&
+        event.button === 0 &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        event.currentTarget.ownerDocument.getSelection()?.isCollapsed !== false
+      ) {
+        // Touch pointer capture retargets a tap to the viewport instead of its row.
+        const index = Math.floor(
+          mapping.toRow(event.clientY - event.currentTarget.getBoundingClientRect().top),
+        );
+        const slot = rows.find((row) => row.index === index);
+        if (slot) activateRow(slot);
       }
     },
     onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
       props.onKeyDown?.(event);
-      if (event.defaultPrevented || isControl(event.target)) return;
+      if (event.defaultPrevented || ownsKeys(event.target)) return;
+      if (
+        onRowActivate &&
+        !traveling &&
+        !event.altKey &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.shiftKey
+      ) {
+        if (event.key === 'Enter') {
+          const slot = rows.find((row) => row.index === focusedIndex);
+          if (slot?.status === 'ready') {
+            event.preventDefault();
+            if (!event.repeat) activateRow(slot);
+          }
+          return;
+        }
+        if (focusedIndex !== null && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+          event.preventDefault();
+          const index = clamp(
+            focusedIndex + (event.key === 'ArrowDown' ? 1 : -1),
+            0,
+            provider.rowCount - 1,
+          );
+          engine.scrollToIndex(index, { align: 'auto', history: 'skip', reason: 'keyboard' });
+          setRowFocus({ session, position: engine.getSnapshot().position, index });
+          setAnnouncement(`Row ${index + 1}`);
+          return;
+        }
+      }
       handleViewportKey(event, {
         engine,
-        openJump: () => setJumpOpen(true),
+        openSearch: latestOnOpenSearch.current && (() => latestOnOpenSearch.current?.('')),
         announce: setAnnouncement,
       });
     },
   });
   return {
-    id,
     api,
-    unseenRows,
-    selection,
-    setSelection,
-    selectionMode,
-    setSelectionMode,
-    scrollMode,
-    dataMode: append ? 'append' : 'snapshot',
-    controller: engine,
+    provider,
     snapshot,
     rows,
-    provider,
-    session,
-    stats,
-    features,
-    reduceMotion,
-    announcement,
-    searchMarkers,
-    setSearchMarkers,
-    markers,
-    setBookmarkMarkers,
-    jumpOpen,
-    setJumpOpen,
-    searchQuery,
-    setSearchQuery,
-    mapping,
-    aggregateMode,
     visibleRange,
-    getVisibleRange,
-    aggregateBuckets,
+    focusedIndex,
+    selection,
+    markers,
+    chapter: chapterAt(session.chapters, snapshot.position) ?? null,
+    traveling,
     edgeOffset,
-    setSearchBusy,
+    stats,
+    unseenRows,
+    [INTERNAL]: {
+      id,
+      engine,
+      session,
+      mapping,
+      features,
+      reduceMotion,
+      append,
+      getVisibleRange,
+    },
     getViewportProps,
     getRowProps: (
       slot: RowSlot<Row>,
@@ -613,7 +603,26 @@ export function useGranumGrid<Row>({
         'data-status': slot.status,
         'aria-selected': selected,
         'data-selected': selected || undefined,
-        'data-focused': slot.index === snapshot.activeIndex || undefined,
+        'data-focused': slot.index === focusedIndex || undefined,
+        'data-activatable': (!!onRowActivate && slot.status === 'ready' && !traveling) || undefined,
+        onClick: (event: React.MouseEvent<HTMLDivElement>) => {
+          props.onClick?.(event);
+          if (
+            !onRowActivate ||
+            traveling ||
+            slot.status !== 'ready' ||
+            event.defaultPrevented ||
+            ownsKeys(event.target) ||
+            event.button !== 0 ||
+            event.altKey ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.shiftKey ||
+            viewport?.ownerDocument.getSelection()?.isCollapsed === false
+          )
+            return;
+          activateRow(slot);
+        },
         style: {
           ...props.style,
           position: 'absolute',

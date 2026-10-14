@@ -1,14 +1,8 @@
 # Styling and composition
 
-Granum Grid has no styling-framework dependency and imports no CSS from JavaScript. Choose the amount of UI you want to keep.
+Granum Grid has no styling-framework dependency and imports no CSS from JavaScript. Import `granum-grid/styles.css` for the default skin and theme tokens, `granum-grid/base.css` to supply your own colors, type, spacing, controls, and borders, or no CSS with the headless hook. The [layer table](granum-grid/README.md#layers) shows what each layer leaves to you.
 
-| Approach                    | Import                   | What you own                                       |
-| --------------------------- | ------------------------ | -------------------------------------------------- |
-| Default component           | `granum-grid/styles.css` | Theme tokens, row content, optional part overrides |
-| Component with your styling | `granum-grid/base.css`   | Colors, type, spacing, controls, borders           |
-| Headless hook               | No CSS import            | All markup and presentation                        |
-
-The demo's **Use it in your app** section has live examples of all three approaches. The `unstyled` prop also disables the default skin on one instance when another instance on the same page uses `styles.css`. Structural layout is preserved.
+The `unstyled` prop also disables the default skin on one instance when another instance on the same page uses `styles.css`. Structural layout is preserved.
 
 ## Theme the default component
 
@@ -43,7 +37,7 @@ import './explorer.css';
 }
 ```
 
-Define the host variables used above, or replace them with colors. Typography inherits from the host. The component's `theme` accepts `light`, `dark`, and `system`; the default is `system`. Your overrides take precedence over the built-in light/dark palette. Canvas summaries use `--ds-accent` and `--ds-muted`, falling back to inherited text color without the skin.
+Define the host variables used above, or replace them with colors. Typography inherits from the host. The component's `theme` accepts `light`, `dark`, and `system`; the default is `system`. Your overrides take precedence over the built-in light/dark palette. The travel overview uses `--ds-accent` and `--ds-muted`, falling back to inherited text color without the skin.
 
 Both stylesheets use the `granum-grid` cascade layer and zero-specificity `:where()` selectors. Normal unlayered application CSS overrides them regardless of import order. For a framework that also uses cascade layers, declare the order before either stylesheet so its utilities come last; for example:
 
@@ -74,7 +68,7 @@ Use CSS Modules, utility class strings, ordinary classes, or inline styles:
 />
 ```
 
-`classNames` and `styles` accept `toolbar`, `header`, `scale`, `body`, `viewport`, `row`, `rail`, `footer`, `jump`, and `hint`. Types are exported as `GranumGridPart` and `GranumGridAppearance`. The corresponding elements have stable `data-ds-part` attributes. Rows expose `data-focused` and `data-status="ready|loading|error"`. The root exposes `data-view`, `data-theme`, `data-motion`, and `data-unstyled`.
+`classNames` and `styles` accept `toolbar`, `header`, `body`, `viewport`, `row`, `rail`, `footer`, `jump`, and `hint`. Types are exported as `GranumGridPart` and `GranumGridAppearance`. The corresponding elements have stable `data-ds-part` attributes. Rows expose `data-focused` and `data-status="ready|loading|error"`. The root exposes `data-theme`, `data-motion`, and `data-unstyled`.
 
 The virtualizer owns row position, transform, height, minimum height, and border-box sizing. These are inline geometry styles; style the row's content instead of overriding them. Enable `dynamicRowHeight` for content-driven heights and put padding inside rows. Always give the explorer or headless viewport a bounded height.
 
@@ -88,7 +82,7 @@ Chapter labels come from `fetchChapters`. They represent time only when your pro
 <GranumGrid
   provider={provider}
   ariaLabel="Readings"
-  atlas={{
+  rail={{
     title: 'Scrollbar',
     variant: 'profile',
     axis: 'chapters',
@@ -106,6 +100,7 @@ Chapter labels come from `fetchChapters`. They represent time only when your pro
     showMagnifier: true,
     snapToMarkers: false,
     formatValue: (value) => value.toFixed(1),
+    actions: <MapSettingsButton />, // Your controls beside the map title.
   }}
   renderRow={({ row }) => <span role="gridcell">{row.value}</span>}
 />
@@ -129,23 +124,35 @@ Chapter labels come from `fetchChapters`. They represent time only when your pro
 | `preview`          | `rows` (default, summary plus exact rows), `summary` (no row requests), or `none`. Drag position feedback remains available.                                                                     |
 | `previewRows`      | Exact rows per hover preview; default 3, clamped to 1–5 and remaining rows                                                                                                                       |
 | `showMagnifier`    | Local profile crop in hover details; defaults to false. Reuses the overview buckets. Requires a profile and hover details.                                                                       |
+| `precision`        | Slow scrubbing while the pointer moves sideways during a drag (½, ¼, then 1/20 speed); defaults to true.                                                                                         |
 | `snapToMarkers`    | Snap slow map drags to visible provider events; defaults to true. Shift temporarily bypasses snapping.                                                                                           |
 | `snapToPeaks`      | Gently attract hover previews, clicks, and slow full-speed drags to nearby visible chart peaks; defaults to true. Shift bypasses attraction. Does not affect range selection or precision drags. |
 | `formatValue`      | Display formatter for the primary metric's scale and group details, including any desired unit. Additional metrics use their own `metric.unit`.                                                  |
+| `actions`          | Your controls beside the map title and help button                                                                                                                                               |
 
-Peak attraction uses the selected chart's existing overview groups, never a scan of individual rows. It ignores missing groups and small ripples, gently pulls within 10 screen pixels, and settles on the peak group's midpoint within 3 pixels. Hovering shows the target without navigating; clicking uses that target. Visible provider events take priority during a drag. Set `features={{ magnetism: false }}` to disable both event snapping and peak attraction.
+Peak attraction uses the selected chart's existing overview groups, never a scan of individual rows. It ignores missing groups and small ripples, gently pulls within 10 screen pixels, and settles on the peak group's midpoint within 3 pixels. Hovering shows the target without navigating; clicking uses that target. Visible provider events take priority during a drag. Set `snapToMarkers: false` and `snapToPeaks: false` to disable both event snapping and peak attraction.
 
 Expanded layout labels the chart, row-order axis, value direction, markers, and current-row handle. With `showTracks`, choose a metric using **Chart**; changing the chart updates its scale, accuracy, range shading, and hover summary without moving the current row or changing navigation history. Providers should return only additional metrics from `fetchOverviewTracks`, without repeating the primary metric. Short rails collapse explanatory text and the legend into the help button to preserve plot height.
 
-Compact layout shows numbers instead of marker names (a marker's position in row order, or a group's size), hides the chart selector, and keeps the selected chart and its explanation available through the question-mark button and hover details. The scrollbar column runs the full height of the table. Help and host controls sit over the chart and leave that column clear. The metric name stays in the legend and in the help note. Navigation targets retain their accessible names in every layout. Configure width with the three `--ds-rail-width*` tokens above. The axis and marker gutters can be adjusted with `--ds-map-axis-width` and `--ds-map-events-width` on the rail.
+Compact layout shows numbers instead of marker names (a marker's place in row order; a group shows its named marker's place and a +N count), hides the chart selector, and keeps the selected chart and its explanation available through the question-mark button and hover details. The scrollbar column runs the full height of the table. Help and host controls sit in one compact group over the chart and leave the marker gutter and scroll column clear. The metric name stays in the legend and in the help note. Navigation targets retain their accessible names in every layout. Configure width with the three `--ds-rail-width*` tokens above. The axis and marker gutters can be adjusted with `--ds-map-axis-width` and `--ds-map-events-width` on the rail.
 
-Global feature switches still take precedence: for example, `features={{ markers: false }}` hides events regardless of `showMarkers`, and `features={{ preview: false }}` prevents exact-row previews. Hiding a layer does not disable provider metadata loading. The current-row handle and explicit range selection stay visible independently of these layer options.
+These options are the only switches for map layers; the hook's `features` cover motion and data, not the map. Hiding a layer does not disable provider metadata loading. The current-row handle and explicit range selection stay visible independently of these layer options.
 
-For composition, pass the same configuration as `<AtlasRail scroll={scroll} options={atlas} />`. Configuration changes preserve the current row and history. Add controls beside the map title with `GranumGrid`'s `railActions` prop (or `AtlasRail`'s `headerActions` prop). The demo starts with a compact scrollbar: its title, axes, legend, and row count are hidden to give the track more height. **View** and **Config** sit on top of that chart. The chart, markers, and axis labels ease back until the pointer or keyboard focus is on the scrollbar. **Config** opens the layout menu, including the expanded width, and keeps independent settings for each dataset until reload; **Reset scrollbar** restores only the current dataset's defaults. The library does not require that menu or any particular UI framework. Use `renderRail` or the headless hook to replace the map entirely.
+For composition, pass the same options straight to the widget: `<AtlasRail grid={grid} {...mapOptions} />`. The rail is controlled: `highlights` draws extra places such as search results, and `selecting` with `onSelectingChange` turns a drag into a range selection. Configuration changes preserve the current row and history. `rail={false}` hides the map; a function as `rail`, or the headless hook, replaces it entirely.
 
 ## Use your React controls
 
-`renderToolbar`, `renderFooter`, and `renderRail` receive the full `GranumGridState<Row>`. Return your own component or `null` to omit a region. The example `Button` below is your application's component; it can come from a React UI library or wrap a native button.
+Every explorer region is one prop with one rule: `false` hides it, an options object configures the built-in part, and a function renders your own. `toolbar`, `rail`, and `footer` accept functions, which receive the hook state (`GranumGridState<Row>`) with its `api` handle; `tools` and `hints` accept `false` or options.
+
+| Region    | Options object                          | Function                                    |
+| --------- | --------------------------------------- | ------------------------------------------- |
+| `toolbar` | `{ actions, fullPageUrl }`              | `(grid) => ReactNode`                       |
+| `tools`   | `{ storageKey, formatRange }`           | —                                           |
+| `rail`    | `AtlasRailOptions`, including `actions` | `(grid, rail: AtlasRailProps) => ReactNode` |
+| `footer`  | —                                       | `(grid) => ReactNode`                       |
+| `hints`   | `{ storageKey }`                        | —                                           |
+
+Open the built-in search dialog with `api.openSearch()`. A `rail` function also receives the built-in map's props as a second argument; spread them to wrap or adjust the map while keeping search highlights and map selection: `rail={(_, rail) => <AtlasRail {...rail} layout="expanded" />}`. The example `Button` below is your application's component; it can come from a React UI library or wrap a native button.
 
 ```tsx
 import 'granum-grid/base.css';
@@ -156,55 +163,56 @@ import 'granum-grid/base.css';
   ariaLabel="Readings"
   className={styles.explorer}
   classNames={{ row: styles.row }}
-  renderToolbar={({ controller, snapshot, setJumpOpen }) => (
+  toolbar={({ api, snapshot, chapter }) => (
     <div className={styles.toolbar}>
-      <Button disabled={!snapshot.canGoBack} onClick={() => controller.back()}>
+      <Button disabled={!snapshot.canGoBack} onClick={() => api.back()}>
         Back
       </Button>
-      <Button onClick={() => setJumpOpen(true)}>Find a row</Button>
+      <Button onClick={() => api.openSearch()}>Find a row</Button>
+      <span>{chapter?.label}</span>
     </div>
   )}
-  renderFooter={({ snapshot }) => (
+  footer={({ snapshot }) => (
     <output>
       {snapshot.rowCount ? (snapshot.activeIndex ?? 0) + 1 : 0} / {snapshot.rowCount}
     </output>
   )}
-  renderRail={() => null}
+  rail={false}
   renderRow={({ row }) => <span role="gridcell">{row.value}</span>}
 />;
 ```
 
-Replacement renderers own their wrapper styling and accessibility; the replaced part's `classNames`/`styles` no longer apply. To keep the built-in toolbar and add your own controls to it, pass them as `toolbarActions`. `header`, `renderRow`, `renderPlaceholder`, and `emptyContent` remain content slots. Use `styles={{ header: { display: 'none' } }}` to omit the default legend. For complete markup control, use the hook.
+Replacement renderers own their wrapper styling and accessibility; the replaced part's `classNames`/`styles` no longer apply. To keep the built-in toolbar and add your own controls to it, pass `toolbar={{ actions: <MyButtons /> }}`. `header`, `renderRow`, `renderPlaceholder(slot, retry)`, and `emptyContent` remain content slots. Use `styles={{ header: { display: 'none' } }}` to omit the default legend. For complete markup control, use the hook.
 
 ## Build a headless list
 
 ```tsx
-import { useGranumGrid, type DataProvider } from 'granum-grid';
+import { useGranumGrid, type DataProvider } from 'granum-grid/headless';
 
 function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }) {
-  const scroll = useGranumGrid({
+  const grid = useGranumGrid({
     provider,
     rowHeight: 48,
-    // This simple list renders exact rows only, without overview canvas bands.
+    // Rows only: no animated flights and no overview during fast flings.
     features: { automaticAggregation: false, flight: false },
   });
 
   return (
     <section>
-      <button onClick={() => scroll.controller.scrollToIndex(4999, { align: 'start' })}>
+      <button onClick={() => grid.api.scrollToIndex(4999, { align: 'start' })}>
         Go to row 5,000
       </button>
       <div
-        {...scroll.getViewportProps({
+        {...grid.getViewportProps({
           'aria-label': 'Readings',
           className: 'my-list',
           style: { height: 320 },
         })}
       >
-        {scroll.rows.map((slot) => (
+        {grid.rows.map((slot) => (
           <div
             key={slot.index}
-            {...scroll.getRowProps(slot, {
+            {...grid.getRowProps(slot, {
               className: 'my-row',
               style: { padding: 12 },
             })}
@@ -215,7 +223,7 @@ function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }
           </div>
         ))}
       </div>
-      <div {...scroll.getAnnouncementProps()} />
+      <div {...grid.getAnnouncementProps()} />
     </section>
   );
 }
@@ -223,17 +231,37 @@ function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }
 
 No stylesheet is required for positioning, clipping, touch navigation, or visually hidden announcements. Prop getters merge your classes, styles, and handlers while retaining the internal viewport ref, row measurement ref, ARIA addresses, and row geometry. The viewport click/key handlers call yours first and respect `preventDefault()`.
 
-`scroll.rows` holds only the bounded visible slots. Each slot is `ready` with a `row`, or `loading`/`error` with an optional aggregate `estimate`; error slots carry an `error` message. Placeholder estimates are never presented as `Row` values.
+`grid.rows` holds only the bounded visible slots. Each slot is `ready` with a `row`, or `loading`/`error` with an optional aggregate `estimate`; error slots carry an `error` message. Placeholder estimates are never presented as `Row` values.
 
-Headless mode gives you the navigation state; render empty/error/retry UI, focus styles, and any optional view controls you need. `AtlasRail`, `JumpBar`, and `ViewCanvas` are exported for composition. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. A headless layout that enables Range summaries must render `ViewCanvas` as well as rows. Render `scroll.edgeOffset` on your own pan wrapper if you want elastic edge feedback. The built-in rows view also marks the empty space below the last row as the end of the dataset; built-in Range summaries mark the empty space beyond either end as the start or end of the dataset.
+Headless mode gives you the navigation state; render empty/error/retry UI (`grid.api.retry()` requests failed pages again), focus styles, and any navigation controls you need. `granum-grid/headless` loads no explorer components. `AtlasRail`, `JumpBar`, and `ViewCanvas` are exported from `granum-grid` for composition. Each takes the hook's result as `grid`, and you hold the state they share:
 
-## Summary bands
+```tsx
+import { useState } from 'react';
+import { AtlasRail, JumpBar, useGranumGrid, type DataProvider, type Marker } from 'granum-grid';
 
-Range summary bands expose `[data-ds-part="aggregate"]`. Their bounded placement belongs to
-the library. Style `.ds-summary-content`, `.ds-summary-heading`, `.ds-summary-metric`,
-`.ds-summary-accuracy`, and `.ds-summary-actions` to adapt their appearance, or supply `renderAggregate` for the
-inner content. The default `.ds-summary-plot` uses `.ds-summary-bar` for the average,
-`.ds-summary-spread` for min–max whiskers, and `.ds-summary-axis` for the shared scale.
-Estimated bars have `[data-accuracy="estimated"]` on their plot container.
-The base stylesheet provides geometry; the optional skin supplies palette,
-borders, and control styling. `unstyled` also applies to summary bands.
+function Explorer({ provider }: { provider: DataProvider<{ value: number }> }) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [highlights, setHighlights] = useState<Marker[]>([]);
+  const [selecting, setSelecting] = useState(false);
+  const grid = useGranumGrid({ provider, onOpenSearch: () => setSearchOpen(true) });
+  return (
+    <>
+      {/* viewport and rows as above, with <ViewCanvas grid={grid} /> inside the viewport */}
+      <AtlasRail
+        grid={grid}
+        highlights={highlights}
+        selecting={selecting}
+        onSelectingChange={setSelecting}
+      />
+      <JumpBar
+        grid={grid}
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        onHighlightsChange={setHighlights}
+      />
+    </>
+  );
+}
+```
+
+`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](granum-grid/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Render `ViewCanvas` alongside rows to show overview context while `grid.traveling`. Translate your own row wrapper by `grid.edgeOffset` if you want elastic edge feedback. The built-in viewport also marks the empty space below the last row as the end of the dataset.

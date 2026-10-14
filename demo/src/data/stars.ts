@@ -173,6 +173,7 @@ export const NAMED_STARS = [
     ly: 25,
   },
 ].map((star) => ({ ...star, index: indexAtRa(star.ra) }));
+export const SIRIUS = NAMED_STARS.find((star) => star.name === 'Sirius')!;
 export const GALACTIC_CENTER_INDEX = indexAtRa(ra(17, 45, 40));
 
 export const CONSTELLATIONS = [

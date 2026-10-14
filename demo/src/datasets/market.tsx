@@ -1,17 +1,16 @@
 import {
   ALL_TIME_HIGH,
   MARKET_EVENTS,
-  TRADE_COUNT,
   marketTime,
   priceAt,
   tradeAt,
+  tradeIndex,
   type Trade,
 } from '../data/market';
 import { syntheticProvider } from '../data/synthetic';
 import { MarketIcon } from './icons';
-import { compact, formatCount, showAll, type DemoDataset } from './types';
+import { compact, formatCount, type DemoDataset } from './types';
 
-const eventIndex = (x: number) => Math.round(x * (TRADE_COUNT - 1));
 const years = marketTime.chapters(
   Array.from({ length: 10 }, (_, i) => Date.UTC(2016 + i, 0, 1)),
   (time) => {
@@ -26,7 +25,7 @@ const provider = syntheticProvider<Trade>({
   markers: [
     ...MARKET_EVENTS.map((e) => ({
       id: e.id,
-      index: eventIndex(e.x),
+      index: tradeIndex(e.x),
       label: e.label,
       kind: 'spike' as const,
     })),
@@ -65,8 +64,8 @@ export const market: DemoDataset<Trade> = {
     `${tradeAt(start).time.slice(0, 16)}–${tradeAt(end - 1).time.slice(0, 16)} UTC`,
   task: {
     title: 'Find a sharp price change, then inspect the trades around it.',
-    action: 'See whole tape',
-    run: showAll,
+    action: 'Inspect a market event',
+    run: (api) => api.goTo(tradeIndex(MARKET_EVENTS[0].x)),
   },
   atlas: { axisLabel: 'Year', formatValue: (v) => `$${v.toFixed(0)}` },
   map: {
@@ -92,32 +91,25 @@ export const market: DemoDataset<Trade> = {
       feature: 'Flight',
       label: 'Fly to flash crash',
       hint: 'Markers are addresses: one click flies 160 million trades and lands on the exact row.',
-      run: ({ controller }) => controller.goTo(eventIndex(MARKET_EVENTS[0].x)),
+      run: (api) => api.goTo(tradeIndex(MARKET_EVENTS[0].x)),
     },
     {
       feature: 'Search',
       label: 'Find block trades',
       hint: 'Size, price, side, and venue are searchable. Matches light up on the map.',
-      run: ({ search }) => search('size > 5000'),
+      run: (api) => api.openSearch('size > 5000'),
     },
     {
       feature: 'Dates',
       label: 'Jump to June 2022',
       hint: 'Type any date — 2022, 2022-06, or 2022-06-13 — and press Enter.',
-      run: ({ search }) => search('2022-06'),
+      run: (api) => api.openSearch('2022-06'),
     },
     {
       feature: 'Markers',
       label: 'Next market event',
       hint: 'N and P step between events. Hover the map to preview real rows before you jump.',
-      run: ({ controller }) => controller.nextMarker(),
-    },
-    {
-      feature: 'Zoom',
-      requiredView: 'zoom',
-      label: 'Ten years at once',
-      hint: 'The overview turns 750 million trades into a readable chart. Ctrl + wheel to zoom.',
-      run: ({ fit }) => fit(),
+      run: (api) => api.nextMarker(),
     },
   ],
   renderRow: ({ row }) => (
@@ -133,7 +125,7 @@ export const market: DemoDataset<Trade> = {
         className="mk-price"
         data-trend={row.change > 0 ? 'up' : row.change < 0 ? 'down' : 'flat'}
       >
-        <i aria-hidden="true">{row.change > 0 ? '▲' : row.change < 0 ? '▼' : '·'}</i>
+        <i aria-hidden="true">{row.change > 0 ? '▲' : row.change < 0 ? '▼' : ''}</i>
         {row.price.toFixed(2)}
       </span>
       <span role="gridcell" className="mk-size">

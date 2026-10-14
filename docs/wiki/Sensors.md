@@ -119,9 +119,6 @@ export default function Sensors() {
   return (
     <section aria-label="Sensor lesson">
       <p>1,440 generated minute readings. Inspect the 20-minute warm interval.</p>
-      <button onClick={() => api.current?.zoomToRange({ start: 0, end: 1440 })}>
-        See the whole day
-      </button>{' '}
       <button
         onClick={() => {
           api.current?.setSelection({ start: 720, end: 740 });
@@ -135,7 +132,7 @@ export default function Sensors() {
         apiRef={api}
         ariaLabel="Sensor readings"
         style={{ height: 680, marginTop: 16 }}
-        features={{ hints: false }}
+        hints={false}
         renderRow={({ row }) => (
           <span role="gridcell">
             Minute {row.minute} · {row.celsius} °C
@@ -147,15 +144,15 @@ export default function Sensors() {
 }
 ```
 
-`zoomToRange` changes scale to the requested interval. `setSelection` records the
+The dataset map covers the whole day. `setSelection` records the
 half-open range for summaries and comparison; `scrollToIndex` inspects its beginning.
 The provider owns the data operations, so these same controls also work with a
 remote provider.
 
 ## 4. Check the result
 
-1. Choose **See the whole day**. The main view groups readings; the map shows a
-   temperature change near the middle.
+1. Read the rows beside the whole-day map. The map shows a temperature change
+   near the middle.
 2. Choose **Inspect warm interval**. The selected rows are **721–740**, with
    **20 rows selected**.
 3. Expand **Show summary**. It says **Exact summary**, with mean, minimum, and

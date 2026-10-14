@@ -1,4 +1,4 @@
-import { expect, test, MOBILE, openSignal, fitsViewportWidth } from './fixtures';
+import { expect, test, MOBILE, fitsViewportWidth, openSignal, withDebug } from './fixtures';
 test.beforeEach(async ({ page }) => {
   await openSignal(page);
 });
@@ -25,11 +25,11 @@ test('date and predicate search are honest, cancellable, and do not jump while t
   await expect(page.getByText('Enter a valid date, such as 2017-03.')).toBeVisible();
 });
 test('slow-server jumps keep meaningful estimates and bounded cache', async ({ page }) => {
-  await page.getByRole('button', { name: 'debug', exact: true }).click();
-  const latency = page.getByRole('slider', { name: 'Simulated server latency' });
-  await latency.focus();
-  await latency.press('End');
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await withDebug(page, async (dialog) => {
+    const latency = dialog.getByRole('slider', { name: 'Simulated server latency' });
+    await latency.focus();
+    await latency.press('End');
+  });
   await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
   await expect(page.getByText('Approximate').first()).toBeVisible();
@@ -90,7 +90,7 @@ test('keyboard, reduced motion, and light mobile layout remain usable', async ({
   await page.getByRole('textbox').press('Enter');
   await expect(page.getByTestId('position')).toHaveText('Row 50,000,001 of 100,000,000');
 });
-test('no runtime or console errors on a fresh load and view changes', async ({
+test('no runtime or console errors on a fresh load and row navigation', async ({
   page,
   pageErrors,
 }) => {
@@ -102,76 +102,31 @@ test('no runtime or console errors on a fresh load and view changes', async ({
   });
   await page.reload();
   await expect(page.getByRole('button', { name: 'Spike 1', exact: true })).toBeVisible();
-  for (const view of ['Zoom', 'Rows'])
-    await page
-      .getByRole('combobox', { name: 'View', exact: true })
-      .selectOption(view.toLowerCase());
+  await page.getByRole('button', { name: 'Spike 1', exact: true }).click();
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
   expect(pageErrors).toEqual([]);
 });
-test('view guidance works with keyboard and stays usable on mobile', async ({ page }) => {
-  await page.setViewportSize(MOBILE);
-  const menu = page.getByRole('combobox', { name: 'View', exact: true });
-  const guide = page.locator('.ds-view-guide');
-  const toggle = guide.locator('summary');
-  await expect(menu).toHaveAccessibleDescription(/Read individual records/);
-  await toggle.focus();
-  await toggle.press('Enter');
-  await expect(guide).toHaveAttribute('open', '');
-  await expect(
-    guide.getByText(/The dataset map on the right always shows the whole dataset/),
-  ).toBeVisible();
-  await expect(guide.locator('.ds-view-guide-option')).toHaveCount(2);
-  await toggle.press('Enter');
-  await expect(guide).not.toHaveAttribute('open');
-  const position = await page.getByTestId('position').innerText();
-  await menu.selectOption({ label: 'Range summaries' });
-  await expect(menu).toHaveAccessibleDescription(/See patterns in grouped rows/);
-  await expect(page.getByTestId('position')).toHaveText(position);
-  await expect(page.getByRole('button', { name: 'Inspect rows', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Inspect rows', exact: true }).click();
-  await expect(menu).toHaveValue('rows');
-  // The scale bar unmounts with its button; keyboard focus stays in the explorer.
-  await expect(page.locator('[data-ds-part="viewport"]').first()).toBeFocused();
-  await expect(page.getByTestId('position')).toHaveText(position);
-  await menu.selectOption({ label: 'Range summaries' });
-  await expect(page.locator('[data-ds-part="aggregate"]').first()).toBeVisible();
-  const inspect = page.getByRole('button', { name: 'Inspect these rows', exact: true }).first();
-  expect(
-    await inspect.evaluate((button) => {
-      const content = button.closest('.ds-summary-content')!;
-      return button.getBoundingClientRect().bottom <= content.getBoundingClientRect().bottom;
-    }),
-  ).toBe(true);
-  await expect(page.getByRole('button', { name: 'Zoom out', exact: true })).toBeInViewport();
-  expect(await fitsViewportWidth(page)).toBe(true);
-  await inspect.click();
-  await expect(menu).toHaveValue('rows');
-  await expect(page.getByTestId('position')).toHaveText(position);
-});
 test('automatic speed zoom is optional and returns to rows after settling', async ({ page }) => {
-  await page.getByRole('button', { name: 'debug', exact: true }).click();
-  await expect(page.getByRole('checkbox', { name: 'Zoom out at speed' })).not.toBeChecked();
-  await page.getByRole('checkbox', { name: 'Zoom out at speed' }).check();
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await withDebug(page, async (dialog) => {
+    await expect(dialog.getByRole('checkbox', { name: 'Zoom out at speed' })).not.toBeChecked();
+    await dialog.getByRole('checkbox', { name: 'Zoom out at speed' }).check();
+  });
   const grid = page.getByRole('grid');
   await grid.focus();
   await grid.dispatchEvent('wheel', { deltaY: 1800, deltaMode: 0 });
   await expect(page.locator('.ds-aggregate-label')).toBeVisible();
   await expect(page.locator('.ds-aggregate-label')).not.toBeVisible({ timeout: 4000 });
-  await page.getByRole('button', { name: 'debug', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Zoom out at speed' }).uncheck();
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await withDebug(page, (dialog) =>
+    dialog.getByRole('checkbox', { name: 'Zoom out at speed' }).uncheck(),
+  );
   await grid.dispatchEvent('wheel', { deltaY: 1800, deltaMode: 0 });
   await expect(page.locator('.ds-aggregate-label')).not.toBeVisible();
 });
-test('touch pinch and pan navigate the same coordinate system', async ({ page, browserName }) => {
+test('touch pan navigates rows', async ({ page, browserName }) => {
   test.skip(
     browserName !== 'chromium',
     'CDP touch injection is Chromium-specific; physical touch needs manual verification.',
   );
-  await page.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
-  await page.getByRole('button', { name: 'Fit dataset', exact: true }).click();
   const grid = page.getByRole('grid');
   await grid.scrollIntoViewIfNeeded();
   const rect = await grid.boundingBox();
@@ -180,29 +135,6 @@ test('touch pinch and pan navigate the same coordinate system', async ({ page, b
   let touching = false;
   try {
     await client.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 2 });
-    const x = rect.x + rect.width / 2,
-      y = rect.y + rect.height / 2;
-    const scaleBefore = await page.locator('.ds-scale').innerText();
-    await client.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [
-        { x: x - 35, y, id: 1 },
-        { x: x + 35, y, id: 2 },
-      ],
-    });
-    touching = true;
-    await client.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: [
-        { x: x - 70, y, id: 1 },
-        { x: x + 70, y, id: 2 },
-      ],
-    });
-    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    touching = false;
-    await expect(page.locator('.ds-scale')).not.toHaveText(scaleBefore);
-    // Each gesture targets the current viewport; page scrolling or layout can move it after a pinch.
-    await grid.scrollIntoViewIfNeeded();
     const panRect = (await grid.boundingBox())!;
     const panX = panRect.x + panRect.width / 2;
     const panY = panRect.y + panRect.height / 2;
@@ -258,7 +190,7 @@ test('editable host content keeps navigation keys in every contenteditable state
   // Only contenteditable="false" leaves the explorer's marker key active.
   expect(results).toEqual([false, false, false, true]);
 });
-test('Safari trackpad pinch gestures zoom only a focused explorer', async ({ page }) => {
+test('browser zoom gestures remain available without changing rows', async ({ page }) => {
   const grid = page.getByRole('grid');
   const pinch = (scales: number[]) =>
     grid.evaluate((element, scales) => {
@@ -272,8 +204,19 @@ test('Safari trackpad pinch gestures zoom only a focused explorer', async ({ pag
     }, scales);
   // Unfocused: leave the gesture to the browser's own page zoom.
   expect(await pinch([1, 2])).toEqual([false, false]);
-  await expect(page.getByRole('combobox', { name: 'View' })).toHaveValue('rows');
+  const position = await page.getByTestId('position').innerText();
   await grid.focus();
-  expect(await pinch([1, 0.5, 0.25])).toEqual([true, true, true]);
-  await expect(page.getByRole('combobox', { name: 'View' })).toHaveValue('zoom');
+  expect(await pinch([1, 0.5, 0.25])).toEqual([false, false, false]);
+  const prevented = await grid.evaluate((element) => {
+    const event = new WheelEvent('wheel', {
+      deltaY: 100,
+      ctrlKey: true,
+      cancelable: true,
+      bubbles: true,
+    });
+    element.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(prevented).toBe(false);
+  await expect(page.getByTestId('position')).toHaveText(position);
 });

@@ -1,7 +1,7 @@
 import {
   CHANNELS,
   ROW_COUNT,
-  SPIKES,
+  SPIKE_ROWS,
   rowAt,
   signalTime,
   valueAt,
@@ -9,7 +9,7 @@ import {
 } from '../data/signal';
 import { syntheticProvider } from '../data/synthetic';
 import { SignalIcon } from './icons';
-import { showAll, type DemoDataset } from './types';
+import { type DemoDataset } from './types';
 
 const provider = syntheticProvider<Reading>({
   // The original demo's id; saved views and full-page links depend on it.
@@ -17,9 +17,9 @@ const provider = syntheticProvider<Reading>({
   model: 'signal',
   metric: { label: 'Signal amplitude', unit: 'mV', kind: 'value', domain: [0, 180] },
   rowAt,
-  markers: SPIKES.map((p, i) => ({
+  markers: SPIKE_ROWS.map((index, i) => ({
     id: `spike-${i + 1}`,
-    index: Math.round(p * (ROW_COUNT - 1)),
+    index,
     label: `Spike ${i + 1}`,
     kind: 'spike',
   })),
@@ -61,8 +61,8 @@ export const signal: DemoDataset<Reading> = {
     `${rowAt(start).timestamp.slice(0, 16)}–${rowAt(end - 1).timestamp.slice(0, 16)} UTC`,
   task: {
     title: 'Find a spike, then inspect the readings around it.',
-    action: 'See whole archive',
-    run: showAll,
+    action: 'Inspect spike 3',
+    run: (api) => api.goTo(SPIKE_ROWS[2]),
   },
   atlas: { axisLabel: 'Year', showRange: false },
   map: {
@@ -86,26 +86,19 @@ export const signal: DemoDataset<Reading> = {
       feature: 'Flight',
       label: 'Fly to spike 3',
       hint: 'Long jumps animate through the overview, so you can see how far you traveled.',
-      run: ({ controller }) => controller.goTo(Math.round(SPIKES[2] * (ROW_COUNT - 1))),
+      run: (api) => api.goTo(SPIKE_ROWS[2]),
     },
     {
       feature: 'Search',
       label: 'Readings above 150',
       hint: 'Predicate search runs on the provider. Matches appear on the map; press Enter to travel.',
-      run: ({ search }) => search('value > 150'),
+      run: (api) => api.openSearch('value > 150'),
     },
     {
       feature: 'Dates',
       label: 'Jump to March 2017',
       hint: 'Dates resolve to row addresses through the provider. Press Enter to go there.',
-      run: ({ search }) => search('2017-03'),
-    },
-    {
-      feature: 'Zoom',
-      requiredView: 'zoom',
-      label: 'See all 100M rows',
-      hint: 'Range summaries group readings into bands. Ctrl + wheel or pinch to zoom; “Inspect rows” returns.',
-      run: ({ fit }) => fit(),
+      run: (api) => api.openSearch('2017-03'),
     },
   ],
   renderRow: ({ row, rowNumber, index }, { dynamic, expanded, toggle }) =>
@@ -154,18 +147,18 @@ export const signal: DemoDataset<Reading> = {
         <span role="gridcell" className="reading-time">
           {row.timestamp.slice(0, 10)} <span>{row.timestamp.slice(11, 19)}</span>
         </span>
-        <span role="gridcell" className="reading-category">
-          <i />
+        <span role="gridcell" className="reading-category" data-channel={row.category}>
+          <i aria-hidden="true" />
           {row.category}
         </span>
         <span role="gridcell" className="reading-value">
           {row.value.toFixed(1)} <small>mV</small>
         </span>
         <span role="gridcell" className="reading-bar" aria-label={`${row.value} millivolts`}>
-          <i style={{ width: `${(row.value / 180) * 100}%` }} />
+          <i style={{ width: `${Math.min(100, (row.value / 180) * 100)}%` }} />
         </span>
         <span role="gridcell" className={`reading-status ${row.event ? 'event' : ''}`}>
-          {row.event ? 'SPIKE' : '—'}
+          {row.event ? 'SPIKE' : null}
         </span>
       </>
     ),

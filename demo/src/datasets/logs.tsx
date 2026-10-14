@@ -2,9 +2,9 @@ import {
   DAY,
   DEPLOYS,
   INCIDENTS,
-  LOG_COUNT,
   LOG_START,
   logAt,
+  logIndex,
   logTime,
   type LogLine,
 } from '../data/logs';
@@ -12,7 +12,6 @@ import { syntheticProvider } from '../data/synthetic';
 import { LogsIcon } from './icons';
 import { formatCount, type DemoDataset } from './types';
 
-const at = (x: number) => Math.round(x * (LOG_COUNT - 1));
 const errorRateDescription =
   'Synthetic demo: each group averages up to 64 evenly spaced error-rate model values. This is not a count of errors in every log line.';
 const days = logTime.chapters(
@@ -40,10 +39,15 @@ const provider = syntheticProvider<LogLine>({
   },
   rowAt: logAt,
   markers: [
-    ...INCIDENTS.map((i) => ({ id: i.id, index: at(i.x), label: i.label, kind: 'error' as const })),
+    ...INCIDENTS.map((i) => ({
+      id: i.id,
+      index: logIndex(i.x),
+      label: i.label,
+      kind: 'error' as const,
+    })),
     ...DEPLOYS.map((d, n) => ({
       id: `deploy-${n}`,
-      index: at(d.x),
+      index: logIndex(d.x),
       label: d.label,
       kind: 'event' as const,
     })),
@@ -91,11 +95,7 @@ export const logs: DemoDataset<LogLine> = {
   task: {
     title: 'Inspect the cache stampede and the deployment just before it.',
     action: 'Open the incident',
-    run: (controller) =>
-      controller.zoomToRange({
-        start: Math.max(0, at(stampede.x) - 300_000),
-        end: Math.min(LOG_COUNT, at(stampede.x) + 300_000),
-      }),
+    run: (api) => api.scrollToIndex(logIndex(stampede.x), { align: 'center' }),
   },
   atlas: { axisLabel: 'Day', formatValue: (v) => `${v.toFixed(0)}%` },
   map: {
@@ -121,33 +121,26 @@ export const logs: DemoDataset<LogLine> = {
     {
       feature: 'Flight',
       label: 'Fly to INC-2057',
-      hint: `The cache stampede, near row ${formatCount(at(stampede.x) + 1)}. Notice the deploy marker just before it.`,
-      run: ({ controller }) => controller.goTo(at(stampede.x)),
+      hint: `The cache stampede, near row ${formatCount(logIndex(stampede.x) + 1)}. Notice the deploy marker just before it.`,
+      run: (api) => api.goTo(logIndex(stampede.x)),
     },
     {
       feature: 'Markers',
       label: 'Next incident',
       hint: 'Step through incidents only. From the keyboard, N and P visit every marker.',
-      run: ({ controller }) => controller.nextMarker('error'),
+      run: (api) => api.nextMarker('error'),
     },
     {
       feature: 'Search',
       label: 'Find 5xx responses',
       hint: 'Try level = "ERROR", service = "payments", or latency > 2000 as well.',
-      run: ({ search }) => search('status >= 500'),
+      run: (api) => api.openSearch('status >= 500'),
     },
     {
       feature: 'Dates',
       label: 'Jump to Sep 18',
       hint: 'Dates resolve to the first line logged that day. Press Enter to go.',
-      run: ({ search }) => search('2026-09-18'),
-    },
-    {
-      feature: 'Zoom',
-      requiredView: 'zoom',
-      label: 'Whole month at once',
-      hint: 'Incidents stand out as spikes in the overview. Ctrl + wheel or pinch to zoom in.',
-      run: ({ fit }) => fit(),
+      run: (api) => api.openSearch('2026-09-18'),
     },
   ],
   renderRow: ({ row }) => (

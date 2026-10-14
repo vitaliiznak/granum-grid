@@ -8,9 +8,6 @@ export default function Sensors() {
   return (
     <section aria-label="Sensor lesson">
       <p>1,440 generated minute readings. Inspect the 20-minute warm interval.</p>
-      <button onClick={() => api.current?.zoomToRange({ start: 0, end: 1440 })}>
-        See the whole day
-      </button>{' '}
       <button
         onClick={() => {
           api.current?.setSelection({ start: 720, end: 740 });
@@ -24,7 +21,7 @@ export default function Sensors() {
         apiRef={api}
         ariaLabel="Sensor readings"
         style={{ height: 680, marginTop: 16 }}
-        features={{ hints: false }}
+        hints={false}
         renderRow={({ row }) => (
           <span role="gridcell">
             Minute {row.minute} · {row.celsius} °C

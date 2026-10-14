@@ -1,10 +1,10 @@
 # Bundled performance recording
 
 `exploration-trace.json` is an actual Chromium DevTools Protocol recording captured on
-13 October 2026 while navigating the local deepscroll signal demo (now Granum Grid): jump, wheel scroll,
-fit the overview, then inspect a summary range. The underlying signal rows are synthetic;
-the browser trace events and timings are recorded measurements from this one run.
-They are not a benchmark or a cross-device performance claim.
+13 October 2026 while navigating an earlier version of the local deepscroll signal demo
+(now Granum Grid); its `metadata.activity` lists the steps. The underlying signal rows
+are synthetic; the browser trace events and timings are recorded measurements from this
+one run. They are not a benchmark or a cross-device performance claim.
 
 Event arguments and environment metadata have been removed. The retained fields are
 name, category, phase, timestamp, duration, process ID and thread ID. Timestamps use
@@ -19,7 +19,8 @@ repository (set `GRANUM_GRID_DEMO_URL` if the demo uses another address):
 npm run record:trace
 ```
 
-The bundled dataset's revision is derived from the file contents, so saved views from an
-earlier recording are rejected after recapturing.
+A recapture jumps to row 73,500,000, scrolls, jumps to Spike 3, and waits for the
+nearby rows. The bundled dataset's revision is derived from the file contents, so saved
+views from an earlier recording are rejected after recapturing.
 
 The script launches headless Chromium and closes it in `finally`.

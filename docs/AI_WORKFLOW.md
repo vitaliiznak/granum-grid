@@ -2,7 +2,8 @@
 
 The repository harness is [AGENTS.md](../AGENTS.md), a setup diagnostic, and npm
 validation commands shared with CI. It runs locally without model credentials.
-It is separate from the [application-owned AI tools example](../demo/src/ai/README.md).
+[AGENTS.md](../AGENTS.md#validate-and-finish) says what each check covers; this page
+adds setup, focused commands, and browser debugging.
 
 ## First run
 
@@ -10,7 +11,7 @@ It is separate from the [application-owned AI tools example](../demo/src/ai/READ
 nvm use                      # Or select Node 22 with your version manager
 npm ci                       # Root workspace; installs from package-lock.json
 npm run ai:doctor            # Read-only environment/dependency diagnosis
-npm run check                # TypeScript plus unit tests; no browser or network
+npm run check
 npx playwright install chromium
 npm run test:smoke
 ```
@@ -41,20 +42,21 @@ Run commands from the repository root. Add a regression case where behavior chan
 | Change                                                | Validation                                                                                                     |
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Docs or agent instructions only                       | Review paths, commands, and consistency; no browser needed                                                     |
-| Engine, range math, cache, providers, AI tool adapter | `npm run check`; focus first with `npx vitest run granum-grid/tests/session.test.ts` or the relevant test path  |
+| Engine, range math, cache, providers                 | `npm run check`; focus first with `npx vitest run granum-grid/tests/session.test.ts` or the relevant test path  |
 | React, inputs, layout, styles, demo interactions      | `npm run check`, `npm run test:smoke`, relevant browser spec, and visual inspection when appearance changes    |
-| Public API, exports, package/build metadata           | `npm run check`, `npm run build`, `npm run test:package`; update API docs and consumer fixture when applicable |
+| Public API, exports, package/build metadata           | `npm run check`, `npm run build`, `npm run test:package`; update `docs/GUIDE.md`, `granum-grid/README.md`, and the `scripts/package-*` consumer fixtures when applicable |
 | Media studio/capture                                  | `npm run check`, `npm run media:build`; capture only affected scenes using `media/README.md`                   |
 | Broad change / release candidate                      | `npm run check:full` after installing all three browsers                                                       |
 
 `npm run typecheck` covers library, demo, media, unit/browser tests, and the
-Vite/Vitest/Playwright configs without emitting files. The package-consumer fixture is checked separately
-against an installed tarball, not workspace aliases. `npm run check` also verifies
-source-matched tutorial snippets and README/reference/wiki links (`npm run test:tutorials`),
-plus wiki export and safe pruning (`npm run test:wiki`).
-It does not validate browser behavior, package output, lint, or formatting;
-`npm run check:full` adds `npm run lint` (hook rules for library, demo, and media, plus
-library browser APIs) and `npm run format:check`.
+Vite/Vitest/Playwright configs without emitting files; the package-consumer fixture is
+checked separately against an installed tarball, not workspace aliases.
+`npm run test:tutorials` compares the seven lesson code blocks with `demo/src/tutorials`
+and checks local links and headings in the root `README.md`, `STYLING.md`, `DESIGN.md`,
+and `AGENTS.md`, in `docs/*.md`, `docs/wiki/`, `granum-grid/README.md`, `media/README.md`,
+`media/MUSIC.md`, and the trace fixture README. `npm run lint` applies hook rules to library,
+demo, and media, public-entry imports to demo and media, and browserslist API checks to
+the library.
 
 Before a full check:
 
@@ -64,15 +66,10 @@ npx playwright install chromium firefox webkit
 npm run check:full
 ```
 
-The full check also exports the wiki (`npm run build:wiki`) and verifies the built frontend under a Pages project subdirectory
-with `npm run test:pages`. That command requires a production build and Chromium;
+`npm run test:pages` needs a production build and Chromium;
 `PAGES_URL=https://vitaliiznak.github.io/granum-grid/ npm run test:pages` checks the
-published site using the same navigation flow.
-
-The full check packs into a temporary consumer environment and may access npm to
-install React 18/19 dependencies. It writes the verified archive into `output/`;
-it does not publish it. CI uses the same commands in separate steps so failures
-and artifacts remain easy to inspect. A local success does not confirm a CI run.
+published site with the same navigation flow. The package test writes the verified
+archive into `output/`; it does not publish it. A local success does not confirm a CI run.
 
 Use `npx prettier --check <touched-files>` and `npx prettier --write <touched-files>`
 for supported file types. The existing `npm run format:check` covers all configured

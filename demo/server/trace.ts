@@ -1,12 +1,11 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import type { Plugin, ViteDevServer } from 'vite';
+import { TRACE_API } from '../src/data/http-trace';
 import { parseTrace, traceProvider } from '../src/data/trace';
 import { NUMBER_OPERATORS } from '../src/data/search';
 import { searchIssue } from '../../granum-grid/src/data/search';
 import type { ProviderQuery } from '../../granum-grid/src/data/types';
-
-export const TRACE_API = '/__granum-grid/trace/';
 
 /** A finite, immutable recording on the server, not a database or a synthetic benchmark. */
 export function createTraceService(raw: string) {

@@ -8,6 +8,8 @@ const MARKET_END = Date.UTC(2026, 0, 1);
 export const marketTime = timeline(MARKET_START, MARKET_END, TRADE_COUNT);
 const at = (date: string) =>
   (Date.parse(`${date}T00:00:00Z`) - MARKET_START) / (MARKET_END - MARKET_START);
+/** Row at a position given as a fraction of the tape, such as an event's `x`. */
+export const tradeIndex = (x: number) => Math.round(x * (TRADE_COUNT - 1));
 
 /** Fast drop, slower recovery. Positions are fractions of the ten-year tape. */
 export const MARKET_EVENTS = [
@@ -75,7 +77,7 @@ for (let i = 0; i <= 4000; i++) {
   const price = trendAt(i / 4000);
   if (price > high.price) high = { x: i / 4000, price };
 }
-export const ALL_TIME_HIGH = Math.round(high.x * (TRADE_COUNT - 1));
+export const ALL_TIME_HIGH = tradeIndex(high.x);
 
 export interface Trade {
   time: string;

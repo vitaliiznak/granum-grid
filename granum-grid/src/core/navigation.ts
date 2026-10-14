@@ -1,19 +1,30 @@
-import type { Chapter, Marker, ProviderQuery } from '../data/types.js';
+import type { Bucket, Chapter, Marker, ProviderQuery, RowRange } from '../data/types.js';
 
+/** The span containing `position` among sorted, non-overlapping half-open spans. */
+function spanAt<T extends RowRange>(spans: readonly T[], position: number): T | undefined {
+  let low = 0,
+    high = spans.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (spans[middle].start <= position) low = middle + 1;
+    else high = middle;
+  }
+  const span = spans[low - 1];
+  return span && position < span.end ? span : undefined;
+}
 /**
  * The chapter containing `position`. Chapters are sorted and non-overlapping (the data
  * session validates them), so this is a binary search rather than a scan per frame.
  */
 export function chapterAt(chapters: readonly Chapter[], position: number): Chapter | undefined {
-  let low = 0,
-    high = chapters.length;
-  while (low < high) {
-    const middle = Math.floor((low + high) / 2);
-    if (chapters[middle].start <= position) low = middle + 1;
-    else high = middle;
-  }
-  const chapter = chapters[low - 1];
-  return chapter && position < chapter.end ? chapter : undefined;
+  return spanAt(chapters, position);
+}
+/**
+ * The bucket containing row `index`. Overview and track buckets are sorted and contiguous
+ * (`checkBuckets`), so rows and canvases look them up per frame without a scan.
+ */
+export function bucketAt(buckets: readonly Bucket[], index: number): Bucket | undefined {
+  return spanAt(buckets, index);
 }
 export type JumpTarget =
   | { kind: 'index'; index: number; label: string }

@@ -6,29 +6,26 @@ import {
   writeBookmarks,
   type Bookmark,
 } from '../core/exploration.js';
-import type { DataProvider, RowRange } from '../data/types.js';
-import type { GranumGridState } from './useGranumGrid.js';
+import type { DataProvider, Marker, RowRange } from '../data/types.js';
+import type { GranumGridApi } from '../core/api.js';
 import { RangePicker } from './RangePicker.js';
 import { RangeSummary } from './RangeSummary.js';
+import { useOwnedState } from './useOwnedState.js';
 import { rangeAddress, rangeCount } from '../visuals/format.js';
 
 /** The explorer state these tools use. Per-frame position is excluded so scrolling skips them. */
-export type ExplorerScroll<Row> = Pick<
-  GranumGridState<Row>,
-  | 'api'
-  | 'provider'
-  | 'controller'
-  | 'selection'
-  | 'setSelection'
-  | 'selectionMode'
-  | 'setSelectionMode'
-  | 'getVisibleRange'
-  | 'markers'
-  | 'setBookmarkMarkers'
->;
+interface ExplorerScroll<Row> {
+  api: GranumGridApi<Row>;
+  provider: DataProvider<Row>;
+  selection: RowRange | null;
+  markers: Marker[];
+  getVisibleRange(): RowRange;
+}
 /** Dataset markers listed per page in the Bookmarks panel. */
 const MARKER_PAGE = 40;
 const NO_BOOKMARKS: Bookmark[] = [];
+/** Places are keyed by id and row, as the scrollbar keys its markers. */
+const placeKey = (marker: Marker) => `${marker.id}:${marker.index}`;
 
 function SelectionDetails<Row>({
   provider,
@@ -51,11 +48,19 @@ function SelectionDetails<Row>({
 
 function ExplorerToolsView<Row>({
   scroll,
+  selecting,
+  onSelectingChange,
+  onBookmarkMarkersChange,
   storageKey,
   formatRange,
   renderComparison,
 }: {
   scroll: ExplorerScroll<Row>;
+  /** Whether the map is drawing a selection; the explorer shares it with `AtlasRail`. */
+  selecting: boolean;
+  onSelectingChange(selecting: boolean): void;
+  /** Saved bookmarks as `bookmark` markers, for the hook's `markers` option. */
+  onBookmarkMarkersChange(markers: Marker[]): void;
   storageKey?: string;
   formatRange?(range: RowRange): string;
   renderComparison(a: RowRange, b: RowRange, close: () => void): ReactNode;
@@ -65,11 +70,10 @@ function ExplorerToolsView<Row>({
   const [message, setMessage] = useState('');
   const [pinned, setPinned] = useState<RowRange | null>(null);
   const [compare, setCompare] = useState(false);
-  const { provider, selection, markers, setBookmarkMarkers } = scroll;
+  const { provider, selection, markers } = scroll;
   const identity = `${provider.id}:${provider.revision}`;
   // Keyed by dataset so the first render after a provider switch has no stale bookmarks.
-  const [stored, setStored] = useState({ identity, bookmarks: NO_BOOKMARKS });
-  const bookmarks = stored.identity === identity ? stored.bookmarks : NO_BOOKMARKS;
+  const [bookmarks, setBookmarks] = useOwnedState(identity, NO_BOOKMARKS);
   const [markerCount, setMarkerCount] = useState(MARKER_PAGE);
   const savedMarkers = useMemo(() => bookmarkMarkers(bookmarks), [bookmarks]);
   const datasetMarkers = useMemo(() => {
@@ -79,7 +83,7 @@ function ExplorerToolsView<Row>({
   // Same row order as the scrollbar, so a compact number matches this list.
   const placeNumber = useMemo(() => {
     const ordered = [...datasetMarkers, ...savedMarkers].sort((a, b) => a.index - b.index);
-    return new Map(ordered.map((marker, index) => [`${marker.id}:${marker.index}`, index + 1]));
+    return new Map(ordered.map((marker, index) => [placeKey(marker), index + 1]));
   }, [datasetMarkers, savedMarkers]);
   const previousIdentity = useRef(identity);
   const bookmarkInput = useRef<HTMLInputElement>(null);
@@ -107,9 +111,9 @@ function ExplorerToolsView<Row>({
     setPanel(null);
     returnFocus();
   };
-  const chooseRange = (range: RowRange) => {
-    scroll.setSelection(range);
-    scroll.setSelectionMode(false);
+  /** Close the chooser once a range is the selection. */
+  const settleRange = () => {
+    onSelectingChange(false);
     setPanel(null);
     setMessage('');
     requestAnimationFrame(() => {
@@ -117,12 +121,16 @@ function ExplorerToolsView<Row>({
       else selectionAction.current?.focus();
     });
   };
+  const chooseRange = (range: RowRange) => {
+    scroll.api.setSelection(range);
+    settleRange();
+  };
   const startComparison = () => {
     if (!selection) return;
     setPinned({ ...selection });
     setMessage('');
     setPanel(null);
-    scroll.setSelectionMode(false);
+    onSelectingChange(false);
     requestAnimationFrame(() => comparisonSetup.current?.focus());
   };
   const addBookmark = () => {
@@ -140,22 +148,22 @@ function ExplorerToolsView<Row>({
       setName('');
       previousIdentity.current = identity;
     }
-    setStored({ identity, bookmarks: NO_BOOKMARKS });
+    setBookmarks(NO_BOOKMARKS);
     if (!storageKey) return;
     try {
-      setStored({ identity, bookmarks: readBookmarks(localStorage.getItem(storageKey), provider) });
+      setBookmarks(readBookmarks(localStorage.getItem(storageKey), provider));
     } catch {
       setMessage('Browser storage is unavailable. Bookmarks will last for this session.');
     }
     // Re-read when an append changes the row count that bookmarks are validated against.
-  }, [identity, storageKey, provider]);
+  }, [identity, storageKey, provider, setBookmarks]);
   // The map, N/P, and search show saved bookmarks beside the provider's markers.
   useEffect(() => {
-    setBookmarkMarkers(savedMarkers);
-    return () => setBookmarkMarkers([]);
-  }, [savedMarkers, setBookmarkMarkers]);
+    onBookmarkMarkersChange(savedMarkers);
+    return () => onBookmarkMarkersChange([]);
+  }, [savedMarkers, onBookmarkMarkersChange]);
   const saveBookmarks = (next: Bookmark[]) => {
-    setStored({ identity, bookmarks: next });
+    setBookmarks(next);
     if (storageKey)
       try {
         localStorage.setItem(
@@ -182,7 +190,7 @@ function ExplorerToolsView<Row>({
       onSelect={chooseRange}
       onMap={() => {
         setPanel(null);
-        scroll.setSelectionMode(true);
+        onSelectingChange(true);
         requestAnimationFrame(() => {
           cancelMapButton.current?.focus();
           cancelMapButton.current
@@ -196,7 +204,7 @@ function ExplorerToolsView<Row>({
   );
   return (
     <>
-      {!pinned && !scroll.selectionMode && (
+      {!pinned && !selecting && (
         <div className="ds-explore-toggle">
           <button
             ref={selectionButton}
@@ -215,7 +223,7 @@ function ExplorerToolsView<Row>({
               className="ds-button"
               aria-label="Clear selection"
               onClick={() => {
-                scroll.setSelection(null);
+                scroll.api.setSelection(null);
                 setPanel(null);
                 setMessage('');
                 requestAnimationFrame(() => selectionButton.current?.focus());
@@ -238,7 +246,7 @@ function ExplorerToolsView<Row>({
           </button>
         </div>
       )}
-      {scroll.selectionMode ? (
+      {selecting ? (
         <div
           className="ds-map-prompt"
           role="region"
@@ -246,7 +254,7 @@ function ExplorerToolsView<Row>({
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault();
-              scroll.setSelectionMode(false);
+              onSelectingChange(false);
               returnFocus();
             }
           }}
@@ -259,7 +267,7 @@ function ExplorerToolsView<Row>({
             ref={cancelMapButton}
             className="ds-button"
             onClick={() => {
-              scroll.setSelectionMode(false);
+              onSelectingChange(false);
               returnFocus();
             }}
           >
@@ -288,7 +296,7 @@ function ExplorerToolsView<Row>({
               onClick={() => {
                 setPinned(null);
                 setPanel(null);
-                scroll.setSelectionMode(false);
+                onSelectingChange(false);
                 requestAnimationFrame(() => selectionButton.current?.focus());
               }}
             >
@@ -349,7 +357,7 @@ function ExplorerToolsView<Row>({
               <p>
                 {selection
                   ? `${rangeAddress(selection)} and your current view`
-                  : 'Your current position, view, and zoom'}
+                  : 'Your current position'}
               </p>
             </div>
           </div>
@@ -411,24 +419,22 @@ function ExplorerToolsView<Row>({
           )}
           {!!bookmarks.length && (
             <ul className="ds-bookmarks" aria-label="Saved bookmarks">
-              {bookmarks.map((bookmark) => (
+              {bookmarks.map((bookmark, i) => (
+                // `savedMarkers` follows `bookmarks` one to one.
                 <li key={bookmark.id}>
                   <button
                     className="ds-button ds-saved-view"
                     onClick={() => {
-                      scroll.controller.restore(bookmark.location);
-                      if (bookmark.selection) chooseRange(bookmark.selection);
+                      scroll.api.restoreView(bookmark);
+                      if (bookmark.selection) settleRange();
                       else {
-                        scroll.setSelection(null);
                         setPanel(null);
                         returnFocus();
                       }
                     }}
                   >
                     <span className="ds-place-index" aria-hidden="true">
-                      {placeNumber.get(
-                        `bookmark:${bookmark.id}:${bookmark.selection?.start ?? Math.floor(bookmark.location.position)}`,
-                      )}
+                      {placeNumber.get(placeKey(savedMarkers[i]))}
                     </span>
                     <strong>{bookmark.name}</strong>
                     <span>
@@ -460,17 +466,17 @@ function ExplorerToolsView<Row>({
               </p>
               <ul className="ds-bookmarks" aria-label="Dataset markers">
                 {datasetMarkers.slice(0, markerCount).map((marker) => (
-                  <li key={`${marker.id}:${marker.index}`}>
+                  <li key={placeKey(marker)}>
                     <button
                       className="ds-button ds-saved-view"
                       onClick={() => {
-                        scroll.controller.goTo(marker.index, { reason: 'marker' });
+                        scroll.api.goTo(marker.index, { reason: 'marker' });
                         setPanel(null);
                         returnFocus();
                       }}
                     >
                       <span className="ds-place-index" aria-hidden="true">
-                        {placeNumber.get(`${marker.id}:${marker.index}`)}
+                        {placeNumber.get(placeKey(marker))}
                       </span>
                       <strong>{marker.label}</strong>
                       <span>Row {(marker.index + 1).toLocaleString()}</span>
@@ -504,9 +510,7 @@ function ExplorerToolsView<Row>({
                 ref={selectionAction}
                 className="ds-button ds-flow-primary"
                 onClick={() => {
-                  if (selection.end - selection.start === 1)
-                    scroll.controller.scrollToIndex(selection.start, { align: 'start' });
-                  else scroll.controller.zoomToRange(selection);
+                  scroll.api.scrollToIndex(selection.start, { align: 'start' });
                 }}
               >
                 {selection.end - selection.start === 1 ? 'Open row' : 'View selection'}

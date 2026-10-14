@@ -1,9 +1,21 @@
-import { Fragment, memo, useEffect, useRef, useState, type CSSProperties } from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import type { GranumGridEngine } from '../core/engine.js';
+import { clamp } from '../core/mappings.js';
 import { parseJump, type JumpTarget } from '../core/navigation.js';
-import { searchIssue } from '../data/search.js';
+import { MARKERS_ONLY_SEARCH, searchIssue } from '../data/search.js';
+import type { DataSession } from '../data/session.js';
 import type { DataProvider, Marker } from '../data/types.js';
 import type { GranumGridState } from './useGranumGrid.js';
+import { INTERNAL } from './internal.js';
+import { useLatest } from './useLatest.js';
 import { useModalDialog } from './useModalDialog.js';
 
 /** Named markers listed at once; the status line reports the full count. */
@@ -18,27 +30,59 @@ const jumpMarker = ({ index, label }: Extract<JumpTarget, { kind: 'index' }>): M
   kind: 'search',
 });
 
-export function JumpBar<Row>({
-  scroll,
-  className,
-  style,
-}: {
-  scroll: GranumGridState<Row>;
+export interface JumpBarProps<Row> {
+  /** The `useGranumGrid` result. Position is read from the engine when a jump runs. */
+  grid: GranumGridState<Row>;
+  open: boolean;
+  onOpenChange(open: boolean): void;
+  /** Controlled query. Without it, the dialog keeps its own and starts empty on each open. */
+  query?: string;
+  onQueryChange?(query: string): void;
+  /** Places the current query found, for the map to highlight. Empty while closed. */
+  onHighlightsChange?(markers: Marker[]): void;
   className?: string;
   style?: CSSProperties;
-}) {
+}
+
+export function JumpBar<Row>({
+  grid,
+  open,
+  onOpenChange,
+  query: controlledQuery,
+  onQueryChange,
+  onHighlightsChange,
+  className,
+  style,
+}: JumpBarProps<Row>) {
+  const [own, setOwn] = useState({ open, query: '' });
+  if (own.open !== open) setOwn({ open, query: '' });
+  const controlled = controlledQuery !== undefined;
+  // Host callbacks are read at call time, so inline functions do not restart a search.
+  const latest = useLatest({ onOpenChange, onQueryChange, onHighlightsChange, controlled });
+  const setOpen = useCallback((value: boolean) => latest.current.onOpenChange(value), [latest]);
+  const setQuery = useCallback(
+    (value: string) => {
+      if (!latest.current.controlled) setOwn((current) => ({ ...current, query: value }));
+      latest.current.onQueryChange?.(value);
+    },
+    [latest],
+  );
+  const setHighlights = useCallback(
+    (markers: Marker[]) => latest.current.onHighlightsChange?.(markers),
+    [latest],
+  );
   // Pass only what the dialog uses, so the memoized dialog skips per-frame scroll renders.
   return (
     <JumpDialog
-      open={scroll.jumpOpen}
-      setOpen={scroll.setJumpOpen}
-      query={scroll.searchQuery}
-      setQuery={scroll.setSearchQuery}
-      setSearchBusy={scroll.setSearchBusy}
-      setSearchMarkers={scroll.setSearchMarkers}
-      provider={scroll.provider}
-      engine={scroll.controller}
-      markers={scroll.markers}
+      open={open}
+      setOpen={setOpen}
+      query={controlled ? controlledQuery : own.query}
+      setQuery={setQuery}
+      setHighlights={setHighlights}
+      provider={grid.provider}
+      session={grid[INTERNAL].session}
+      engine={grid[INTERNAL].engine}
+      markers={grid.markers}
       className={className}
       style={style}
     />
@@ -49,9 +93,9 @@ const JumpDialog = memo(function JumpDialog<Row>({
   setOpen: setJumpOpen,
   query,
   setQuery,
-  setSearchBusy,
-  setSearchMarkers,
+  setHighlights,
   provider,
+  session,
   engine,
   markers,
   className,
@@ -61,9 +105,9 @@ const JumpDialog = memo(function JumpDialog<Row>({
   setOpen(open: boolean): void;
   query: string;
   setQuery(query: string): void;
-  setSearchBusy(busy: boolean): void;
-  setSearchMarkers(markers: Marker[]): void;
+  setHighlights(markers: Marker[]): void;
   provider: DataProvider<Row>;
+  session: Pick<DataSession<Row>, 'search'>;
   /** Position is read from the engine when needed, not per frame. */
   engine: GranumGridEngine;
   markers: Marker[];
@@ -83,17 +127,13 @@ const JumpDialog = memo(function JumpDialog<Row>({
   useEffect(() => {
     results.current?.querySelector('.selected')?.scrollIntoView({ block: 'nearest' });
   }, [selected, matches, namedMatches]);
-  useEffect(() => {
-    setSearchBusy(busy && jumpOpen);
-    return () => setSearchBusy(false);
-  }, [busy, jumpOpen, setSearchBusy]);
   useModalDialog(dialog, jumpOpen);
   useEffect(() => {
     if (!jumpOpen) return;
     setSelected(0);
     input.current?.focus();
-    return () => setSearchMarkers([]);
-  }, [jumpOpen, setSearchMarkers]);
+    return () => setHighlights([]);
+  }, [jumpOpen, setHighlights]);
   useEffect(() => {
     if (!jumpOpen) return;
     const controller = new AbortController();
@@ -101,7 +141,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
     setMatches([]);
     setNamedMatches([]);
     setNamedCount(0);
-    setSearchMarkers([]);
+    setHighlights([]);
     setBusy(false);
     if (!query.trim()) {
       setNamedMatches(markers.slice(0, NAMED_LIMIT));
@@ -122,7 +162,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
     if (parsed.kind === 'index') {
       const result = [jumpMarker(parsed)];
       setMatches(result);
-      setSearchMarkers(result);
+      setHighlights(result);
       setMessage('Press Enter to travel here.');
       return;
     }
@@ -133,18 +173,12 @@ const JumpDialog = memo(function JumpDialog<Row>({
     const shownNamed = named.slice(0, NAMED_LIMIT);
     setNamedMatches(shownNamed);
     setNamedCount(named.length);
-    setSearchMarkers(shownNamed);
-    if (parsed.query.kind === 'text' && (!provider.search || !provider.searchHelp?.text)) {
-      setMessage('Searching named markers only. This provider does not support row text search.');
-      return;
-    }
-    if (!provider.search) {
-      setMessage(
-        'This provider does not support date or predicate search. Try a row or percentage.',
-      );
-      return;
-    }
-    const issue = searchIssue(parsed.query, provider.searchHelp);
+    setHighlights(shownNamed);
+    const issue = !provider.search
+      ? parsed.query.kind === 'text'
+        ? MARKERS_ONLY_SEARCH
+        : 'This provider does not support date or predicate search. Try a row or percentage.'
+      : searchIssue(parsed.query, provider.searchHelp);
     if (issue) {
       setMessage(issue);
       return;
@@ -152,28 +186,17 @@ const JumpDialog = memo(function JumpDialog<Row>({
     setBusy(true);
     setMessage('Searching…');
     const timer = setTimeout(() => {
-      Promise.resolve()
-        .then(() =>
-          provider.search!(parsed.query, {
-            fromIndex: engine.getSnapshot().position,
-            limit: SEARCH_LIMIT,
-            signal: controller.signal,
-          }),
-        )
+      // The session validates addresses and counts the search as an active request.
+      session
+        .search(parsed.query, {
+          fromIndex: engine.getSnapshot().position,
+          limit: SEARCH_LIMIT,
+          signal: controller.signal,
+        })
         .then((result) => {
           if (controller.signal.aborted) return;
-          if (
-            result.matches.length > SEARCH_LIMIT ||
-            result.matches.some(
-              (m) =>
-                !Number.isSafeInteger(m.index) ||
-                m.index < 0 ||
-                m.index >= engine.getSnapshot().rowCount,
-            )
-          )
-            throw new Error('Provider returned invalid search addresses');
           setMatches(result.matches);
-          setSearchMarkers([...result.matches, ...shownNamed]);
+          setHighlights([...result.matches, ...shownNamed]);
           const status = result.complete
             ? result.matches.length
               ? `${result.matches.length} matching row${result.matches.length === 1 ? '' : 's'}`
@@ -194,7 +217,7 @@ const JumpDialog = memo(function JumpDialog<Row>({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, jumpOpen, provider, markers, engine, setSearchMarkers]);
+  }, [query, jumpOpen, provider, session, markers, engine, setHighlights]);
   const choose = (marker: Marker) => {
     engine.goTo(marker.index);
     setJumpOpen(false);
@@ -253,9 +276,10 @@ const JumpDialog = memo(function JumpDialog<Row>({
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
               event.preventDefault();
               setSelected((value) =>
-                Math.max(
+                clamp(
+                  value + (event.key === 'ArrowDown' ? 1 : -1),
                   0,
-                  Math.min(choices.length - 1, value + (event.key === 'ArrowDown' ? 1 : -1)),
+                  Math.max(0, choices.length - 1),
                 ),
               );
             }

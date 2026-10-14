@@ -23,6 +23,9 @@
     font-variant-numeric: tabular-nums;
     color-scheme: light;
   }
+  :where(.ds-root:not([data-unstyled])[data-layout='page']) {
+    border-radius: 0;
+  }
   :where(.ds-root:not([data-unstyled])[data-theme='dark']) {
     --ds-bg: #191c21;
     --ds-panel: #20242a;
@@ -89,42 +92,6 @@
   :where(.ds-root:not([data-unstyled]) .ds-context) {
     font-size: 12px;
     color: var(--ds-muted);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-guide) {
-    background: var(--ds-panel);
-    border-bottom: 1px solid var(--ds-line);
-    color: var(--ds-muted);
-    font-size: 12px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-guide strong) {
-    color: var(--ds-text);
-    font-weight: 600;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-guide > summary strong) {
-    margin-right: 8px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-guide-toggle) {
-    color: var(--ds-accent);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-guide-content) {
-    background: var(--ds-panel);
-    border-bottom: 1px solid var(--ds-line);
-    box-shadow: 0 8px 16px #00000012;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-guide > summary:focus-visible) {
-    outline: 2px solid var(--ds-accent);
-    outline-offset: -2px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-guide-option) {
-    background: var(--ds-bg);
-    border: 1px solid var(--ds-line);
-    border-radius: 5px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-guide-option[data-current]) {
-    border-color: var(--ds-accent);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-view-diagram) {
-    color: var(--ds-accent);
   }
   :where(.ds-root:not([data-unstyled]) .ds-history) {
     gap: 4px;
@@ -195,20 +162,7 @@
     color: var(--ds-text);
     font-size: 13px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-dataset-start) {
-    border-bottom: 1px solid var(--ds-line);
-    background: linear-gradient(
-      to top,
-      color-mix(in srgb, var(--ds-muted) 16%, var(--ds-bg)),
-      transparent 140px
-    );
-    color: var(--ds-text);
-    font-size: 13px;
-  }
-  :where(
-    .ds-root:not([data-unstyled]) .ds-dataset-start[data-compact] span,
-    .ds-root:not([data-unstyled]) .ds-dataset-end[data-compact] span
-  ) {
+  :where(.ds-root:not([data-unstyled]) .ds-dataset-end[data-compact] span) {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -222,32 +176,12 @@
     background: var(--ds-panel);
     border-left: 1px solid var(--ds-line);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-rail-title) {
-    font-size: 10px;
-    color: var(--ds-muted);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-track) {
-    background: var(--ds-bg);
-    border-radius: 3px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-thumb) {
-    border: 1px solid var(--ds-accent);
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--ds-accent) 10%, transparent);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-track-line) {
-    border-top: 1px solid var(--ds-accent);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-rail-end) {
-    font: inherit;
-    font-size: 10px;
-    color: var(--ds-muted);
-  }
   :where(.ds-root:not([data-unstyled]) .ds-marker) {
     border: 0;
-    padding: 4px 0 4px 6px;
+    padding: 4px 2px;
+    gap: 4px;
     color: var(--ds-mark);
-    font-size: 11px;
+    font-size: 10px;
     background: var(--ds-panel);
   }
   :where(.ds-root:not([data-unstyled]) .ds-marker span) {
@@ -394,31 +328,6 @@
   :where(.ds-root:not([data-unstyled]) .ds-jump-examples .ds-button) {
     font-size: 11px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-scale) {
-    min-height: 38px;
-    padding: 6px 18px;
-    border-bottom: 1px solid var(--ds-line);
-    font-size: 11px;
-    color: var(--ds-muted);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-scale .ds-button) {
-    padding: 3px 7px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-scale-context > strong) {
-    color: var(--ds-text);
-    font-weight: 500;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-scale .ds-input) {
-    padding: 3px 7px;
-    font-size: 11px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-bucket-custom) {
-    padding: 12px;
-    background: var(--ds-panel);
-    border: 1px solid var(--ds-line);
-    border-radius: var(--ds-radius);
-    box-shadow: 0 6px 24px #0002;
-  }
   :where(.ds-root:not([data-unstyled]) .ds-aggregate-label) {
     padding: 8px 12px;
     background: var(--ds-panel);
@@ -484,22 +393,13 @@
       padding: 9px 10px;
       font-size: 10px;
     }
-    :where(.ds-root:not([data-unstyled]) .ds-rail-title),
-    :where(.ds-root:not([data-unstyled]) .ds-rail-end) {
-      font-size: 8px;
-    }
     :where(.ds-root:not([data-unstyled]) .ds-jump-results small) {
       max-width: 110px;
       text-align: right;
     }
-    :where(.ds-root:not([data-unstyled]) .ds-scale) {
-      font-size: 10px;
-      padding: 6px 10px;
-    }
   }
-}
 
-@layer granum-grid {
+  /* Dataset map */
   :where(.ds-root:not([data-unstyled]) .ds-rail-title) {
     font-size: 12px;
     color: var(--ds-text);
@@ -571,9 +471,6 @@
     font-size: 10px;
     color: var(--ds-muted);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-track) {
-    background: transparent;
-  }
   :where(.ds-root:not([data-unstyled]) .ds-map-plot) {
     background: var(--ds-bg);
     border-left: 1px solid var(--ds-line);
@@ -615,11 +512,6 @@
   }
   :where(.ds-root:not([data-unstyled]) .ds-track-line) {
     border-top: 1px dashed var(--ds-muted);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-marker) {
-    font-size: 10px;
-    padding: 4px 2px;
-    gap: 4px;
   }
   :where(.ds-root:not([data-unstyled]) .ds-marker-symbol) {
     font-size: 9px;
@@ -717,13 +609,9 @@
     font-size: 10px;
     color: var(--ds-muted);
   }
-}
 
-@layer granum-grid {
-  :where(
-    .ds-root:not([data-unstyled]) .ds-view-menu .ds-input,
-    .ds-root:not([data-unstyled]) .ds-explorer-panel .ds-input
-  ) {
+  /* Selection, comparison, and saved places */
+  :where(.ds-root:not([data-unstyled]) .ds-explorer-panel .ds-input) {
     border: 1px solid var(--ds-line);
     border-radius: 5px;
     padding: 6px 8px;
@@ -750,6 +638,11 @@
   }
   :where(.ds-root:not([data-unstyled]) .ds-range-summary dd) {
     font-size: 17px;
+  }
+  :where(.ds-root:not([data-unstyled]) .ds-summary-heading strong) {
+    color: var(--ds-text);
+    font-size: 13px;
+    font-weight: 600;
   }
   :where(
     .ds-root:not([data-unstyled]) .ds-selection-card,
@@ -813,12 +706,18 @@
     padding-left: 10px;
     margin: 12px 0 0;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled)) {
+  :where(
+    .ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled),
+    .ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled)
+  ) {
     background: var(--ds-accent);
     border-color: var(--ds-accent);
     color: var(--ds-bg);
   }
-  :where(.ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled):hover) {
+  :where(
+    .ds-root:not([data-unstyled]) .ds-flow-primary:not(:disabled):hover,
+    .ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled):hover
+  ) {
     background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
   }
   :where(.ds-root:not([data-unstyled]) .ds-comparison-setup) {
@@ -848,14 +747,6 @@
   :where(.ds-root:not([data-unstyled]) .ds-comparison-range .ds-comparison-step) {
     color: var(--ds-accent);
     font-weight: 600;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled)) {
-    background: var(--ds-accent);
-    border-color: var(--ds-accent);
-    color: var(--ds-bg);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-comparison-primary:not(:disabled):hover) {
-    background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
   }
   :where(.ds-root:not([data-unstyled]) .ds-compare) {
     color: var(--ds-text);
@@ -904,98 +795,5 @@
   :where(.ds-root:not([data-unstyled]) .ds-open-page) {
     text-decoration: none;
     font-size: 12px;
-  }
-}
-
-@layer granum-grid {
-  :where(.ds-root:not([data-unstyled]) .ds-summary-content) {
-    background: var(--ds-panel);
-    border: 1px solid var(--ds-line);
-    border-radius: var(--ds-radius);
-  }
-  :where(
-    .ds-root:not([data-unstyled]) .ds-summary-accuracy,
-    .ds-root:not([data-unstyled]) .ds-summary-meta,
-    .ds-root:not([data-unstyled]) .ds-summary-address,
-    .ds-root:not([data-unstyled]) .ds-summary-content p
-  ) {
-    color: var(--ds-muted);
-    font-size: 11px;
-    line-height: 1.4;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-heading strong) {
-    color: var(--ds-text);
-    font-size: 13px;
-    font-weight: 600;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-metric strong) {
-    color: var(--ds-text);
-    font-weight: 600;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-button) {
-    font-size: 11px;
-    padding: 3px 7px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-button:first-child:not(:disabled)) {
-    background: var(--ds-accent);
-    border-color: var(--ds-accent);
-    color: var(--ds-bg);
-  }
-  :where(
-    .ds-root:not([data-unstyled]) .ds-summary-actions .ds-button:first-child:not(:disabled):hover
-  ) {
-    background: color-mix(in srgb, var(--ds-accent) 85%, var(--ds-text));
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-actions .ds-summary-select) {
-    border-color: transparent;
-    color: var(--ds-muted);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-content[data-chart]) {
-    background: transparent;
-    border: 0;
-    border-bottom: 1px solid var(--ds-line);
-    border-radius: 0;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-content[data-chart]:focus-within) {
-    background: color-mix(in srgb, var(--ds-accent) 5%, transparent);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-plot) {
-    color: var(--ds-accent);
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-metric > span) {
-    color: var(--ds-muted);
-    font-size: 11px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-axis) {
-    color: var(--ds-muted);
-    font-size: 10px;
-    line-height: 1.2;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-gridline) {
-    stroke: var(--ds-line);
-    stroke-dasharray: 2 3;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-zero) {
-    stroke: var(--ds-muted);
-    stroke-opacity: 0.5;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-bar) {
-    fill: var(--ds-accent);
-    fill-opacity: 0.5;
-  }
-  :where(
-    .ds-root:not([data-unstyled]) .ds-summary-plot[data-accuracy='estimated'] .ds-summary-bar
-  ) {
-    fill-opacity: 0.22;
-    stroke: var(--ds-accent);
-    stroke-dasharray: 3 2;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-spread) {
-    stroke: var(--ds-text);
-    stroke-width: 1.5;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-summary-average) {
-    stroke: var(--ds-accent);
-    stroke-width: 3;
   }
 }

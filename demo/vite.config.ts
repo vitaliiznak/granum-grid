@@ -14,6 +14,7 @@ const source = (path: string) =>
 export const granumGridSource = [
   { find: /^granum-grid$/, replacement: source('index.ts') },
   { find: /^granum-grid\/(core|data)$/, replacement: source('$1/index.ts') },
+  { find: /^granum-grid\/headless$/, replacement: source('headless.ts') },
   { find: /^granum-grid\/(base|styles)\.css$/, replacement: source('$1.css') },
 ];
 

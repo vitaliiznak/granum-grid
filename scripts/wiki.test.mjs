@@ -9,7 +9,7 @@ test('wiki export resolves navigation and commit-pinned references without chang
   const output = await mkdtemp(join(tmpdir(), 'granum-grid-wiki-'));
   try {
     const names = await buildWiki(output, { repository: 'example/explorer', ref: 'abc123' });
-    assert.equal(names.length, 8);
+    assert.equal(names.length, 9);
     const home = await readFile(join(output, 'Home.md'), 'utf8');
     assert.ok(home.includes('(https://github.com/example/explorer/wiki/Setup)'));
     assert.ok(home.includes('(https://github.com/example/explorer/blob/abc123/docs/GUIDE.md)'));

@@ -1,3 +1,4 @@
+import { clamp } from '../core/mappings.js';
 import type { Bucket, Chapter } from '../data/types.js';
 import { formatCompactTick } from './format.js';
 
@@ -55,7 +56,7 @@ export function profileValue(bucket: Bucket, kind: 'value' | 'density') {
   return value !== null && Number.isFinite(value) ? value : null;
 }
 
-export type OverviewAccuracy = 'unavailable' | 'loading' | 'sampled' | 'exact';
+type OverviewAccuracy = 'unavailable' | 'loading' | 'sampled' | 'exact';
 /** One overview status for every surface that labels it. */
 export function overviewAccuracy(
   buckets: readonly Bucket[],
@@ -72,7 +73,7 @@ export function overviewAccuracy(
   return buckets.some((bucket) => bucket.accuracy === 'estimated') ? 'sampled' : 'exact';
 }
 
-export interface CanvasChange {
+interface CanvasChange {
   /** Content-box size reported by a resize, when known. */
   size?: { width: number; height: number };
   /** The explorer theme or system color scheme may have changed. */
@@ -131,7 +132,7 @@ export function drawAtlas(
   const styles = getComputedStyle(canvas);
   const accent = styles.getPropertyValue('--ds-accent').trim() || styles.color;
   const scale = (value: number) =>
-    Math.max(0, Math.min(1, (value - domain[0]) / (domain[1] - domain[0]))) * width;
+    clamp((value - domain[0]) / (domain[1] - domain[0]), 0, 1) * width;
   const baseline = scale(0);
   const lens = ink === 'lens';
   ctx.fillStyle = accent;

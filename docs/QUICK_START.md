@@ -40,8 +40,8 @@ npm install /absolute/path/to/granum-grid/output/granum-grid-0.1.0.tgz
 
 Replace the path with the actual archive location. Your app only needs the
 installed package at runtime; you do not need to keep the demo server running.
-Packing builds an archive; for the repository's unit, build, and isolated React
-18/19 consumer checks, run `npm run release:check` from the repository root.
+Packing builds an archive without running the repository's checks; for those, run
+[`npm run release:check`](../AGENTS.md#validate-and-finish) from the repository root.
 
 <details>
 <summary>Starting without a React app?</summary>
@@ -239,7 +239,7 @@ replacing, sorting, or filtering a snapshot.
 ## Add search and a dataset map
 
 Optional provider methods determine available capabilities. `fetchOverview` adds
-the global profile; `fetchAggregates` adds regional and selected-range summaries.
+the global profile; `fetchAggregates` adds selection statistics and comparison maps.
 `fetchMarkers` adds named events. `search` performs searches without a component-side
 scan. Every summary retains `exact`, `estimated`, or `unavailable`; every search
 retains its `complete` flag.
@@ -255,46 +255,14 @@ const searchHelp = {
 } satisfies import('granum-grid').SearchHelp;
 ```
 
-Put this on the provider alongside `search`. The dialog shows up to four provider
-examples, offers field help, and rejects unsupported declared fields/operators
-before issuing a request. Metadata is optional; providers without it keep their
-existing query behavior. Providers must still validate queries themselves. Exact
-row numbers, percentages, and named markers remain usable without `search`.
+Put this on the provider alongside `search`. [Search](GUIDE.md#search) explains how
+the dialog uses it and what the provider must still validate.
 
 ### Try the working HTTP example
 
-From the repository root, try the complete [HTTP recording example](../demo/http.html):
-
-```sh
-npm run dev
-# Open /http.html on the local URL printed by Vite.
-```
-
-It reads the repository's real, redacted Chromium recording through an HTTP API.
-The recording stays on the server; this page has its own entry point and does not
-import the fixture. Find slow events, inspect surrounding rows, select a range,
-compare it with another range, and create a link to the saved view.
-
-Source files:
-
-- [`demo/server/trace.ts`](../demo/server/trace.ts): server snapshot, validation, and endpoints.
-- [`demo/src/data/http-trace.ts`](../demo/src/data/http-trace.ts): client adapter and request measurements.
-- [`demo/src/HttpExample.tsx`](../demo/src/HttpExample.tsx): public actions and complete UI.
-- [Recording provenance](../demo/src/data/fixtures/README.md).
-
-The content hash plus adapter version identifies the ordered snapshot. Every data
-request includes its revision; a mismatch returns HTTP 409. Rows are addressed by
-their stable array index, so a jump does not walk previous pages. Each request is
-limited to 1,024 rows, 512 buckets, or 100 search matches. The page cache normally
-requests 256 rows at a time. Cancellation propagates through the HTTP transport.
-
-The server materializes the finite recording (at most 150,000 source events).
-Summaries/searches may scan this bounded server fixture. Production adapters should
-use their own indexed reads and precomputed aggregates for much larger datasets.
-The displayed measurements are successful/failed JSON response bytes and elapsed
-response time, including body reading; they are not heap usage, compressed wire
-bytes, or a production-database benchmark. Static hosting has no backend: this
-example needs `npm run dev` or the local Vite preview server.
+The [HTTP recording lesson](wiki/HTTP-recording.md) runs a complete server and client
+over the repository's real, redacted Chromium recording: revisions, bounded requests,
+cancellation, summaries, search, and saved views.
 
 ## Build custom controls
 
@@ -325,43 +293,28 @@ export function Explorer({ provider }: { provider: DataProvider<Reading> }) {
 }
 ```
 
-The same `api` is available from `useGranumGrid`. It exposes `scrollToIndex`,
-`zoomToRange`, `back`, `forward`, `openSearch`, `setSelection`, `getView`, and
-`restoreView`, plus the existing provider and expert controller.
-
-`openSearch(query)` opens the dialog without navigating and also replaces the query
-in an already-open dialog. With the headless hook, render `JumpBar` to provide that
-dialog. Search closes when the dataset/revision changes. `getView()` captures a
-detached location/selection snapshot. `restoreView(view)` rejects malformed or
-foreign dataset/revision views before changing state. With controlled selection,
-`setSelection` and `restoreView` call `onSelectionChange`; the host must accept the
-new prop value. Read `api.current` when executing an action, not a retained handle
-from an earlier dataset.
-
-When a custom button opens search, call `event.currentTarget.focus()` before
-`api.current?.openSearch(query)` so closing the dialog returns focus to that button,
-including in browsers that do not focus buttons on pointer clicks.
-
-For URL storage, use `encodeView(api.getView())` and `decodeView(text, provider)`.
-The host chooses the route and sharing policy. Saved views contain no row payloads.
+The same `api` is available from `useGranumGrid`. The
+[integration interface](GUIDE.md#integration-interface) lists its methods and the rules
+for search, focus, controlled selection, and saved-view URLs.
 
 ## Configuration that preserves expectations
 
-| Intent                                            | Configuration                     |
-| ------------------------------------------------- | --------------------------------- |
-| Immutable ordered snapshot                        | `dataMode="snapshot"` (default)   |
-| Accept appended rows, preserve the reader's place | `dataMode="append"`               |
-| Follow new rows when already at the end           | `dataMode="append" followOutput`  |
-| Fixed row height                                  | `rowHeight={36}`                  |
-| Natural row height, estimated before measurement  | `dynamicRowHeight rowHeight={36}` |
-| No exact-row requests on map hover                | `atlas={{ preview: 'summary' }}`  |
+| Intent                                            | Configuration                              |
+| ------------------------------------------------- | ------------------------------------------ |
+| Immutable ordered snapshot                        | `dataMode="snapshot"` (default)            |
+| Accept appended rows, preserve the reader's place | `dataMode="append"`                        |
+| Follow new rows when already at the end           | `dataMode="follow"`                        |
+| Fixed row height                                  | `rowHeight={36}`                           |
+| Natural row height, estimated before measurement  | `dynamicRowHeight rowHeight={36}`          |
+| No exact-row requests on map hover                | `rail={{ preview: 'summary' }}`            |
+| Rows only: no map, tools, or hints                | `rail={false} tools={false} hints={false}` |
 
 Append mode requires the same ID/revision and unchanged existing rows. The count
-may increase, never decrease. `followOutput` without `dataMode="append"` is rejected.
+may increase, never decrease; `follow` is append mode that also stays at the end.
 
-Global `features` switches are upper bounds; an Atlas option cannot re-enable a
-globally disabled feature. Use Atlas options for local presentation and global
-switches only when intentionally disabling a behavior throughout the explorer.
+`features` switches motion and data behavior; map layers are `rail` options. Every
+region prop (`toolbar`, `tools`, `rail`, `footer`, `hints`) takes `false` to hide it or
+an object to configure it, and `toolbar`, `rail`, and `footer` also take a function.
 Keep provider objects outside render or memoize them: changing object identity in
 snapshot mode creates a new data session. Changing identity/revision also resets
 navigation; appending with the same identity retains its prior addresses.
@@ -375,7 +328,7 @@ parent render. Inline `onStats`, `onNavigate`, and `onSelectionChange` callbacks
 
 | Symptom                                                  | What to check                                                                                    |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| The explorer has no layout or theme                      | Import `granum-grid/styles.css` once. Use `base.css` only when supplying your own theme.          |
+| The explorer has no layout or theme                      | Import `granum-grid/styles.css` once. Use `base.css` only when supplying your own theme.         |
 | A new Vite app is narrow or centered                     | Replace the starter `index.css` as shown above and remove any imported starter `App.css`.        |
 | Position or requests reset on every render               | Keep the provider stable; create it outside render or use `useMemo`.                             |
 | Rows show an error                                       | Check the response shape, exact requested count, revision, and HTTP status.                      |

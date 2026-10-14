@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Bucket, DataProvider, RowRange } from '../data/types.js';
 import { checkBuckets } from '../data/bounds.js';
-import { formatDecimal, rangeAddress, rangeCount } from '../visuals/format.js';
+import { formatMetric, rangeAddress, rangeCount } from '../visuals/format.js';
 
 /** Exact or estimated statistics for one range, loaded from the provider's aggregates. */
 function useSummary<Row>(provider: DataProvider<Row>, range: RowRange | null) {
@@ -18,7 +18,7 @@ function useSummary<Row>(provider: DataProvider<Row>, range: RowRange | null) {
       return;
     }
     if (!provider.fetchAggregates) {
-      setState({ message: 'This provider does not supply range summaries.' });
+      setState({ message: 'This provider does not supply selection statistics.' });
       return;
     }
     const span = { start, end };
@@ -70,9 +70,7 @@ export function RangeSummary<Row>({
   const { bucket, message, retryable, retry } = useSummary(provider, range);
   const single = range.end - range.start === 1;
   const format = (value: number | null | undefined) =>
-    value == null
-      ? 'Unavailable'
-      : `${formatDecimal(value, 2)}${provider.metric?.unit ? ` ${provider.metric.unit}` : ''}`;
+    value == null ? 'Unavailable' : formatMetric(value, 2, provider.metric?.unit);
   return (
     <div className="ds-range-summary">
       {showRange && (

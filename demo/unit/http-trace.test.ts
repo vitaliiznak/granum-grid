@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
-import { createTraceService, TRACE_API } from '../server/trace';
+import { TRACE_API } from '../src/data/http-trace';
+import { createTraceService } from '../server/trace';
 
-it('serves real rows with bounded reads, stable revisions, and truthful search coverage', async () => {
-  const request = createTraceService(
-    readFileSync(new URL('../src/data/fixtures/exploration-trace.json', import.meta.url), 'utf8'),
-  );
+/** Calls a trace service for `raw` the way the browser client does. */
+function client(raw: string) {
+  const request = createTraceService(raw);
   const signal = new AbortController().signal;
-  const call = (op: string, params: Record<string, string | number> = {}) =>
+  return (op: string, params: Record<string, string | number> = {}) =>
     request(
       new URL(
         `${TRACE_API}${op}?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))}`,
@@ -15,6 +15,12 @@ it('serves real rows with bounded reads, stable revisions, and truthful search c
       ),
       signal,
     );
+}
+
+it('serves real rows with bounded reads, stable revisions, and truthful search coverage', async () => {
+  const call = client(
+    readFileSync(new URL('../src/data/fixtures/exploration-trace.json', import.meta.url), 'utf8'),
+  );
   const meta = (await call('meta')).body as { revision: string; rowCount: number };
   const { revision } = meta;
   expect(meta.rowCount).toBeGreaterThan(256);
@@ -41,4 +47,20 @@ it('serves real rows with bounded reads, stable revisions, and truthful search c
   });
   expect(search.body).toMatchObject({ complete: false, matches: [{ index: 0 }] });
   expect((await call('search', { revision, fromIndex: 0, limit: 1, query: '{' })).status).toBe(400);
+});
+
+it('accepts advertised text search over HTTP and rejects empty or oversized text', async () => {
+  const call = client(
+    JSON.stringify([{ name: 'Layout', ph: 'X', ts: 0, dur: 3000, pid: 1, tid: 2 }]),
+  );
+  const meta = await call('meta');
+  const { revision, searchHelp } = meta.body as { revision: string; searchHelp: { text: boolean } };
+  expect(searchHelp.text).toBe(true);
+  for (const value of ['layout', '', 'x'.repeat(513)]) {
+    const query = JSON.stringify({ kind: 'text', value });
+    const response = await call('search', { revision, fromIndex: 0, limit: 100, query });
+    expect(response.status).toBe(value === 'layout' ? 200 : 400);
+    if (value === 'layout')
+      expect(response.body).toMatchObject({ complete: true, matches: [{ index: 0 }] });
+  }
 });

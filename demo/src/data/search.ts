@@ -1,6 +1,6 @@
-import type { ProviderQuery } from 'granum-grid';
+import type { ProviderQuery, SearchResult } from 'granum-grid';
 
-type Predicate = Extract<ProviderQuery, { kind: 'predicate' }>;
+export type Predicate = Extract<ProviderQuery, { kind: 'predicate' }>;
 type Operator = Predicate['operator'];
 
 export const NUMBER_OPERATORS: readonly Operator[] = ['=', '!=', '>', '>=', '<', '<='];
@@ -15,6 +15,14 @@ export function checkPredicate(query: Predicate, type: 'number' | 'text') {
     (typeof query.value !== 'string' || !TEXT_OPERATORS.includes(query.operator))
   )
     throw new Error(`Use ${query.field} = "…" or ${query.field} != "…".`);
+}
+
+/** A date query's one match at the period's first row, or none when it is outside the data. */
+export function dateResult(value: string, index: number | null): SearchResult {
+  return {
+    matches: index === null ? [] : [{ id: `date-${value}`, index, label: value, kind: 'search' }],
+    complete: true,
+  };
 }
 
 /** Let other work run during a long scan, then stop if the search was canceled. */

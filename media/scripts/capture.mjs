@@ -69,9 +69,8 @@ async function settled(page) {
       root &&
       !root.querySelector('[data-status="loading"], [data-status="error"]') &&
       !root.querySelector('.ds-meta-error') &&
-      !root.querySelector('.ds-summary-status') &&
       !root.querySelector('.ds-legend')?.textContent.includes('loading') &&
-      !root.textContent.includes('Traveling through the overview')
+      !root.querySelector('.ds-aggregate-label')
     );
   });
   await page.evaluate(() => document.fonts.ready);
@@ -187,9 +186,9 @@ async function perform(page, scene, filming) {
     await click(page, table.getByRole('button', { name: /^Signal investigation/ }));
     await rowReady(scene.index);
   } else if (scene.action === 'overview') {
-    await table.getByRole('combobox', { name: 'View', exact: true }).selectOption('zoom');
-    await click(page, table.getByRole('button', { name: 'Fit dataset', exact: true }));
-    await table.locator('.ds-summary-band[aria-rowindex="1"]').waitFor();
+    await table.getByTestId('overview').waitFor();
+    await click(page, table.getByRole('button', { name: scene.query, exact: true }));
+    await rowReady(scene.target);
   } else if (scene.action === 'search') {
     const input = await openJump();
     await input.pressSequentially('status >= 500', { delay: filming ? 55 : 0 });

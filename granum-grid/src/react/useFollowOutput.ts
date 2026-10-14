@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { GranumGridEngine, NavigationSnapshot } from '../core/engine.js';
+import { atEnd, type GranumGridEngine, type NavigationSnapshot } from '../core/engine.js';
 import type { DataSession } from '../data/session.js';
 import type { DataProvider } from '../data/types.js';
-
-const atEnd = (engine: GranumGridEngine, s: NavigationSnapshot) =>
-  s.view === 'rows' && engine.rowSizes.distance(s.position, s.rowCount) <= s.height + 1;
 
 /** Apply append-only row counts and count rows added while the reader is away from the end. */
 export function useFollowOutput<Row>(
@@ -19,21 +16,14 @@ export function useFollowOutput<Row>(
     if (followOutput === undefined) return;
     const before = engine.getSnapshot();
     const added = provider.rowCount - before.rowCount;
-    const following = followOutput && atEnd(engine, before);
+    const following = followOutput && atEnd(engine.rowSizes, before);
     session.updateAppendProvider(provider);
     engine.appendRows(provider.rowCount, followOutput);
     if (added > 0) setUnseenRows((value) => (following ? 0 : value + added));
   }, [engine, session, provider, provider.rowCount, followOutput]);
   useEffect(() => {
-    if (atEnd(engine, snapshot)) setUnseenRows(0);
+    if (atEnd(engine.rowSizes, snapshot)) setUnseenRows(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only the fields that move the end.
-  }, [
-    engine,
-    snapshot.position,
-    snapshot.rowCount,
-    snapshot.height,
-    snapshot.view,
-    snapshot.layoutVersion,
-  ]);
+  }, [engine, snapshot.position, snapshot.rowCount, snapshot.height, snapshot.layoutVersion]);
   return unseenRows;
 }

@@ -11,72 +11,91 @@ import {
   type Ref,
   type Key,
 } from 'react';
-import type { GranumGridEngine } from '../core/engine.js';
 import type { GranumGridApi } from '../core/api.js';
 import { useGranumGrid, type UseGranumGridOptions, type GranumGridState } from './useGranumGrid.js';
 import { partProps, type GranumGridAppearance } from './styling.js';
 import { ContextHints } from './ContextHints.js';
-import { ViewGuide } from './ViewGuide.js';
-import { ViewLayer } from './ViewLayer.js';
 import { ViewCanvas } from './ViewCanvas.js';
-import { AggregateLayer, type AggregateRenderContext } from './AggregateLayer.js';
 import { JumpBar } from './JumpBar.js';
-import { AtlasRail, type AtlasRailOptions } from './AtlasRail.js';
+import { AtlasRail, type AtlasRailOptions, type AtlasRailProps } from './AtlasRail.js';
 import { ExplorerTools } from './ExplorerTools.js';
-import { Footer, RowPlaceholder, ScaleBar, Toolbar } from './ExplorerChrome.js';
+import { Footer, RowPlaceholder, Toolbar, type ToolbarOptions } from './ExplorerChrome.js';
 import { CompareRanges } from './CompareRanges.js';
+import { INTERNAL } from './internal.js';
 import { overviewAccuracy } from '../visuals/atlas.js';
-import { rangeAddress } from '../visuals/format.js';
-import { chapterAt } from '../core/navigation.js';
+import { chapterName, rangeAddress } from '../visuals/format.js';
 import { isTextEntry, isWithin } from './dom.js';
+import { isSearchShortcut } from './keyboard.js';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
-import type { SavedView } from '../core/exploration.js';
-import type { PendingRowSlot, RowRange } from '../data/types.js';
+import { useOwnedState } from './useOwnedState.js';
+import type { Marker, PendingRowSlot, RowRange } from '../data/types.js';
+export type { ToolbarOptions };
 export interface RowRenderContext<Row> {
   row: Row;
+  /** Zero-based address in the current provider. */
   index: number;
+  /** One-based display number. */
   rowNumber: number;
   focused: boolean;
 }
-export interface GranumGridProps<Row> extends UseGranumGridOptions<Row>, GranumGridAppearance {
-  header?: ReactNode;
-  renderRow(context: RowRenderContext<Row>): ReactNode;
-  renderPlaceholder?(slot: PendingRowSlot): ReactNode;
-  /** Render domain-specific content inside a summary band in Overview. */
-  renderAggregate?(context: AggregateRenderContext): ReactNode;
+/** Configure the selection, bookmark, and comparison tools through the `tools` prop. */
+export interface ToolsOptions {
+  /** Persist bookmarks in localStorage under this key. Default: only while mounted. */
+  storageKey?: string;
   /** Describe a half-open range in domain units, such as elapsed time or base pairs. */
   formatRange?(range: RowRange): string;
-  /** Target rows per summary bucket. Host labels may use fixed durations or domain units. */
-  summaryBucketSizes?: readonly { label: string; rows: number }[];
-  /** A readable size for a group of rows, such as "1 hour" for second-indexed data. */
-  formatBucketSize?(rows: number): string;
+}
+/** Configure the first-run hints for the map, search, and Back through the `hints` prop. */
+export interface HintsOptions {
+  /** Remember dismissed hints in localStorage under this key. Default: only while mounted. */
+  storageKey?: string;
+}
+/**
+ * The explorer, built from `useGranumGrid`, `AtlasRail`, and `JumpBar`. Each region prop
+ * (`toolbar`, `tools`, `rail`, `footer`, `hints`) takes `false` to hide the region, an
+ * options object to configure it, or, where offered, a function to render your own.
+ */
+export interface GranumGridProps<Row>
+  extends Omit<UseGranumGridOptions<Row>, 'onOpenSearch'>, GranumGridAppearance {
+  /** Accessible name of the rows grid. */
   ariaLabel: string;
-  className?: string;
-  style?: CSSProperties;
+  renderRow(context: RowRenderContext<Row>): ReactNode;
+  /** Content for a loading or failed row; `retry` requests failed pages again. */
+  renderPlaceholder?(slot: PendingRowSlot, retry: () => void): ReactNode;
+  /** Stable React key for a loaded row. Default: its index. */
+  getRowKey?(row: Row, index: number): Key;
+  /** Column headings above the rows. Default: "RECORDS". */
+  header?: ReactNode;
+  emptyContent?: ReactNode;
+  /** Keep the current provider chapter above the rows. */
+  stickyChapters?: boolean;
+  /** The mounted handle (`GranumGridApi`); null after unmount. */
+  apiRef?: Ref<GranumGridApi<Row>>;
+  /** History, breadcrumb, and search. A function receives the hook state. */
+  toolbar?: boolean | ToolbarOptions | ((grid: GranumGridState<Row>) => ReactNode);
+  /** Selection, bookmarks, and range comparison. */
+  tools?: boolean | ToolsOptions;
+  /**
+   * The dataset map. A function receives the built-in map's props, including the explorer's
+   * search highlights and map selection; spread them into your own `AtlasRail`.
+   */
+  rail?:
+    | boolean
+    | AtlasRailOptions
+    | ((grid: GranumGridState<Row>, rail: AtlasRailProps<Row>) => ReactNode);
+  /** Current row and progress. A function receives the hook state. */
+  footer?: boolean | ((grid: GranumGridState<Row>) => ReactNode);
+  /** First-run hints for the map, search, and Back. */
+  hints?: boolean | HintsOptions;
   theme?: 'system' | 'dark' | 'light';
   /** Opt out of the optional skin, even when styles.css is loaded elsewhere. */
   unstyled?: boolean;
-  controllerRef?: Ref<GranumGridEngine>;
-  /** Access the mounted provider and controller from a host integration. */
-  apiRef?: Ref<GranumGridApi<Row>>;
-  getRowKey?(row: Row, index: number): Key;
-  emptyContent?: ReactNode;
-  atlas?: AtlasRailOptions;
-  /** Page owns the document scroll surface; mount one per page. */
-  layout?: 'embedded' | 'page';
-  exploration?: boolean;
-  bookmarkStorageKey?: string;
-  fullPageUrl?(view: SavedView): string;
-  stickyChapters?: boolean;
-  showStats?: boolean;
-  /** Append host controls to the built-in toolbar. */
-  toolbarActions?: ReactNode;
-  /** Append host controls beside the dataset map title. */
-  railActions?: ReactNode;
-  /** Replace the built-in controls with your own React components. Return null to hide. */
-  renderToolbar?(scroll: GranumGridState<Row>): ReactNode;
-  renderFooter?(scroll: GranumGridState<Row>): ReactNode;
-  renderRail?(scroll: GranumGridState<Row>): ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}
+/** The options object of a region prop, or none when the region is hidden or replaced. */
+function optionsOf<Options extends object>(region: unknown): Options | undefined {
+  return typeof region === 'object' && region !== null ? (region as Options) : undefined;
 }
 interface LoadedRowProps<Row> {
   render: (context: RowRenderContext<Row>) => ReactNode;
@@ -126,54 +145,53 @@ function DatasetRow({
   );
 }
 
+const NO_MARKERS: Marker[] = [];
+const CLOSED_SEARCH = { open: false, query: '' };
+
 export function GranumGrid<Row>(props: GranumGridProps<Row>) {
-  const scroll = useGranumGrid({
+  // Saved bookmarks join the host's markers; keyed by dataset so a switch never shows stale ones.
+  const [bookmarkMarkers, setBookmarkMarkers] = useOwnedState(
+    `${props.provider.id}:${props.provider.revision}`,
+    NO_MARKERS,
+  );
+  const hostMarkers = props.markers;
+  const explorerMarkers = useMemo(
+    () =>
+      hostMarkers?.length && bookmarkMarkers.length
+        ? [...hostMarkers, ...bookmarkMarkers]
+        : hostMarkers?.length
+          ? hostMarkers
+          : bookmarkMarkers,
+    [hostMarkers, bookmarkMarkers],
+  );
+  const grid: GranumGridState<Row> = useGranumGrid<Row>({
     ...props,
-    aggregateRowHeight: props.aggregateRowHeight ?? 120,
-    measureFrameRate: props.measureFrameRate ?? (props.showStats || undefined),
-    scrollMode: props.layout === 'page' ? 'window' : props.scrollMode,
+    markers: explorerMarkers,
+    // Read when a shortcut or `api.openSearch` fires, after this render has committed.
+    onOpenSearch: (query) => setSearch({ open: true, query }),
   });
-  useImperativeHandle(props.controllerRef, () => scroll.controller, [scroll.controller]);
-  useImperativeHandle(props.apiRef, () => scroll.api, [scroll.api]);
-  const { snapshot } = scroll;
+  useImperativeHandle(props.apiRef, () => grid.api, [grid.api]);
+  const { snapshot, api } = grid;
+  const { engine, session, mapping, features, reduceMotion, append, getVisibleRange } =
+    grid[INTERNAL];
+  // Search, map highlights, and map selection belong to one engine; a provider switch resets them.
+  const [search, setSearch] = useOwnedState(engine, CLOSED_SEARCH);
+  const [highlights, setHighlights] = useOwnedState(engine, NO_MARKERS);
+  const [selecting, setSelecting] = useOwnedState(engine, false);
+  const setSearchOpen = useCallback(
+    (open: boolean) =>
+      setSearch((current) => ({ open, query: open && !current.open ? '' : current.query })),
+    [setSearch],
+  );
+  const setSearchQuery = useCallback(
+    (query: string) => setSearch((current) => ({ ...current, query })),
+    [setSearch],
+  );
   // Tools and dialogs receive only what they use, so a scroll frame does not re-render them.
-  const {
-    api,
-    provider,
-    controller,
-    selection,
-    setSelection,
-    selectionMode,
-    setSelectionMode,
-    getVisibleRange,
-    markers,
-    setBookmarkMarkers,
-  } = scroll;
+  const { provider, selection, markers } = grid;
   const explorerScroll = useMemo(
-    () => ({
-      api,
-      provider,
-      controller,
-      selection,
-      setSelection,
-      selectionMode,
-      setSelectionMode,
-      getVisibleRange,
-      markers,
-      setBookmarkMarkers,
-    }),
-    [
-      api,
-      provider,
-      controller,
-      selection,
-      setSelection,
-      selectionMode,
-      setSelectionMode,
-      getVisibleRange,
-      markers,
-      setBookmarkMarkers,
-    ],
+    () => ({ api, provider, selection, getVisibleRange, markers }),
+    [api, provider, selection, getVisibleRange, markers],
   );
   // Depend on the settings comparison panes reuse, not the whole props object.
   const { rowHeight, dynamicRowHeight, theme, unstyled, classNames, styles, renderRow } = props;
@@ -196,27 +214,19 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
     ),
     [comparisonHost],
   );
-  const summaryCards =
-    scroll.aggregateMode &&
-    snapshot.view === 'zoom' &&
-    !snapshot.moving &&
-    !!props.provider.fetchAggregates;
-  const chapter = chapterAt(scroll.session.chapters, snapshot.position);
-  // Summary bands keep the current row at the center, so either end of the dataset can leave
-  // part of the viewport without rows. Mark that space rather than leaving it blank.
-  const contentStart =
-    summaryCards && snapshot.rowCount > 0
-      ? Math.min(snapshot.height, Math.max(0, scroll.mapping.toPixel(0)))
-      : 0;
+  const rail: AtlasRailProps<Row> = {
+    ...optionsOf<AtlasRailOptions>(props.rail),
+    grid,
+    highlights,
+    selecting,
+    onSelectingChange: setSelecting,
+    className: props.classNames?.rail,
+    style: props.styles?.rail,
+  };
+  const tools = optionsOf<ToolsOptions>(props.tools);
+  const hints = optionsOf<HintsOptions>(props.hints);
   const contentEnd =
-    snapshot.view === 'rows' && !scroll.aggregateMode && snapshot.rowCount > 0
-      ? scroll.mapping.toPixel(snapshot.rowCount)
-      : summaryCards && snapshot.rowCount > 0
-        ? Math.max(
-            contentStart,
-            Math.min(snapshot.height, scroll.mapping.toPixel(snapshot.rowCount)),
-          )
-        : snapshot.height;
+    !grid.traveling && snapshot.rowCount > 0 ? mapping.toPixel(snapshot.rowCount) : snapshot.height;
   const endGap = snapshot.height - contentEnd;
   return (
     <section
@@ -225,150 +235,88 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
       data-layout={props.layout ?? 'embedded'}
       data-unstyled={props.unstyled || undefined}
       style={props.style}
-      data-view={snapshot.view}
-      data-motion={!scroll.reduceMotion && scroll.features.transitions ? 'on' : 'off'}
+      data-motion={!reduceMotion && features.transitions ? 'on' : 'off'}
       data-theme={props.theme ?? 'system'}
       onKeyDown={(event) => {
         // Nested explorers and the viewport handle their own shortcuts first.
         if (event.defaultPrevented) return;
         if (
-          (event.metaKey || event.ctrlKey) &&
-          event.key.toLowerCase() === 'k' &&
+          isSearchShortcut(event) &&
           !isTextEntry(event.target) &&
           !isWithin(event.target, 'dialog')
         ) {
           event.preventDefault();
-          scroll.setJumpOpen(true);
+          api.openSearch();
         }
       }}
       onAuxClick={(event) => {
         if (!event.defaultPrevented && (event.button === 3 || event.button === 4)) {
           event.preventDefault();
-          event.button === 3 ? scroll.controller.back() : scroll.controller.forward();
+          event.button === 3 ? api.back() : api.forward();
         }
       }}
     >
-      {props.renderToolbar ? (
-        props.renderToolbar(scroll)
-      ) : (
-        <Toolbar
-          scroll={scroll}
-          appearance={props}
-          fullPageUrl={props.fullPageUrl}
-          actions={props.toolbarActions}
-        />
-      )}
-      {!props.renderToolbar && (
-        <ViewGuide
-          view={snapshot.view}
-          detailed={!scroll.aggregateMode}
-          descriptionId={`${scroll.id}-view-description`}
-        />
-      )}
-      {props.exploration !== false && (
+      {typeof props.toolbar === 'function'
+        ? props.toolbar(grid)
+        : props.toolbar !== false && (
+            <Toolbar grid={grid} appearance={props} {...optionsOf<ToolbarOptions>(props.toolbar)} />
+          )}
+      {props.tools !== false && (
         <ExplorerTools
           scroll={explorerScroll}
-          storageKey={props.bookmarkStorageKey}
-          formatRange={props.formatRange}
+          selecting={selecting}
+          onSelectingChange={setSelecting}
+          onBookmarkMarkersChange={setBookmarkMarkers}
+          storageKey={tools?.storageKey}
+          formatRange={tools?.formatRange}
           renderComparison={renderComparison}
         />
       )}
       <div {...partProps('header', props, 'ds-legend')}>
+        <span>{props.header ?? 'RECORDS'}</span>
         <span>
-          {summaryCards
-            ? props.renderAggregate
-              ? 'Zoom into a group, or inspect its rows'
-              : `${props.provider.metric?.label ?? 'Value'} by range · shared scale`
-            : (props.header ?? 'RECORDS')}
-        </span>
-        <span>
-          {summaryCards && !props.renderAggregate ? (
-            <>Bar: average · line: min–max when available</>
-          ) : (
-            <>
-              <i />
-              {props.provider.metric?.label ?? 'Dataset'} ·{' '}
-              {overviewAccuracy(scroll.session.overview, props.provider.metric?.kind ?? 'value', {
-                supported: !!props.provider.fetchOverview,
-                failed: !!scroll.session.metadataErrors.overview,
-              })}{' '}
-              overview
-            </>
-          )}
+          <i />
+          {props.provider.metric?.label ?? 'Dataset'} ·{' '}
+          {overviewAccuracy(session.overview, props.provider.metric?.kind ?? 'value', {
+            supported: !!props.provider.fetchOverview,
+            failed: !!session.metadataErrors.overview,
+          })}{' '}
+          overview
         </span>
       </div>
-      {scroll.dataMode === 'append' && (
+      {append && (
         <div className="ds-live-status">
           <span>
-            {scroll.unseenRows
-              ? `${scroll.unseenRows.toLocaleString()} new rows`
-              : 'Live · up to date'}
+            {grid.unseenRows ? `${grid.unseenRows.toLocaleString()} new rows` : 'Live · up to date'}
           </span>
           <button
             className="ds-button"
-            onClick={() =>
-              scroll.controller.scrollToIndex(Math.max(0, snapshot.rowCount - 1), { align: 'end' })
-            }
+            onClick={() => api.scrollToIndex(Math.max(0, snapshot.rowCount - 1), { align: 'end' })}
           >
             Jump to latest
           </button>
         </div>
       )}
-      {(snapshot.view !== 'rows' || scroll.aggregateMode) && (
-        <ScaleBar
-          scroll={scroll}
-          appearance={props}
-          summaryCards={summaryCards}
-          formatRange={props.formatRange}
-          bucketSizes={props.summaryBucketSizes}
-          formatBucketSize={props.formatBucketSize}
-          bucketHeight={props.aggregateRowHeight ?? 120}
-        />
-      )}
-      {props.stickyChapters && chapter && (
+      {props.stickyChapters && grid.chapter && (
         <div className="ds-sticky-chapter">
-          {chapter.breadcrumb?.join(' / ') ?? chapter.label} <span>{rangeAddress(chapter)}</span>
+          {chapterName(grid.chapter)} <span>{rangeAddress(grid.chapter)}</span>
         </div>
       )}
       <div {...partProps('body', props)}>
         <div
-          {...scroll.getViewportProps({
+          {...grid.getViewportProps({
             'aria-label': props.ariaLabel,
             className: props.classNames?.viewport,
             style: props.styles?.viewport,
           })}
         >
-          <div className="ds-pan-layer" style={{ transform: `translateY(${scroll.edgeOffset}px)` }}>
-            <ViewLayer
-              view={snapshot.view}
-              height={snapshot.height}
-              motion={!scroll.reduceMotion && scroll.features.transitions}
-            >
-              {summaryCards ? (
-                <AggregateLayer
-                  scroll={scroll}
-                  renderAggregate={props.renderAggregate}
-                  formatRange={props.formatRange}
-                  formatBucketSize={props.formatBucketSize}
-                />
-              ) : (
-                <ViewCanvas scroll={scroll} />
-              )}
-              {scroll.aggregateMode && !summaryCards && (
+          <div className="ds-pan-layer" style={{ transform: `translateY(${grid.edgeOffset}px)` }}>
+            <div className="ds-view-layer" role="rowgroup">
+              <ViewCanvas grid={grid} />
+              {grid.traveling && (
                 <div className="ds-aggregate-label">
-                  {snapshot.moving ? 'Overview during travel' : 'Aggregate view'} ·{' '}
-                  {scroll.session.aggregates.length ? 'regional summaries' : 'coarse overview'}
-                  <span>Focus: row {((snapshot.activeIndex ?? 0) + 1).toLocaleString()}</span>
-                </div>
-              )}
-              {contentStart > 0.5 && (
-                <div
-                  className="ds-dataset-start"
-                  data-compact={contentStart < 28 ? '' : undefined}
-                  style={{ height: contentStart }}
-                  aria-hidden="true"
-                >
-                  <span>Start of dataset</span>
+                  Overview during travel
+                  <span>Focus: row {((grid.focusedIndex ?? 0) + 1).toLocaleString()}</span>
                 </div>
               )}
               {endGap > 0.5 && (
@@ -381,7 +329,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
                   <span>End of dataset</span>
                 </div>
               )}
-              {scroll.rows.map((slot) => (
+              {grid.rows.map((slot) => (
                 <DatasetRow
                   key={
                     slot.status === 'ready' && props.getRowKey
@@ -389,7 +337,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
                       : `index:${slot.index}`
                   }
                   status={slot.status}
-                  rowProps={scroll.getRowProps(slot, {
+                  rowProps={grid.getRowProps(slot, {
                     className: props.classNames?.row,
                     style: props.styles?.row,
                   })}
@@ -399,55 +347,54 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
                       render={props.renderRow}
                       row={slot.row}
                       index={slot.index}
-                      focused={slot.index === snapshot.activeIndex}
+                      focused={slot.index === grid.focusedIndex}
                     />
                   ) : (
-                    (props.renderPlaceholder?.(slot) ?? (
-                      <RowPlaceholder slot={slot} retry={scroll.session.retry} />
+                    (props.renderPlaceholder?.(slot, api.retry) ?? (
+                      <RowPlaceholder slot={slot} retry={api.retry} />
                     ))
                   )}
                 </DatasetRow>
               ))}
-            </ViewLayer>
+            </div>
           </div>
           {!snapshot.rowCount && (
             <div className="ds-empty">{props.emptyContent ?? 'No rows in this dataset.'}</div>
           )}
         </div>
-        {props.renderRail ? (
-          props.renderRail(scroll)
-        ) : (
-          <AtlasRail
-            scroll={scroll}
-            options={props.atlas}
-            headerActions={props.railActions}
-            className={props.classNames?.rail}
-            style={props.styles?.rail}
-          />
-        )}
+        {typeof props.rail === 'function'
+          ? props.rail(grid, rail)
+          : props.rail !== false && <AtlasRail {...rail} />}
       </div>
-      {Object.keys(scroll.session.metadataErrors).length > 0 && (
+      {Object.keys(session.metadataErrors).length > 0 && (
         <div className="ds-meta-error">
           Some summaries are unavailable.{' '}
-          <button className="ds-button" onClick={() => scroll.session.retry()}>
+          <button className="ds-button" onClick={() => api.retry()}>
             Retry summaries
           </button>
         </div>
       )}
       <ContextHints
-        hints={scroll.features.hints}
+        hints={props.hints !== false}
         canGoBack={snapshot.canGoBack}
-        view={snapshot.view}
+        storageKey={hints?.storageKey}
         className={props.classNames?.hint}
         style={props.styles?.hint}
       />
-      <JumpBar scroll={scroll} className={props.classNames?.jump} style={props.styles?.jump} />
-      <div {...scroll.getAnnouncementProps()} />
-      {props.renderFooter ? (
-        props.renderFooter(scroll)
-      ) : (
-        <Footer scroll={scroll} appearance={props} showStats={props.showStats} />
-      )}
+      <JumpBar
+        grid={grid}
+        open={search.open}
+        onOpenChange={setSearchOpen}
+        query={search.query}
+        onQueryChange={setSearchQuery}
+        onHighlightsChange={setHighlights}
+        className={props.classNames?.jump}
+        style={props.styles?.jump}
+      />
+      <div {...grid.getAnnouncementProps()} />
+      {typeof props.footer === 'function'
+        ? props.footer(grid)
+        : props.footer !== false && <Footer grid={grid} appearance={props} />}
     </section>
   );
 }

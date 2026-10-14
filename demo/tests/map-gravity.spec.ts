@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, DESKTOP } from './fixtures';
+import { expect, test, DESKTOP, openDataset, withDebug, withMapSettings } from './fixtures';
 
 const total = 4_000_000_000;
 // The cache-stampede summit in the log provider's 320-group overview.
@@ -17,14 +17,13 @@ async function trackGeometry(page: Page) {
 async function openMap(page: Page) {
   await page.setViewportSize(DESKTOP);
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/?dataset=logs');
-  await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
+  await openDataset(page, '/?dataset=logs');
   await expect(page.locator('.ds-legend')).toContainText('sampled overview');
-  await page.getByRole('button', { name: 'Config', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
-  await page.getByRole('combobox', { name: 'Scrollbar hover details' }).selectOption('summary');
-  await page.getByRole('checkbox', { name: 'Snap to events while dragging' }).uncheck();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, async (panel) => {
+    await panel.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('expanded');
+    await panel.getByRole('combobox', { name: 'Scrollbar hover details' }).selectOption('summary');
+    await panel.getByRole('checkbox', { name: 'Snap to events while dragging' }).uncheck();
+  });
   const track = await trackGeometry(page);
   const plot = (await page.locator('.ds-map-plot').boundingBox())!;
   return {
@@ -67,9 +66,9 @@ test('hover attracts to a peak without navigating; click agrees and Shift bypass
 
   await page.mouse.move(x, y + 18);
   await expect(hover).toHaveAttribute('data-attracted', 'false');
-  await page.getByRole('button', { name: 'Config', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Attract pointer to chart peaks' }).uncheck();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, (panel) =>
+    panel.getByRole('checkbox', { name: 'Attract pointer to chart peaks' }).uncheck(),
+  );
   await page.mouse.move(x, nearY);
   await expect(hover).toHaveAttribute('data-attracted', 'false');
   await expect(preview).toHaveText(rawRow.toLocaleString('en-US'));
@@ -117,25 +116,24 @@ test('hidden profiles, disabled magnetism, and range selection bypass peak attra
 }) => {
   const { x, y } = await openMap(page);
   const hover = page.locator('.ds-map-hover');
-  const settings = page.getByRole('button', { name: 'Config', exact: true });
-  await settings.click();
-  await page.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('markers');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, (panel) =>
+    panel.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('markers'),
+  );
   // A hidden chart may change the track height; there must be no peak targets anywhere.
   await page.mouse.move(x, y);
   await expect(hover).toHaveAttribute('data-attracted', 'false');
-  await settings.click();
-  await page.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('profile');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await withMapSettings(page, (panel) =>
+    panel.getByRole('combobox', { name: 'Scrollbar display' }).selectOption('profile'),
+  );
 
-  await page.getByRole('button', { name: 'debug', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Magnetic snapping' }).uncheck();
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await withDebug(page, (dialog) =>
+    dialog.getByRole('checkbox', { name: 'Magnetic snapping' }).uncheck(),
+  );
   await page.mouse.move(x, y + 2);
   await expect(hover).toHaveAttribute('data-attracted', 'false');
-  await page.getByRole('button', { name: 'debug', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Magnetic snapping' }).check();
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await withDebug(page, (dialog) =>
+    dialog.getByRole('checkbox', { name: 'Magnetic snapping' }).check(),
+  );
   await page.mouse.move(x, y + 2);
   await expect(hover).toHaveAttribute('data-attracted', 'true');
 

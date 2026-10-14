@@ -1,7 +1,7 @@
 import type { GranumGridApi, ScrollStats } from 'granum-grid';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { datasetGroups, type DemoDataset, type TourContext } from './datasets';
-import { compact, formatCount, showAll } from './datasets/types';
+import { datasetGroups, type DemoDataset } from './datasets';
+import { compact, formatCount } from './datasets/types';
 import { models } from './data/models';
 
 const sparklines = new Map<string, string>();
@@ -222,22 +222,8 @@ export function FeatureTour({
   const run = (i: number) => {
     const mounted = api.current;
     if (!mounted) return;
-    const engine = mounted.controller;
-    const step = dataset.tour[i];
-    const origin = engine.getLocation();
     setActive(i);
-    if (step.requiredView && engine.getSnapshot().view !== step.requiredView) {
-      engine.setView(step.requiredView);
-    }
-    const tour: TourContext = {
-      controller: engine,
-      search: (text) => mounted.openSearch(text),
-      fit: () => {
-        engine.restore(origin);
-        showAll(engine);
-      },
-    };
-    void step.run?.(tour);
+    void dataset.tour[i].run?.(mounted);
   };
   const step = active === null ? null : dataset.tour[active];
   return (
@@ -276,7 +262,7 @@ export function FeatureTour({
         <button
           className="task-start"
           onClick={() => {
-            if (api.current) dataset.task.run(api.current.controller);
+            if (api.current) dataset.task.run(api.current);
           }}
         >
           {dataset.task.action} →
@@ -284,26 +270,6 @@ export function FeatureTour({
         {children && <div className="explorer-options">{children}</div>}
       </div>
     </div>
-  );
-}
-
-/** Chevron for the page's disclosure sections; it turns when the section opens. */
-export function DetailsIndicator() {
-  return (
-    <svg
-      className="details-indicator"
-      viewBox="0 0 16 16"
-      width="16"
-      height="16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m4 6 4 4 4-4" />
-    </svg>
   );
 }
 

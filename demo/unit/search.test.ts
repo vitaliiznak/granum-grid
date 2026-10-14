@@ -11,7 +11,6 @@ import { syntheticProvider } from '../src/data/synthetic';
 import { parseTrace, traceProvider } from '../src/data/trace';
 import { parseJump } from '../../granum-grid/src/core/navigation';
 import type { DataProvider } from 'granum-grid';
-import { createTraceService, TRACE_API } from '../server/trace';
 
 const signalProvider = signal.provider;
 
@@ -209,26 +208,4 @@ it('searches recorded event text, reports truncation, and rejects unsupported qu
   await expect(provider.search!({ kind: 'date', value: '2026' }, context())).rejects.toThrow(
     'does not support date',
   );
-});
-
-it('accepts advertised text search over HTTP and rejects empty or oversized text', async () => {
-  const request = createTraceService(
-    JSON.stringify([{ name: 'Layout', ph: 'X', ts: 0, dur: 3000, pid: 1, tid: 2 }]),
-  );
-  const meta = await request(new URL(`${TRACE_API}meta`, 'http://localhost'), context().signal);
-  const { revision, searchHelp } = meta.body as { revision: string; searchHelp: { text: boolean } };
-  expect(searchHelp.text).toBe(true);
-  for (const value of ['layout', '', 'x'.repeat(513)]) {
-    const url = new URL(`${TRACE_API}search`, 'http://localhost');
-    url.search = new URLSearchParams({
-      revision,
-      fromIndex: '0',
-      limit: '100',
-      query: JSON.stringify({ kind: 'text', value }),
-    }).toString();
-    const response = await request(url, context().signal);
-    expect(response.status).toBe(value === 'layout' ? 200 : 400);
-    if (value === 'layout')
-      expect(response.body).toMatchObject({ complete: true, matches: [{ index: 0 }] });
-  }
 });

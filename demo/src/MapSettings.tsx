@@ -1,5 +1,6 @@
 import type { AtlasRailOptions } from 'granum-grid';
 import { useEffect, useId, useRef, useState } from 'react';
+import type { DemoDataset } from './datasets';
 
 export function MapSettings({
   value,
@@ -12,7 +13,7 @@ export function MapSettings({
   onChange(patch: AtlasRailOptions): void;
   onReset(): void;
   /** `chapters` names the dataset's chapters, such as Years or Chromosomes. */
-  labels: { chapters: string; profile: string; tracks: string; explain: string; sampling: string };
+  labels: DemoDataset['map'];
 }) {
   const panelId = useId();
   const [open, setOpen] = useState(false);
@@ -59,7 +60,38 @@ export function MapSettings({
         popoverTarget={panelId}
         onClick={positionPanel}
       >
-        Config
+        <svg
+          className="map-settings-icon"
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+        >
+          <path
+            d="M1.75 4.25h12.5M1.75 11.75h12.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+          <circle
+            cx="6"
+            cy="4.25"
+            r="2.05"
+            fill="var(--ds-bg)"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          />
+          <circle
+            cx="10.25"
+            cy="11.75"
+            r="2.05"
+            fill="var(--ds-bg)"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          />
+        </svg>
+        <span className="map-settings-label">Config</span>
       </button>
       <div
         ref={panel}

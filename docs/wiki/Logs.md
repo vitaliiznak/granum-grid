@@ -136,9 +136,9 @@ export default function Logs() {
         ariaLabel="Application logs"
         rowHeight={48}
         style={{ height: 560, marginTop: 16 }}
-        features={{ hints: false }}
-        exploration={false}
-        renderRail={() => null}
+        hints={false}
+        tools={false}
+        rail={false}
         renderRow={({ row, rowNumber }) => (
           <span role="gridcell">
             {rowNumber}. {row.service} · {row.status} · {row.message}

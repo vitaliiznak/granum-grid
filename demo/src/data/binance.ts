@@ -9,16 +9,18 @@ import type {
   SearchContext,
   SearchResult,
 } from 'granum-grid';
+import { wait } from './latency';
 import { splitRange } from './ranges';
-import { checkPredicate } from './search';
+import { datePeriod, iso, reach, remember, secondLabel, sharedLoad, type Fetch } from './remote';
+import { checkPredicate, dateResult, type Predicate } from './search';
 
 /**
  * Binance's public market-data host: no key, any origin. The documented budget is
  * 6,000 request weight per minute per IP, and one klines request costs 2 whatever
  * its limit (up to 1,000 candles).
  */
-export const BINANCE_API = 'https://data-api.binance.vision/api/v3';
-export const SYMBOL = 'BTCUSDT';
+const BINANCE_API = 'https://data-api.binance.vision/api/v3';
+const SYMBOL = 'BTCUSDT';
 /** Open time of the first BTCUSDT 1-second candle: 2017-08-17 04:00:28 UTC. */
 export const FIRST_SECOND = 1_502_942_428_000;
 const SECOND = 1000;
@@ -102,23 +104,9 @@ function parseCandle(value: unknown): Candle {
     throw new Error('Binance returned an invalid candle.');
   return candle;
 }
-function wait(ms: number, signal: AbortSignal) {
-  signal.throwIfAborted();
-  return new Promise<void>((resolve, reject) => {
-    const abort = () => {
-      clearTimeout(timer);
-      reject(signal.reason);
-    };
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', abort);
-      resolve();
-    }, ms);
-    signal.addEventListener('abort', abort, { once: true });
-  });
-}
 
 export interface BinanceClientOptions {
-  fetch?: (url: string, init: { signal: AbortSignal }) => Promise<Response>;
+  fetch?: Fetch;
   now?: () => number;
   sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
 }
@@ -152,18 +140,11 @@ export function createBinanceClient(options: BinanceClientOptions = {}) {
   async function read(url: string, signal: AbortSignal): Promise<Candle[]> {
     const cached = cache.get(url);
     if (cached) {
-      cache.delete(url);
-      cache.set(url, cached);
+      remember(cache, url, cached, CACHED_RESPONSES);
       return cached;
     }
     await admit(signal);
-    let response: Response;
-    try {
-      response = await request(url, { signal });
-    } catch (error) {
-      if (signal.aborted) throw error;
-      throw new Error('Could not reach Binance market data. Check the connection and retry.');
-    }
+    const response = await reach(request, url, signal, 'Binance market data');
     if (response.status === 429 || response.status === 418) {
       const retry = Number(response.headers.get('retry-after'));
       const pause = retry > 0 ? retry * SECOND : response.status === 418 ? 5 * MINUTE : MINUTE;
@@ -185,8 +166,7 @@ export function createBinanceClient(options: BinanceClientOptions = {}) {
     const candles = body.map(parseCandle);
     if (candles.some((candle, i) => i > 0 && candle.time < candles[i - 1].end))
       throw new Error('Binance returned unordered candles.');
-    cache.set(url, candles);
-    if (cache.size > CACHED_RESPONSES) cache.delete(cache.keys().next().value!);
+    remember(cache, url, candles, CACHED_RESPONSES);
     return candles;
   }
   return {
@@ -230,68 +210,64 @@ function summarize(
   range: { start: number; end: number; buckets: number },
 ): Summary[] {
   let first = 0;
-  return splitRange(range.start, range.end, Math.min(range.buckets, range.end - range.start)).map(
-    ({ start, end }) => {
-      const t0 = timeAt(start),
-        t1 = timeAt(end);
-      while (first < candles.length && candles[first].end <= t0) first++;
-      let low = Infinity,
-        high = -Infinity,
-        volume = 0,
-        quote = 0,
-        trades = 0,
-        closes = 0,
-        covered = 0,
-        contained = true;
-      const volumeRates: number[] = [],
-        tradeRates: number[] = [];
-      for (let i = first; i < candles.length && candles[i].time < t1; i++) {
-        const c = candles[i],
-          span = c.end - c.time,
-          overlap = Math.min(c.end, t1) - Math.max(c.time, t0),
-          share = overlap / span;
-        contained &&= c.time >= t0 && c.end <= t1;
-        covered += overlap;
-        low = Math.min(low, c.low);
-        high = Math.max(high, c.high);
-        volume += c.volume * share;
-        quote += c.quoteVolume * share;
-        trades += c.trades * share;
-        closes += c.close * overlap;
-        volumeRates.push(c.volume / (span / SECOND));
-        tradeRates.push(c.trades / (span / SECOND));
-      }
-      const base = { start, end, count: end - start, label: rangeLabel(t0, t1) };
-      if (!covered) {
-        const none = { ...base, avg: null, min: null, max: null, accuracy: 'unavailable' as const };
-        return { bucket: none, volume: none, trades: none };
-      }
-      // Whole candles tiling the bucket give exact extremes and a volume-weighted average.
-      const exact = contained && covered === t1 - t0;
-      const rate = (sum: number, rates: number[]) => ({
+  return splitRange(range.start, range.end, range.buckets).map(({ start, end }) => {
+    const t0 = timeAt(start),
+      t1 = timeAt(end);
+    while (first < candles.length && candles[first].end <= t0) first++;
+    let low = Infinity,
+      high = -Infinity,
+      volume = 0,
+      quote = 0,
+      trades = 0,
+      closes = 0,
+      covered = 0,
+      contained = true;
+    const volumeRates: number[] = [],
+      tradeRates: number[] = [];
+    for (let i = first; i < candles.length && candles[i].time < t1; i++) {
+      const c = candles[i],
+        span = c.end - c.time,
+        overlap = Math.min(c.end, t1) - Math.max(c.time, t0),
+        share = overlap / span;
+      contained &&= c.time >= t0 && c.end <= t1;
+      covered += overlap;
+      low = Math.min(low, c.low);
+      high = Math.max(high, c.high);
+      volume += c.volume * share;
+      quote += c.quoteVolume * share;
+      trades += c.trades * share;
+      closes += c.close * overlap;
+      volumeRates.push(c.volume / (span / SECOND));
+      tradeRates.push(c.trades / (span / SECOND));
+    }
+    const base = { start, end, count: end - start, label: rangeLabel(t0, t1) };
+    if (!covered) {
+      const none = { ...base, avg: null, min: null, max: null, accuracy: 'unavailable' as const };
+      return { bucket: none, volume: none, trades: none };
+    }
+    // Whole candles tiling the bucket give exact extremes and a volume-weighted average.
+    const exact = contained && covered === t1 - t0;
+    const rate = (sum: number, rates: number[]) => ({
+      ...base,
+      avg: sum / (covered / SECOND),
+      min: Math.min(...rates),
+      max: Math.max(...rates),
+      // Per-second extremes need 1-second candles.
+      accuracy: exact && interval === '1s' ? ('exact' as const) : ('estimated' as const),
+    });
+    return {
+      bucket: {
         ...base,
-        avg: sum / (covered / SECOND),
-        min: Math.min(...rates),
-        max: Math.max(...rates),
-        // Per-second extremes need 1-second candles.
-        accuracy: exact && interval === '1s' ? ('exact' as const) : ('estimated' as const),
-      });
-      return {
-        bucket: {
-          ...base,
-          avg: volume > 0 ? quote / volume : closes / covered,
-          min: low,
-          max: high,
-          accuracy: exact ? 'exact' : 'estimated',
-        },
-        volume: rate(volume, volumeRates),
-        trades: rate(trades, tradeRates),
-      };
-    },
-  );
+        avg: volume > 0 ? quote / volume : closes / covered,
+        min: low,
+        max: high,
+        accuracy: exact ? 'exact' : 'estimated',
+      },
+      volume: rate(volume, volumeRates),
+      trades: rate(trades, tradeRates),
+    };
+  });
 }
-const iso = (time: number) => new Date(time).toISOString();
-export const secondLabel = (time: number) => iso(time).slice(0, 19).replace('T', ' ');
 function rangeLabel(t0: number, t1: number) {
   return t1 - t0 >= 86_400 * SECOND ? iso(t0).slice(0, 10) : iso(t0).slice(0, 16).replace('T', ' ');
 }
@@ -300,20 +276,11 @@ const usd = (value: number) =>
 
 /** Index of a `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` period's first row, or null outside the data. */
 function dateIndex(text: string, rowCount: number) {
-  const [year, month = 1, day = 1] = text.split('-').map(Number);
-  const start = Date.UTC(year, month - 1, day);
-  const parts = text.split('-').length;
-  const end =
-    parts === 1
-      ? Date.UTC(year + 1, 0, 1)
-      : parts === 2
-        ? Date.UTC(year, month, 1)
-        : Date.UTC(year, month - 1, day + 1);
+  const { start, end } = datePeriod(text);
   if (!Number.isFinite(start) || end <= FIRST_SECOND || start >= timeAt(rowCount)) return null;
   return Math.max(0, indexAt(start));
 }
 
-type Predicate = Extract<ProviderQuery, { kind: 'predicate' }>;
 function candleTest(query: Predicate): (candle: Candle) => boolean {
   checkPredicate(query, 'number');
   const value = query.value as number;
@@ -343,7 +310,7 @@ export function bitcoinProvider(
     const start = Math.max(0, range.start),
       end = Math.min(rowCount, range.end);
     if (end <= start || range.buckets < 1) return [];
-    const interval = summaryInterval(end - start, Math.min(range.buckets, end - start));
+    const interval = summaryInterval(end - start, range.buckets);
     // Include the candle already open at the range start.
     const step = seconds(interval) * SECOND;
     const candles = await client.klines(interval, timeAt(start) - step + 1, timeAt(end), signal);
@@ -369,7 +336,6 @@ export function bitcoinProvider(
     }
     return best!;
   }
-  let markers: Promise<Marker[]> | null = null;
   async function computeMarkers(signal: AbortSignal): Promise<Marker[]> {
     const day = 86_400 * SECOND;
     const [peak, days] = await Promise.all([
@@ -412,31 +378,10 @@ export function bitcoinProvider(
       });
     return result.sort((a, b) => a.index - b.index);
   }
-  function loadMarkers(signal: AbortSignal) {
-    // Shared once complete; a canceled or failed load is retried by the next caller.
-    const pending = (markers ??= computeMarkers(new AbortController().signal).catch((error) => {
-      markers = null;
-      throw error;
-    }));
-    return new Promise<Marker[]>((resolve, reject) => {
-      signal.throwIfAborted();
-      const abort = () => reject(signal.reason);
-      signal.addEventListener('abort', abort, { once: true });
-      pending.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
-    });
-  }
+  const loadMarkers = sharedLoad(computeMarkers);
   async function search(query: ProviderQuery, context: SearchContext): Promise<SearchResult> {
     context.signal.throwIfAborted();
-    if (query.kind === 'date') {
-      const index = dateIndex(query.value, rowCount);
-      return {
-        matches:
-          index === null
-            ? []
-            : [{ id: `date-${query.value}`, index, label: query.value, kind: 'search' }],
-        complete: true,
-      };
-    }
+    if (query.kind === 'date') return dateResult(query.value, dateIndex(query.value, rowCount));
     if (query.kind === 'text')
       throw new Error('Search supports dates and price thresholds, such as high > 100000.');
     const test = candleTest(query);

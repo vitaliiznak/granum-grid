@@ -10,23 +10,20 @@ browser debugging, and handoffs. No API key, backend, or AI service is needed.
   existing work; do not reset, clean, or broadly reformat unrelated files.
 - Use Node 22 (`.nvmrc`), npm, and the root `package-lock.json`. Run `npm ci` for a
   fresh checkout and `npm run ai:doctor` to diagnose setup without changing it.
-- Make the smallest complete change. For work spanning several subsystems,
-  record the intended behavior, steps, and validation in a task-specific file
-  under `docs/plans/`; update it when decisions change. Small edits need no plan file.
-  When the plan is complete, move durable decisions to `DESIGN.md` and delete it.
+- Make the smallest complete change. Work spanning several subsystems gets a
+  [plan file](docs/AI_WORKFLOW.md#task-context-and-handoff) under `docs/plans/`.
 
 ## Find the right code
 
-| Area                                    | Entry points / guidance                                                                                  |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Public exports and contracts            | `granum-grid/src/index.ts`, `granum-grid/src/core/api.ts`, `granum-grid/src/data/types.ts`, `docs/GUIDE.md` |
-| Navigation, zoom, row measurements      | `granum-grid/src/core/engine.ts`, `mappings.ts`, `rowSizes.ts`                                            |
-| Paging, cancellation, dataset lifecycle | `granum-grid/src/data/cache.ts`, `session.ts`, `range.ts`                                                 |
-| React, DOM inputs, layout, styles       | `granum-grid/src/react/`, `granum-grid/src/base.css`, `styles.css`, `STYLING.md`                           |
-| Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                               |
-| Application-owned AI tools              | `demo/src/ai/README.md`, `demo/unit/table-tools.test.ts`                                                 |
-| Screenshots and video                   | `media/README.md`, `media/scripts/capture.mjs`                                                           |
-| Packaging and consumer compatibility    | `scripts/build-package.mjs`, `scripts/package-test.mjs`, `docs/PUBLISHING.md`                            |
+| Area                                    | Entry points / guidance                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Public exports and contracts            | `granum-grid/src/index.ts`, `headless.ts`, `core/api.ts`, `data/types.ts`, `docs/GUIDE.md` |
+| Navigation, mappings, row measurements  | `granum-grid/src/core/engine.ts`, `mappings.ts`, `rowSizes.ts`                             |
+| Paging, cancellation, dataset lifecycle | `granum-grid/src/data/cache.ts`, `session.ts`, `range.ts`                                  |
+| React, DOM inputs, layout, styles       | `granum-grid/src/react/`, `granum-grid/src/base.css`, `styles.css`, `STYLING.md`           |
+| Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                 |
+| Screenshots and video                   | `media/README.md`, `media/scripts/capture.mjs`                                             |
+| Packaging and consumer compatibility    | `scripts/build-package.mjs`, `scripts/package-test.mjs`, `docs/PUBLISHING.md`              |
 
 `README.md` describes current use; `docs/GUIDE.md` is the integration reference, with
 limits and defaults. `DESIGN.md` records rationale and decisions. Check actual exports
@@ -48,17 +45,19 @@ and tests before treating documentation as implemented behavior.
 - Preserve SSR-safe imports, keyboard/editable-element behavior, reduced motion,
   focus, bounded mounted rows, and measurement anchoring.
 - AI schemas, limits, and model connections belong to the host application.
-  `demo/src/ai/` demonstrates deterministic calls; it has no live model connection.
 
 ## Validate and finish
 
-- `npm run check`: type-check source **and tests**, verify tutorial snippets and doc
-  links (`test:tutorials`), test the wiki export (`test:wiki`), then run unit tests.
-- `npm run test:smoke`: four Chromium acceptance cases for navigation and views.
-- `npm run check:full`: format check, lint, `check`, library/demo builds, isolated
-  React 18/19 tarball consumers (`test:package`), media and wiki builds,
+- `npm run check`: type-check source, tests, and configs (`typecheck`), verify tutorial
+  snippets and doc links (`test:tutorials`), test the wiki export (`test:wiki`), then
+  run unit tests. No browser, lint, formatting, or package output.
+- `npm run test:smoke`: four Chromium acceptance cases for navigation, history, and selection.
+- `npm run release:check`: lint, `check`, library/demo builds, and isolated React 18/19
+  tarball consumers (`test:package`).
+- `npm run check:full`: format check, `release:check`, media and wiki builds,
   Chromium/Firefox/WebKit tests, and the Pages smoke test. Requires browser installs
-  and possibly npm registry access for consumer dependencies.
+  and possibly npm registry access for consumer dependencies. CI runs the same steps
+  separately.
 - Use the change-to-check table in [the workflow](docs/AI_WORKFLOW.md). Reproduce
   bug fixes with a relevant test; do not weaken assertions to obtain a green run.
 - Format touched code only. Keep public behavior docs and package examples aligned

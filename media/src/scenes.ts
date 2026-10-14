@@ -1,9 +1,10 @@
-import { GENES } from '../../demo/src/data/genome';
-import { INCIDENTS, LOG_COUNT } from '../../demo/src/data/logs';
-import { MARKET_EVENTS, TRADE_COUNT } from '../../demo/src/data/market';
-import { NAMED_STARS } from '../../demo/src/data/stars';
+import { BRCA1 } from '../../demo/src/data/genome';
+import { INCIDENTS, logIndex } from '../../demo/src/data/logs';
+import { MARKET_EVENTS, tradeIndex } from '../../demo/src/data/market';
+import { SPIKE_ROWS } from '../../demo/src/data/signal';
+import { NAMED_STARS, SIRIUS } from '../../demo/src/data/stars';
 
-export type Action =
+type Action =
   'scroll' | 'jump' | 'overview' | 'search' | 'expand' | 'compare' | 'history' | 'select' | 'save';
 export interface Scene {
   id: string;
@@ -75,15 +76,17 @@ export const scenes: Scene[] = [
     id: 'overview',
     dataset: 'signal',
     label: 'Overview',
-    title: 'Zoom out to sampled summaries of the dataset.',
+    title: 'Find a signal spike on the whole-dataset map.',
     headline: 'Make the big picture clear.',
-    promise: 'Zoom out. See how regions differ. Choose where to look closer.',
-    description: 'Zoom out to regional summaries. Keep the dataset map in view.',
+    promise: 'See how regions differ on the map. Choose an event to inspect its rows.',
+    description: 'Click a named event on the map and read the nearby records.',
     detail: 'Sampled summaries are labeled as estimates.',
-    features: ['Fit the dataset', 'Regional summaries', 'Visible accuracy labels'],
+    features: ['Dataset map', 'Named events', 'Exact rows'],
     action: 'overview',
     seconds: 8,
     index: 49_999_999,
+    target: SPIKE_ROWS[2],
+    query: 'Spike 3',
   },
   {
     id: 'genome',
@@ -98,7 +101,7 @@ export const scenes: Scene[] = [
     action: 'jump',
     seconds: 8,
     index: 10_000,
-    target: GENES.find((gene) => gene.name === 'BRCA1')!.index,
+    target: BRCA1.index,
     query: 'BRCA1',
   },
   {
@@ -113,7 +116,7 @@ export const scenes: Scene[] = [
     features: ['Provider search', 'Predicate queries', 'Partial results labeled'],
     action: 'search',
     seconds: 10,
-    index: Math.round(INCIDENTS[2].x * (LOG_COUNT - 1)),
+    index: logIndex(INCIDENTS[2].x),
   },
   {
     id: 'market',
@@ -128,7 +131,7 @@ export const scenes: Scene[] = [
     action: 'jump',
     seconds: 8,
     index: 10_000,
-    target: Math.round(MARKET_EVENTS[0].x * (TRADE_COUNT - 1)),
+    target: tradeIndex(MARKET_EVENTS[0].x),
     query: 'Flash crash',
   },
   {
@@ -145,7 +148,7 @@ export const scenes: Scene[] = [
     seconds: 8,
     theme: 'dark',
     index: NAMED_STARS[0].index,
-    target: NAMED_STARS.find((star) => star.name === 'Sirius')!.index,
+    target: SIRIUS.index,
     query: 'Sirius',
   },
   {

@@ -1,74 +1,11 @@
 /* Structural styles only. No palette, typography, borders, or control skin.
    Unlayered application CSS and framework utilities can override these rules. */
 @layer granum-grid {
-  :where(.ds-view-menu, .ds-panel-actions, .ds-explore-toggle, .ds-range-form, .ds-bookmark-form) {
+  :where(.ds-panel-actions, .ds-explore-toggle, .ds-range-form, .ds-bookmark-form) {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-  }
-  :where(.ds-view-menu) {
-    white-space: nowrap;
-  }
-  :where(.ds-view-guide) {
-    flex-shrink: 0;
-    position: relative;
-    z-index: 6;
-  }
-  :where(.ds-view-guide > summary) {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px 18px;
-    padding: 9px 18px;
-    cursor: pointer;
-    list-style: none;
-  }
-  :where(.ds-view-guide > summary::-webkit-details-marker) {
-    display: none;
-  }
-  :where(.ds-view-guide-toggle) {
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-  :where(.ds-view-guide-toggle)::after {
-    content: ' +';
-  }
-  :where(.ds-view-guide[open] .ds-view-guide-toggle)::after {
-    content: ' −';
-  }
-  :where(.ds-view-guide-content) {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    max-height: 32vh;
-    max-height: 32dvh;
-    overflow: auto;
-    overscroll-behavior: contain;
-    padding: 0 18px 12px;
-  }
-  :where(.ds-view-guide-options) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  :where(.ds-view-guide-option) {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 10px;
-  }
-  :where(.ds-view-diagram) {
-    flex-shrink: 0;
-    width: 64px;
-    height: auto;
-  }
-  :where(.ds-view-guide p) {
-    margin: 4px 0 0;
-  }
-  :where(.ds-view-guide .ds-view-guide-map) {
-    margin-top: 10px;
   }
   :where(.ds-explore-toggle) {
     flex-shrink: 0;
@@ -126,6 +63,21 @@
     display: flex;
     flex-wrap: wrap;
     gap: 24px;
+    margin: 12px 0 6px;
+  }
+  :where(.ds-range-summary dd) {
+    margin: 0;
+  }
+  :where(.ds-summary-heading) {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  :where(.ds-summary-heading strong) {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   :where(.ds-flow-heading, .ds-selection-overview, .ds-map-prompt) {
     display: flex;
@@ -227,9 +179,6 @@
     padding: 12px 0 2px;
     max-width: 520px;
   }
-  :where(.ds-range-summary dl) {
-    margin: 12px 0 6px;
-  }
   :where(.ds-comparison-range .ds-button) {
     align-self: start;
     margin-top: 5px;
@@ -243,9 +192,6 @@
     flex-shrink: 0;
     padding: 12px 18px;
     flex-wrap: wrap;
-  }
-  :where(.ds-range-summary dd) {
-    margin: 0;
   }
   :where(.ds-comparison-setup) {
     flex-shrink: 1;
@@ -302,13 +248,6 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 20px;
   }
-  :where(.ds-visible-range, .ds-map-selection) {
-    position: absolute;
-    left: var(--ds-map-axis-width);
-    right: var(--ds-map-content-end);
-    min-height: 2px;
-    pointer-events: none;
-  }
   :where(.ds-sticky-chapter) {
     display: flex;
     justify-content: space-between;
@@ -349,10 +288,6 @@
     :where(.ds-sticky-chapter span) {
       display: none;
     }
-    :where(.ds-toolbar-actions) {
-      gap: 6px;
-      flex-wrap: wrap;
-    }
   }
   :where(.ds-root) {
     height: 600px;
@@ -361,6 +296,13 @@
     overflow: hidden;
     position: relative;
     isolation: isolate;
+  }
+  :where(.ds-root[data-layout='page']) {
+    position: fixed;
+    inset: 0;
+    height: 100vh;
+    height: 100dvh;
+    width: 100%;
   }
   :where(
     [data-ds-root],
@@ -374,24 +316,13 @@
   ) {
     box-sizing: border-box;
   }
-  :where(
-    .ds-toolbar,
-    .ds-toolbar-main,
-    .ds-toolbar-actions,
-    .ds-history,
-    .ds-footer,
-    .ds-legend,
-    .ds-scale,
-    .ds-scale > div
-  ) {
+  :where(.ds-toolbar, .ds-toolbar-main, .ds-toolbar-actions, .ds-history, .ds-footer, .ds-legend) {
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  :where(.ds-toolbar, .ds-footer, .ds-legend, .ds-scale) {
+  :where(.ds-toolbar, .ds-footer, .ds-legend) {
     justify-content: space-between;
-  }
-  :where(.ds-toolbar, .ds-footer, .ds-legend, .ds-scale) {
     flex-shrink: 0;
   }
   :where(.ds-toolbar-main) {
@@ -401,6 +332,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  :where(.ds-live-status) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    padding: 6px 18px;
   }
   :where(.ds-body) {
     flex: 1;
@@ -427,11 +365,14 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
+  :where(.ds-row[data-activatable]) {
+    cursor: pointer;
+  }
   :where(.ds-view-layer, .ds-pan-layer) {
     position: absolute;
     inset: 0;
   }
-  :where(.ds-dataset-start, .ds-dataset-end) {
+  :where(.ds-dataset-end) {
     position: absolute;
     left: 0;
     right: 0;
@@ -443,67 +384,12 @@
     overflow: hidden;
     pointer-events: none;
   }
-  :where(.ds-dataset-start) {
-    top: 0;
-    align-items: flex-end;
-    padding: 0 18px 18px;
-  }
   :where(.ds-view-canvas, .ds-overview-canvas) {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
-  }
-  :where(.ds-rail) {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    padding: 12px;
-  }
-  :where(.ds-rail-title) {
-    display: flex;
-    justify-content: space-between;
-  }
-  :where(.ds-track) {
-    position: relative;
-    flex: 1;
-    touch-action: none;
-    cursor: crosshair;
-  }
-  :where(.ds-thumb) {
-    position: absolute;
-    height: 24px;
-    pointer-events: auto;
-  }
-  :where(.ds-track-line) {
-    position: absolute;
-    left: 0;
-    right: 0;
-    pointer-events: none;
-  }
-  :where(.ds-marker) {
-    position: absolute;
-    right: -8px;
-    transform: translateY(-50%);
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    min-width: 27px;
-  }
-  :where(.ds-trail) {
-    position: absolute;
-    left: -7px;
-    width: 4px;
-    height: 2px;
-    pointer-events: none;
-  }
-  :where(.ds-rail-end) {
-    white-space: nowrap;
-    margin-top: 8px;
-    text-align: right;
   }
   :where(.ds-preview) {
     position: absolute;
@@ -610,29 +496,17 @@
     z-index: 5;
   }
   @media (max-width: 650px) {
-    :where(.ds-view-guide > summary) {
-      flex-wrap: wrap;
-      padding: 8px 10px;
-    }
-    :where(.ds-view-guide-content) {
-      padding: 0 10px 10px;
-    }
-    :where(.ds-view-guide-options) {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    :where(.ds-scale > div) {
-      flex-wrap: wrap;
-    }
-    :where(.ds-toolbar, .ds-scale) {
+    :where(.ds-toolbar) {
       flex-wrap: wrap;
     }
     :where(.ds-toolbar-actions) {
+      flex-wrap: wrap;
       margin-left: auto;
     }
     :where(.ds-context) {
       max-width: 160px;
     }
-    :where(.ds-legend > span:first-child, .ds-footer-stats) {
+    :where(.ds-legend > span:first-child) {
       display: none;
     }
     :where(.ds-preview) {
@@ -648,9 +522,8 @@
       right: auto;
     }
   }
-}
 
-@layer granum-grid {
+  /* Dataset map */
   :where(.ds-rail) {
     --ds-map-axis-width: 42px;
     --ds-map-events-width: 68px;
@@ -659,8 +532,13 @@
     --ds-map-detail-display: flex;
     --ds-map-title-display: inline;
     --ds-map-compact-display: none;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
     width: var(--ds-rail-width, 232px);
     min-height: 0;
+    padding: 12px;
     container: ds-map / size;
   }
   :where(.ds-rail[data-marker-labels='number']) {
@@ -670,6 +548,8 @@
     --ds-map-events-width: 16px;
   }
   :where(.ds-rail-title) {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
@@ -683,6 +563,11 @@
   }
   :where(.ds-rail-title > strong, .ds-rail-end) {
     display: var(--ds-map-title-display);
+  }
+  :where(.ds-rail-end) {
+    white-space: nowrap;
+    margin-top: 8px;
+    text-align: right;
   }
   :where(.ds-map-help) {
     position: absolute;
@@ -744,7 +629,11 @@
     white-space: nowrap;
   }
   :where(.ds-track) {
+    position: relative;
+    flex: 1;
     min-height: 24px;
+    touch-action: none;
+    cursor: crosshair;
   }
   :where(.ds-map-plot) {
     position: absolute;
@@ -793,10 +682,12 @@
     pointer-events: none;
   }
   :where(.ds-thumb) {
-    left: auto;
+    position: absolute;
     right: 4px;
     width: 12px;
+    height: 24px;
     z-index: 3;
+    pointer-events: auto;
   }
   /* Keep the full scrollbar column easy to grab around the slim visible handle. */
   :where(.ds-thumb)::before {
@@ -826,9 +717,18 @@
     transform: rotate(180deg);
   }
   :where(.ds-track-line) {
+    position: absolute;
     left: var(--ds-map-axis-width);
     right: var(--ds-map-content-end);
     z-index: 2;
+    pointer-events: none;
+  }
+  :where(.ds-visible-range, .ds-map-selection) {
+    position: absolute;
+    left: var(--ds-map-axis-width);
+    right: var(--ds-map-content-end);
+    min-height: 2px;
+    pointer-events: none;
   }
   :where(.ds-map-hover) {
     position: absolute;
@@ -844,9 +744,22 @@
     border-top-width: 2px;
   }
   :where(.ds-marker) {
+    position: absolute;
     right: var(--ds-map-scrollbar-width);
-    max-width: var(--ds-map-events-width);
+    transform: translateY(-50%);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 3px;
     min-width: 0;
+    max-width: var(--ds-map-events-width);
+  }
+  :where(.ds-trail) {
+    position: absolute;
+    left: -7px;
+    width: 4px;
+    height: 2px;
+    pointer-events: none;
   }
   :where(.ds-marker-label) {
     display: var(--ds-map-title-display);
@@ -1030,244 +943,8 @@
       visibility: hidden;
     }
   }
-}
-
-@layer granum-grid {
-  :where(.ds-root[data-layout='page']) {
-    position: fixed;
-    inset: 0;
-    height: 100vh;
-    height: 100dvh;
-    width: 100%;
-    border-radius: 0;
-  }
-  :where(.ds-live-status) {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-    padding: 6px 18px;
-  }
+  /* After the compact layouts, so hidden markers also give up their narrow column. */
   :where(.ds-rail[data-show-markers='false']) {
     --ds-map-events-width: 0px;
-  }
-}
-
-@layer granum-grid {
-  :where(.ds-summary-band) {
-    position: absolute;
-    left: 0;
-    right: 0;
-    padding: 5px 10px;
-    box-sizing: border-box;
-    container: ds-summary / inline-size;
-  }
-  :where(.ds-summary-content) {
-    height: 100%;
-    box-sizing: border-box;
-    padding: 8px 12px;
-    overflow: hidden;
-  }
-  :where(.ds-summary-heading) {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-  }
-  :where(.ds-summary-meta) {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-width: 0;
-    margin-bottom: 3px;
-  }
-  :where(.ds-summary-meta > span:nth-child(2), .ds-summary-address) {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-  }
-  :where(.ds-summary-meta > span:first-child, .ds-summary-accuracy) {
-    flex-shrink: 0;
-  }
-  :where(.ds-summary-accuracy) {
-    margin-left: auto;
-  }
-  :where(.ds-scale) {
-    position: relative;
-    flex-wrap: wrap;
-  }
-  :where(.ds-scale .ds-scale-context) {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 3px;
-    min-width: 0;
-  }
-  :where(
-    .ds-scale .ds-scale-controls,
-    .ds-bucket-size,
-    .ds-bucket-custom,
-    .ds-bucket-custom label
-  ) {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  :where(.ds-bucket-size select) {
-    max-width: 190px;
-  }
-  :where(.ds-bucket-custom) {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 10px;
-    right: 10px;
-    z-index: 9;
-  }
-  :where(.ds-bucket-custom input) {
-    width: 150px;
-  }
-  :where(.ds-summary-heading strong) {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  :where(.ds-summary-content p) {
-    margin: 3px 0 6px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  :where(.ds-summary-metric) {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-  }
-  :where(.ds-summary-metric strong) {
-    flex-shrink: 0;
-    font-size: 15px;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.2;
-  }
-  :where(.ds-summary-metric span) {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  :where(.ds-summary-actions) {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  :where(.ds-summary-status) {
-    padding: 18px;
-  }
-  :where(.ds-summary-content[data-chart]) {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    grid-template-rows: auto auto auto auto;
-    align-content: center;
-    column-gap: 28px;
-    row-gap: 3px;
-  }
-  :where(.ds-summary-content[data-chart] > :not(.ds-summary-plot)) {
-    grid-column: 1;
-    min-width: 0;
-  }
-  :where(.ds-summary-content[data-chart] .ds-summary-group) {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-  :where(.ds-summary-content[data-chart] .ds-summary-meta) {
-    flex-wrap: nowrap;
-    margin: 0;
-  }
-  :where(.ds-summary-content[data-chart] .ds-summary-accuracy) {
-    margin-left: 0;
-  }
-  :where(.ds-summary-content[data-chart] .ds-summary-actions) {
-    margin-top: 3px;
-  }
-  :where(.ds-summary-plot) {
-    grid-column: 2;
-    grid-row: 1 / 5;
-    min-width: 0;
-    align-self: center;
-  }
-  :where(.ds-summary-plot svg) {
-    display: block;
-    overflow: visible;
-  }
-  :where(.ds-summary-plot .ds-summary-metric) {
-    justify-content: space-between;
-    margin-bottom: 5px;
-  }
-  :where(.ds-summary-axis) {
-    display: flex;
-    justify-content: space-between;
-    padding: 0 2%;
-    font-variant-numeric: tabular-nums;
-  }
-  @container ds-summary (max-width: 560px) {
-    :where(.ds-summary-content[data-chart]) {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 1px;
-      padding: 4px 6px;
-    }
-    :where(.ds-summary-content[data-chart] .ds-summary-address) {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-    }
-    :where(.ds-summary-content[data-chart] .ds-summary-heading),
-    :where(.ds-summary-content[data-chart] .ds-summary-meta),
-    :where(.ds-summary-content[data-chart] .ds-summary-actions) {
-      flex-shrink: 0;
-    }
-    :where(.ds-summary-plot) {
-      flex: 1 1 auto;
-      align-self: stretch;
-      min-height: 0;
-      overflow: hidden;
-    }
-    :where(.ds-summary-plot svg) {
-      height: 16px;
-      max-height: 100%;
-    }
-    :where(.ds-summary-plot .ds-summary-metric) {
-      margin-bottom: 0;
-    }
-    :where(.ds-summary-plot .ds-summary-metric strong) {
-      font-size: 13px;
-    }
-    :where(.ds-summary-content[data-chart] .ds-summary-actions) {
-      flex-wrap: nowrap;
-      gap: 4px;
-      margin-top: 1px;
-    }
-  }
-  @media (max-width: 650px) {
-    :where(.ds-summary-band) {
-      padding: 3px 5px;
-    }
-    :where(.ds-summary-content) {
-      padding: 6px;
-    }
-    :where(.ds-summary-content[data-chart]) {
-      padding: 4px 6px;
-    }
-    :where(.ds-summary-actions) {
-      gap: 4px;
-    }
   }
 }

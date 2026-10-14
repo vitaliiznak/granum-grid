@@ -53,7 +53,7 @@ export function DemoLimitations({
               <strong>Returning later.</strong>{' '}
               {imported
                 ? 'Imported files and their bookmarks last only for this session. Reloading returns to the bundled recording; import your file again to explore it.'
-                : 'Bookmarks stay in this browser. Full-page links restore position, zoom, and selection for the same recording revision.'}{' '}
+                : 'Bookmarks stay in this browser. Full-page links restore position and selection for the same recording revision.'}{' '}
               Search input and results are not saved across reloads.
             </p>
           </>
@@ -62,8 +62,9 @@ export function DemoLimitations({
             <p>
               <strong>Live third-party data.</strong> Rows come from the official Hacker News API,
               one request per item; search, dates, and markers come from Algolia’s public HN index.
-              The demo needs a network connection. Nothing is generated. Deleted and dead items keep
-              their place but show no text, as on Hacker News.
+              The demo needs a network connection. Nothing is generated. A row shows a short
+              preview; open it to read the loaded text, its links, and the parent and direct
+              replies. Deleted and dead items keep their place but show no text, as on Hacker News.
             </p>
             <p>
               <strong>Request volume.</strong> A screen of rows costs about 50 small requests, and
@@ -114,9 +115,9 @@ export function DemoLimitations({
             </p>
             <p>
               <strong>Returning later.</strong> Bookmarks stay in this browser. Full-page links
-              restore position, zoom, and selection for the same dataset revision. The embedded demo
-              does not automatically save your latest position. Search input and results are not
-              saved across reloads.
+              restore position and selection for the same dataset revision. The embedded demo does
+              not automatically save your latest position. Search input and results are not saved
+              across reloads.
             </p>
           </>
         )}

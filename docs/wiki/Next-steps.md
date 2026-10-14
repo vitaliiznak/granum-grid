@@ -1,8 +1,8 @@
 # Apply the library to another dataset
 
-[All lessons](Home.md) · [Previous: HTTP](HTTP-recording.md)
+[All lessons](Home.md) · [Previous: Compose](Compose.md)
 
-The four lessons cover rows, summaries, search, and transport. Choose the next
+The five lessons cover rows, summaries, search, transport, and composition. Choose the next
 capability based on what a person needs to do with your data.
 
 | Dataset | Useful first workflow | Add after it works |
@@ -10,7 +10,7 @@ capability based on what a person needs to do with your data.
 | Inventory or orders | Find a known record and inspect its neighbours | Server filtering with a new snapshot revision |
 | Sensor measurements | Find a warm interval and compare it with baseline | Missing-value handling, precomputed summaries |
 | Application logs | Find errors and navigate to their original positions | Append mode and saved investigation views |
-| Browser recordings | Find slow events and inspect adjacent activity | Custom aggregate rendering and event categories |
+| Browser recordings | Find slow events and inspect adjacent activity | Additional map tracks and event categories |
 | Genomic coordinates | Jump to a named region | Domain-specific labels, verified coordinate conversion |
 | Market records | Navigate a stable time-ordered snapshot | Explicit missing periods and justified aggregation |
 
@@ -20,12 +20,10 @@ sources when building an application. The library does not supply these datasets
 
 ## Add a live feed
 
-Read the complete [`LiveExample.tsx`](../../demo/src/LiveExample.tsx) and
-[append guide](../GUIDE.md#append-only-live-feeds). Run the gallery and open
-**Try a live feed** to start the generated feed.
+Read the [append guide](../GUIDE.md#append-only-live-feeds).
 
 Use `dataMode="append"` when existing rows retain their addresses and only the
-count grows. Add `followOutput` to follow while already at the end. Preserve the
+count grows; `dataMode="follow"` also follows while already at the end. Preserve the
 same ID/revision for a genuine append. Replacing, sorting, removing, or changing
 existing rows needs a new revision.
 

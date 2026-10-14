@@ -13,12 +13,17 @@ export interface Bucket {
   accuracy: 'exact' | 'estimated' | 'unavailable';
   label?: string;
 }
+/** Kinds the explorer ranks and names. `bookmark` marks a place the reader saved. */
+export type KnownMarkerKind = 'spike' | 'error' | 'search' | 'selection' | 'event' | 'bookmark';
 export interface Marker {
   id: string;
   index: number;
   label: string;
-  /** `bookmark` marks a place the reader saved; providers supply the other kinds. */
-  kind: 'spike' | 'error' | 'search' | 'selection' | 'event' | 'bookmark';
+  /**
+   * A known kind, or the host's own (such as `deploy`), which ranks like `event`. The map
+   * exposes it as `data-kind` for styling.
+   */
+  kind: KnownMarkerKind | (string & {});
   color?: string;
 }
 export interface Chapter {

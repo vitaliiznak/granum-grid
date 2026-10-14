@@ -1,18 +1,20 @@
 import { PageCache } from './cache.js';
 import { checkBuckets, validRange } from './bounds.js';
 import type {
-  AggregateRequest,
   Bucket,
   CacheOptions,
   Chapter,
   DataProvider,
   Marker,
   OverviewTrack,
+  ProviderQuery,
+  SearchContext,
+  SearchResult,
 } from './types.js';
 /** Row-page owners in request priority order. */
 const OWNERS = ['visible', 'preview', 'prefetch'] as const;
 type Owner = (typeof OWNERS)[number];
-type MetadataKind = 'tracks' | 'overview' | 'markers' | 'chapters' | 'aggregates';
+type MetadataKind = 'tracks' | 'overview' | 'markers' | 'chapters';
 const THROTTLED = 'Waiting for canceled requests. The provider must honor AbortSignal.';
 /** Bucket resolution requested for the whole-dataset overview and each extra track. */
 const OVERVIEW_BUCKETS = 320;
@@ -29,7 +31,6 @@ export class DataSession<Row> {
   readonly cache: PageCache<Row>;
   overview: Bucket[] = [];
   tracks: OverviewTrack[] = [];
-  aggregates: Bucket[] = [];
   markers: Marker[] = [];
   chapters: Chapter[] = [];
   metadataErrors: Partial<Record<MetadataKind, string>> = {};
@@ -44,9 +45,7 @@ export class DataSession<Row> {
   private errors = new Map<number, string>();
   /** In-flight metadata requests and the metadata kind each one loads. */
   private metadata = new Map<AbortController, MetadataKind>();
-  private region?: AbortController;
-  private regionKey = '';
-  private requestedRange?: AggregateRequest;
+  private searches = 0;
   private stopped = false;
   private started = false;
   aborted = 0;
@@ -82,10 +81,7 @@ export class DataSession<Row> {
       this.errors.delete(page);
     }
     this.metadata.forEach((_, c) => c.abort());
-    this.region?.abort();
-    this.regionKey = '';
     this.overview = [];
-    this.aggregates = [];
     this.tracks = [];
     // A stopped session reloads its metadata when started again.
     if (this.started) {
@@ -107,7 +103,7 @@ export class DataSession<Row> {
   }
   private metadataBytes() {
     return (
-      (this.overview.length + this.aggregates.length) * BUCKET_BYTES +
+      this.overview.length * BUCKET_BYTES +
       this.tracks.reduce(
         (sum, track) => sum + track.buckets.length * BUCKET_BYTES + ITEM_BYTES,
         0,
@@ -121,7 +117,7 @@ export class DataSession<Row> {
       cachedRows: this.cache.rowCount,
       cachedBytes: bytes,
       budgetOverage: Math.max(0, bytes - this.cache.maxBytes),
-      activeRequests: this.pending.size + this.metadata.size,
+      activeRequests: this.pending.size + this.metadata.size + this.searches,
       abortedRequests: this.aborted,
       completedFetches: this.fetched,
     };
@@ -222,31 +218,32 @@ export class DataSession<Row> {
       });
     return controller;
   }
-  requestAggregates(range?: AggregateRequest) {
-    if (!range || !this.provider.fetchAggregates) {
-      this.region?.abort();
-      this.regionKey = '';
-      this.requestedRange = undefined;
-      // An error belongs to the region that failed, not to whatever is requested next.
-      if (this.metadataErrors.aggregates) {
-        delete this.metadataErrors.aggregates;
-        this.emit();
-      }
-      return;
+  /**
+   * Run provider search in this revision. It counts as an active request until it settles,
+   * and results above `limit` or outside the row count are rejected. Abort with `signal`.
+   */
+  async search(query: ProviderQuery, context: SearchContext): Promise<SearchResult> {
+    const { provider } = this;
+    if (!provider.search) throw new Error('This provider does not support search');
+    this.searches++;
+    this.emit();
+    try {
+      const result = await provider.search(query, context);
+      // Append updates can grow the count while a search runs; validate against the latest.
+      const rowCount = this.provider.rowCount;
+      if (
+        result.matches.length > context.limit ||
+        result.matches.some(
+          (match) =>
+            !Number.isSafeInteger(match.index) || match.index < 0 || match.index >= rowCount,
+        )
+      )
+        throw new Error('Provider returned invalid search addresses');
+      return result;
+    } finally {
+      this.searches--;
+      this.emit();
     }
-    this.requestedRange = range;
-    const key = `${range.start}:${range.end}:${range.buckets}`;
-    if (key === this.regionKey) return;
-    this.regionKey = key;
-    this.region?.abort();
-    delete this.metadataErrors.aggregates;
-    this.region = this.loadMeta(
-      'aggregates',
-      (signal) => this.provider.fetchAggregates!(range, signal),
-      (value) => {
-        this.aggregates = checkBuckets(value, range);
-      },
-    );
   }
   setRange(owner: Owner, start: number, count: number) {
     const pages = new Set<number>();
@@ -363,10 +360,6 @@ export class DataSession<Row> {
     for (const [controller, key] of this.metadata)
       if (!controller.signal.aborted) failed.delete(key);
     if (this.started) this.loadMetadata((key) => failed.has(key));
-    if (failed.has('aggregates') && this.requestedRange) {
-      this.regionKey = '';
-      this.requestAggregates(this.requestedRange);
-    }
     this.pump();
     this.emit();
   }
@@ -378,7 +371,5 @@ export class DataSession<Row> {
     this.deadlines.forEach(clearTimeout);
     this.deadlines.clear();
     this.metadata.forEach((_, controller) => controller.abort());
-    this.region?.abort();
-    this.regionKey = '';
   }
 }

@@ -1,16 +1,16 @@
 import { memo, useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { View } from '../core/engine.js';
 /** Receives only what selects a hint, so scrolling does not re-render it. */
 export const ContextHints = memo(function ContextHints({
   hints,
   canGoBack,
-  view,
+  storageKey,
   className,
   style,
 }: {
   hints: boolean;
   canGoBack: boolean;
-  view: View;
+  /** Remember dismissal in localStorage under this key; otherwise only for this mount. */
+  storageKey?: string;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -18,30 +18,33 @@ export const ContextHints = memo(function ContextHints({
   const seen = useRef(new Set<number>());
   const [enabled, setEnabled] = useState(false);
   useEffect(() => {
+    if (!storageKey) {
+      setEnabled(true);
+      return;
+    }
     try {
-      setEnabled(localStorage.getItem('deepscroll-hints-v1') !== 'done');
+      setEnabled(localStorage.getItem(storageKey) !== 'done');
     } catch {
       setEnabled(true);
     }
-  }, []);
+  }, [storageKey]);
   useEffect(() => {
     if (!enabled || !hints) {
       setHint(null);
       return;
     }
-    const next = canGoBack ? 2 : view !== 'rows' ? 3 : !seen.current.has(0) ? 0 : 1;
+    const next = canGoBack ? 2 : !seen.current.has(0) ? 0 : 1;
     if (seen.current.has(next)) return;
     seen.current.add(next);
     setHint(next);
     const timer = setTimeout(() => setHint(null), 5000);
     return () => clearTimeout(timer);
-  }, [enabled, hints, canGoBack, view]);
+  }, [enabled, hints, canGoBack]);
   if (hint === null) return null;
   const messages = [
     'Drag the dataset map to move through the dataset. Markers highlight events.',
     'Press / in the explorer to jump to a row, date, or event.',
     'Back returns to your previous location. Explore freely.',
-    'Your row address stays the same when you switch views.',
   ];
   return (
     <div className={`ds-hint ds-hint-${hint} ${className ?? ''}`} style={style} data-ds-part="hint">
@@ -52,11 +55,12 @@ export const ContextHints = memo(function ContextHints({
         onClick={() => {
           setEnabled(false);
           setHint(null);
-          try {
-            localStorage.setItem('deepscroll-hints-v1', 'done');
-          } catch {
-            /* Storage can be disabled. */
-          }
+          if (storageKey)
+            try {
+              localStorage.setItem(storageKey, 'done');
+            } catch {
+              /* Storage can be disabled. */
+            }
         }}
       >
         ×

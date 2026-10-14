@@ -39,22 +39,22 @@ Available scene IDs are in [src/scenes.ts](src/scenes.ts). Exports freeze a prod
 
 ## Where everything goes
 
-| Path                                       | Purpose                                                                                                         |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `src/scenes.ts`                            | Headlines, supporting copy, scene order, dataset, starting position, target, search query, and minimum duration |
-| `src/Marketing.tsx`, `src/marketing.css`   | Film artwork, title cards, brand treatment, and shared footage-window dimensions                                |
-| `src/main.tsx`                             | Director sidebar, demo iframe, saved-view initialization, and recording cursor                                  |
-| `src/studio.css`                           | Director sidebar and cursor only; no styles for the captured demo                                               |
-| `scripts/capture.mjs`                      | Interaction choreography, readiness checks, screenshots, and video encoding                                     |
-| `scripts/soundtrack.mjs`                   | Licensed-track metadata, verified download, trimming, and fades                                                 |
-| `images/*.png`                             | Versioned PNGs cropped to the app, table, or comparison dialog                                                  |
-| `granum-grid-launch.mp4`                    | The film linked from the playground README                                                                      |
-| `output/granum-grid-launch.mp4`             | The same film as generated; `output/` stays ignored, so copy a keeper into `media/`                             |
-| `output/granum-grid-launch.srt`             | Scene-title captions with generated timing                                                                      |
-| `output/granum-grid-launch-description.txt` | Publishing description with required music attribution                                                          |
-| `output/manifest-*.json`                   | Capture date, dimensions, scene IDs, and actual durations                                                       |
-| `output/granum-grid-<scene>.mp4`            | A single-scene export                                                                                           |
-| `dist/`                                    | Optional production build; ignored by Git                                                                       |
+| Path                                                 | Purpose                                                                                                         |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `src/scenes.ts`                                      | Headlines, supporting copy, scene order, dataset, starting position, target, search query, and minimum duration |
+| `src/Marketing.tsx`, `src/marketing.css`             | Film artwork, title cards, brand treatment, and shared footage-window dimensions                                |
+| `src/main.tsx`                                       | Director sidebar, demo iframe, saved-view initialization, and recording cursor                                  |
+| `src/studio.css`                                     | Director sidebar and cursor only; no styles for the captured demo                                               |
+| `scripts/capture.mjs`                                | Interaction choreography, readiness checks, screenshots, and video encoding                                     |
+| `scripts/soundtrack.mjs`                             | Licensed-track metadata, verified download, trimming, and fades                                                 |
+| `images/*.png`                                       | Versioned PNGs cropped to the app, table, or comparison dialog                                                  |
+| `granum-grid-launch.mp4`, `.srt`, `-description.txt` | Committed copies of the film, captions, and description linked from the playground README                       |
+| `output/granum-grid-launch.mp4`                      | The same film as generated; `output/` stays ignored, so copy a keeper into `media/`                             |
+| `output/granum-grid-launch.srt`                      | Scene-title captions with generated timing                                                                      |
+| `output/granum-grid-launch-description.txt`          | Publishing description with required music attribution                                                          |
+| `output/manifest-*.json`                             | Capture date, dimensions, scene IDs, and actual durations                                                       |
+| `output/granum-grid-<scene>.mp4`                     | A single-scene export                                                                                           |
+| `dist/`                                              | Optional production build; ignored by Git                                                                       |
 
 ## The film
 
@@ -79,16 +79,16 @@ The full cut opens with **Turn data into clarity** (7 s), plays twelve scenes in
 2. Edit the matching action in `scripts/capture.mjs` if the interaction should change.
 3. Preview with `npm run media:dev`. `?scene=genome` opens a scene; `?capture=1&scene=genome` opens the actual demo with that starting view. `?artwork=scene&scene=genome` previews its film layout; `?artwork=intro`, `?artwork=capabilities`, and `?artwork=outro` show the title cards.
 4. Run `npm run media:build` and export. Inspect every changed image and the video before sharing.
-5. Keep README links in sync if you add or rename scenes. PNGs can be committed. Copy a keeper of the launch film to `granum-grid-launch.mp4` so the README can play it; the `output/` export stays ignored.
+5. Keep README links in sync if you add or rename scenes. PNGs can be committed. After a full film export, copy `granum-grid-launch.mp4`, `granum-grid-launch.srt`, and `granum-grid-launch-description.txt` from `output/` into `media/` together so the README's film, captions, and description match; the `output/` export stays ignored.
 
 The studio deliberately stays outside `granum-grid/`. It adds no runtime dependency, media assets, or capture interface to the published library surface. Playwright and Vite come from the workspace's development dependencies. `playwright` is available through the existing `@playwright/test` dependency.
 
 ## Claims and source material
 
-- All five datasets are generated demos. The genome uses reference chromosome lengths and approximate gene landmarks, but its sequence is synthetic. The star catalog includes named-star landmarks; it is not a downloaded Gaia catalog. Market prices and logs are illustrative.
+- Five of the eight datasets are generated: logs, signal, genome, market, and stars. The genome uses reference chromosome lengths and approximate gene landmarks, but its sequence is synthetic. The star catalog includes named-star landmarks; it is not a downloaded Gaia catalog. Market prices and logs are illustrative. Bitcoin and Hacker News read live public sources, and Performance is a real, redacted browser recording. The scenes use only generated datasets.
 - Row counts are navigable addresses in an on-demand provider. They are not rows downloaded into browser memory, nor a benchmark of a remote database.
-- Overview and range summaries are sampled and labeled accordingly. Demo predicate search is partial. Keep those labels visible in crops and edits. The README and captions identify the synthetic source data; the screenshots contain only existing product UI. The address illustration on the opening card is not a measured chart.
+- Overview and selection statistics are sampled and labeled accordingly. Demo predicate search is partial. Keep those labels visible in crops and edits. The README and captions identify the synthetic source data; the screenshots contain only existing product UI. The address illustration on the opening card is not a measured chart.
 - New captures use the demo's default simulated request latency of 1 second. These recordings make no cross-device frame-rate or latency guarantee.
 - The package is an initial local release. Do not add npm availability, purchase, production adoption, accessibility certification, or performance claims without new evidence.
 
-See the [playground README](../README.md), [marketing notes](MARKETING.md), [integration guide](../docs/GUIDE.md), and [styling guide](../STYLING.md).
+See the [playground README](../README.md), the [publishing description](granum-grid-launch-description.txt), the [integration guide](../docs/GUIDE.md), and the [styling guide](../STYLING.md).

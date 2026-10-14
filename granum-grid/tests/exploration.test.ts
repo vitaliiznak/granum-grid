@@ -10,7 +10,7 @@ import {
 } from '../src/core/exploration';
 import { createEngine } from '../src/core/engine';
 import type { Marker } from '../src/data/types';
-import { clusterMarkers, leadMarker, railGroupNumber } from '../src/react/MarkerLayer';
+import { clusterMarkers, leadMarker } from '../src/react/MarkerLayer';
 
 it('restores only valid locations and selections from the same ordered revision', () => {
   const provider = { id: 'a', revision: '1', rowCount: 100 };
@@ -18,7 +18,7 @@ it('restores only valid locations and selections from the same ordered revision'
     version: 1,
     dataset: 'a',
     revision: '1',
-    location: { position: 12.5, view: 'zoom', rowsPerPixel: 1 },
+    location: { position: 12.5 },
     selection: { start: 10, end: 20 },
   };
   expect(decodeView(encodeView(view), provider)).toEqual(view);
@@ -27,7 +27,15 @@ it('restores only valid locations and selections from the same ordered revision'
     decodeView(encodeView({ ...view, selection: { start: 90, end: 101 } }), provider),
   ).toBeNull();
   // Links to the removed view are unsupported, just like any unknown mode.
-  expect(decodeView(encodeView(view).replace('zoom', 'lens'), provider)).toBeNull();
+  for (const mode of ['zoom', 'lens']) {
+    const legacy = { ...view, location: { ...view.location, view: mode, rowsPerPixel: 1 } };
+    expect(decodeView(encodeView(legacy), provider)).toBeNull();
+  }
+  const legacyRows = {
+    ...view,
+    location: { ...view.location, view: 'rows', rowsPerPixel: 1 / 32 },
+  };
+  expect(decodeView(encodeView(legacyRows), provider)).toEqual(view);
   expect(decodeView('%not-json', provider)).toBeNull();
   expect(
     decodeView(
@@ -47,13 +55,14 @@ it('bounds dense rail groups by screen height while preserving all markers', () 
   expect(groups.length).toBeLessThanOrEqual(19);
   expect(groups.flat()).toEqual(markers);
 });
+/** A marker `px` CSS px down a 500 px rail over 500,001 rows. */
+const at = (id: string, px: number, kind: Marker['kind'] = 'event'): Marker => ({
+  id,
+  index: px * 1000,
+  label: id,
+  kind,
+});
 it('groups rail markers by distance in row order, not by fixed bins', () => {
-  const at = (id: string, px: number, kind: Marker['kind'] = 'event'): Marker => ({
-    id,
-    index: px * 1000,
-    label: id,
-    kind,
-  });
   // 27 px and 29 px straddle a 28 px bin edge but would overlap on screen.
   const straddling = [at('a', 27), at('b', 29), at('c', 60)];
   expect(clusterMarkers(straddling, 500_001, 500).map((g) => g.map((m) => m.id))).toEqual([
@@ -78,18 +87,30 @@ it('names a rail group after its most severe marker', () => {
   const saved = marker('Before the stampede', 'bookmark');
   expect(leadMarker([deploy, saved])).toBe(saved);
   expect(leadMarker([saved, incident])).toBe(incident);
+  // A host's own kind ranks like an event: after incidents and bookmarks, before search hits.
+  const release = marker('Release 4.2', 'release');
+  expect(leadMarker([release, incident])).toBe(incident);
+  expect(leadMarker([release, saved])).toBe(saved);
+  expect(leadMarker([marker('hit', 'search'), release])).toBe(release);
+  expect(leadMarker([release, deploy])).toBe(release);
 });
 it('numbers a rail group by the marker that names it, not by how many it holds', () => {
-  // A group of three that starts at place 1 and is named for its second marker is 2, then 4.
-  expect(railGroupNumber(1, 1)).toBe(2);
-  expect(railGroupNumber(4, 0)).toBe(4);
+  // A group of three named for its second marker (an incident), then a lone marker.
+  const groups = clusterMarkers(
+    [at('deploy', 100), at('incident', 105, 'error'), at('restart', 110), at('later', 300)],
+    500_001,
+    500,
+  );
+  // The rail number is the named marker's one-based place in row order, as in Bookmarks.
+  const places = groups.flat();
+  expect(groups.map((group) => places.indexOf(leadMarker(group)) + 1)).toEqual([2, 4]);
 });
 it('places bookmarks on the map at their selection or saved position', () => {
   const bookmark = (id: string, position: number, selection: Bookmark['selection']): Bookmark => ({
     version: 1,
     dataset: 'a',
     revision: '1',
-    location: { position, view: 'zoom', rowsPerPixel: 4 },
+    location: { position },
     selection,
     id,
     name: `Saved ${id}`,
@@ -119,7 +140,7 @@ it('saving bookmarks under a shared key keeps other datasets and revisions', () 
     version: 1,
     dataset,
     revision,
-    location: { position: 5, view: 'rows', rowsPerPixel: 1 / 32 },
+    location: { position: 5 },
     selection: null,
     id,
     name: id,

@@ -36,7 +36,7 @@ const capabilities = [
   ['Pick a dataset', 'Logs, a genome, a market, stars, Bitcoin, or Hacker News.'],
   ['Jump to a row', 'An address, a percent, or a named event.'],
   ['See the shape', 'Summaries and a map of the whole set.'],
-  ['Read the records', 'Zoom into a group, then open its rows.'],
+  ['Read the records', 'Select a stretch, then open its rows or summary.'],
   ['Compare two stretches', 'Two panes that keep their relative place.'],
   ['Come back', 'Back restores the view you left.'],
 ];

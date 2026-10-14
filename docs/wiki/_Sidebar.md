@@ -6,6 +6,7 @@
 - [2. Sensor summaries](Sensors.md)
 - [3. Log search](Logs.md)
 - [4. HTTP recording](HTTP-recording.md)
+- [5. Compose](Compose.md)
 - [Next steps](Next-steps.md)
 
 ## Reference

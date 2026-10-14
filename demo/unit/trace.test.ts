@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { MAX_TRACE_EVENTS, parseTrace, traceBuckets, traceProvider } from '../src/data/trace';
+import { tracePhase } from '../src/datasets/performance';
 const signal = () => new AbortController().signal;
 const sample = () =>
   parseTrace(
@@ -69,5 +70,33 @@ describe('local Chrome JSON trace adapter', () => {
     expect(
       traceBuckets(recording, { start: 0, end: recording.rows.length, buckets: 1 })[0].max,
     ).toBe(recording.rows[recording.longestIndex].duration);
+  });
+});
+
+describe('performance dataset phases', () => {
+  it('groups events like the DevTools summary and keeps unknown names apart', () => {
+    expect(
+      [
+        'FunctionCall',
+        'UpdateLayoutTree',
+        'Paint',
+        'V8.GC_SCAVENGER',
+        'MinorGC',
+        'Parallel scavenge started',
+        'UserTiming::Measure',
+        'TimeStamp',
+        'Unknown',
+      ].map(tracePhase),
+    ).toEqual([
+      'scripting',
+      'rendering',
+      'painting',
+      'gc',
+      'gc',
+      'gc',
+      'timing',
+      'timing',
+      'other',
+    ]);
   });
 });

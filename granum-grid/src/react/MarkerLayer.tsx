@@ -1,6 +1,6 @@
 import { memo, useMemo, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog.js';
-import type { Marker } from '../data/types.js';
+import type { KnownMarkerKind, Marker } from '../data/types.js';
 import type { GranumGridEngine } from '../core/engine.js';
 import { rowToProgress } from '../core/mappings.js';
 
@@ -10,8 +10,8 @@ const PAGE_SIZE = 40;
 const GROUP_GAP = 28;
 /** Marker names listed in a group's tooltip. */
 const TOOLTIP_NAMES = 5;
-/** A group is named after its most severe marker. */
-const KIND_RANK: Record<Marker['kind'], number> = {
+/** A group is named after its most severe marker. Host kinds rank like `event`. */
+const KIND_RANK: Record<KnownMarkerKind, number> = {
   error: 0,
   spike: 1,
   bookmark: 2,
@@ -19,6 +19,7 @@ const KIND_RANK: Record<Marker['kind'], number> = {
   selection: 4,
   search: 5,
 };
+const rank = (kind: Marker['kind']) => KIND_RANK[kind as KnownMarkerKind] ?? KIND_RANK.event;
 
 /**
  * Group in row order by screen distance. Each group starts at least GROUP_GAP px below the
@@ -40,17 +41,7 @@ export function clusterMarkers(markers: readonly Marker[], total: number, height
 }
 /** The marker that names a group: the most severe kind, then the earliest row. */
 export function leadMarker(group: readonly Marker[]) {
-  return group.reduce((lead, marker) =>
-    KIND_RANK[marker.kind] < KIND_RANK[lead.kind] ? marker : lead,
-  );
-}
-/**
- * Compact rail index. `first` is the one-based place of the group's earliest marker
- * and `leadOffset` is the named marker's step within the group. The group size stays
- * on the +N badge; painting the size here makes a group of 3 followed by place 4 read as 3, 4.
- */
-export function railGroupNumber(first: number, leadOffset: number) {
-  return first + leadOffset;
+  return group.reduce((lead, marker) => (rank(marker.kind) < rank(lead.kind) ? marker : lead));
 }
 const count = (n: number) => `${n.toLocaleString()} ${n === 1 ? 'marker' : 'markers'}`;
 export const MarkerLayer = memo(function MarkerLayer({
@@ -71,7 +62,10 @@ export const MarkerLayer = memo(function MarkerLayer({
     // after a group.
     let first = 1;
     return clusterMarkers(markers, total, height).map((items) => {
-      const group = { items, lead: leadMarker(items), first };
+      const lead = leadMarker(items);
+      // The compact index is the named marker's own place. The group size stays on the +N
+      // badge; painting it here makes a group of 3 followed by place 4 read as 3, 4.
+      const group = { items, lead, number: first + items.indexOf(lead) };
       first += items.length;
       return group;
     });
@@ -87,7 +81,7 @@ export const MarkerLayer = memo(function MarkerLayer({
   );
   return (
     <>
-      {groups.map(({ items, lead, first }) => {
+      {groups.map(({ items, lead, number }) => {
         const marker = items[0],
           clustered = items.length > 1,
           others = items.length - 1;
@@ -102,7 +96,6 @@ export const MarkerLayer = memo(function MarkerLayer({
                 : []),
             ].join('\n')
           : lead.label;
-        const number = railGroupNumber(first, items.indexOf(lead));
         return (
           <button
             key={`${marker.id}:${marker.index}`}

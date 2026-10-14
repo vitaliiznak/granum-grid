@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, MOBILE } from './fixtures';
+import { expect, test, MOBILE, withDebug } from './fixtures';
 
 async function assertAdjacent(page: Page) {
   await expect
@@ -19,9 +19,9 @@ async function assertAdjacent(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/?dataset=signal');
-  await page.getByRole('button', { name: 'debug', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Dynamic row heights' }).check();
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await withDebug(page, (dialog) =>
+    dialog.getByRole('checkbox', { name: 'Dynamic row heights' }).check(),
+  );
   await expect(page.getByRole('button', { name: 'Expand row 1', exact: true })).toBeVisible();
 });
 
@@ -63,10 +63,10 @@ test('distant jumps honor each alignment, auto is stable, and location restores'
   const grid = page.getByRole('grid');
   const target = grid.locator('[aria-rowindex="73500000"]');
   for (const align of ['start', 'center', 'end']) {
-    await page.getByRole('button', { name: 'debug', exact: true }).click();
-    await page.getByRole('combobox', { name: 'Row alignment' }).selectOption(align);
-    await page.getByRole('button', { name: 'Go to row', exact: true }).click();
-    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await withDebug(page, async (dialog) => {
+      await dialog.getByRole('combobox', { name: 'Row alignment' }).selectOption(align);
+      await dialog.getByRole('button', { name: 'Go to row', exact: true }).click();
+    });
     await expect(target).toHaveAttribute('data-status', 'ready');
     await expect
       .poll(async () => {
@@ -84,24 +84,22 @@ test('distant jumps honor each alignment, auto is stable, and location restores'
     await assertAdjacent(page);
   }
   const position = await page.getByTestId('position').innerText();
-  await page.getByRole('button', { name: 'debug', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Row alignment' }).selectOption('auto');
-  await page.getByRole('button', { name: 'Go to row', exact: true }).click();
-  await expect(page.getByTestId('position')).toHaveText(position);
-  await page.getByRole('button', { name: 'Save position', exact: true }).click();
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await withDebug(page, async (dialog) => {
+    await dialog.getByRole('combobox', { name: 'Row alignment' }).selectOption('auto');
+    await dialog.getByRole('button', { name: 'Go to row', exact: true }).click();
+    await expect(page.getByTestId('position')).toHaveText(position);
+    await dialog.getByRole('button', { name: 'Save position', exact: true }).click();
+  });
   await grid.press('Home');
   await expect(page.getByTestId('position')).toHaveText('Row 1 of 100,000,000');
-  await page.getByRole('button', { name: 'debug', exact: true }).click();
-  await page.getByRole('button', { name: 'Restore position', exact: true }).click();
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await withDebug(page, (dialog) =>
+    dialog.getByRole('button', { name: 'Restore position', exact: true }).click(),
+  );
   await expect(page.getByTestId('position')).toHaveText(position);
   await assertAdjacent(page);
 });
 
-test('wrapping responds to width and measured detail works in Range summaries and Rows', async ({
-  page,
-}) => {
+test('wrapping responds to width and measured rows stay anchored', async ({ page }) => {
   await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
   const target = page.getByRole('grid').locator('[aria-rowindex="61700000"]');
@@ -113,18 +111,6 @@ test('wrapping responds to width and measured detail works in Range summaries an
     .poll(async () => (await target.boundingBox())!.height)
     .toBeGreaterThan(desktopHeight);
   await assertAdjacent(page);
-  for (const view of ['Zoom', 'Rows']) {
-    await page
-      .getByRole('combobox', { name: 'View', exact: true })
-      .selectOption(view.toLowerCase());
-    if (view === 'Zoom') {
-      // Zoom opens grouped summaries; refine before checking measured row layout.
-      await expect(page.locator('[data-ds-part="aggregate"]').first()).toBeVisible();
-      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-    }
-    await expect(target).toHaveAttribute('data-status', 'ready');
-    await assertAdjacent(page);
-    await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
-  }
+  await expect(target).toHaveAttribute('data-status', 'ready');
+  await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
 });

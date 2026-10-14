@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { createEngine, createZoomMapping } from 'granum-grid/core';
 import { PageCache, createArrayProvider as arrayFromData } from 'granum-grid/data';
 import { GranumGrid, useGranumGrid, AtlasRail, createArrayProvider } from 'granum-grid';
+import { useGranumGrid as useHeadlessGrid } from 'granum-grid/headless';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 function renderWithoutWarnings(element) {
   const warnings = [];
   const originalError = console.error;
@@ -18,6 +20,21 @@ function renderWithoutWarnings(element) {
   }
 }
 assert.match(import.meta.resolve('granum-grid'), /\/dist\/index\.js$/);
+// The runtime surface of each entry point is deliberately small; widen it on purpose.
+const entryValues = async (name) => Object.keys(await import(name)).sort();
+assert.deepEqual(await entryValues('granum-grid'), [
+  'AtlasRail',
+  'GranumGrid',
+  'JumpBar',
+  'ViewCanvas',
+  'createArrayProvider',
+  'createCursorProvider',
+  'decodeView',
+  'defaultFeatures',
+  'encodeView',
+  'useGranumGrid',
+]);
+assert.deepEqual(await entryValues('granum-grid/headless'), ['defaultFeatures', 'useGranumGrid']);
 const engine = createEngine({ rowCount: 100_000_000 });
 engine.goTo(73_499_999);
 assert.equal(engine.getSnapshot().activeIndex, 73_499_999);
@@ -54,9 +71,9 @@ const customMarkup = renderWithoutWarnings(
     unstyled: true,
     classNames: { row: 'consumer-row', viewport: 'consumer-viewport' },
     styles: { row: { padding: 12, transform: 'translateY(999px)' } },
-    renderToolbar: ({ snapshot }) => createElement('nav', null, `${snapshot.rowCount} records`),
-    renderRail: () => null,
-    renderFooter: () => null,
+    toolbar: ({ snapshot }) => createElement('nav', null, `${snapshot.rowCount} records`),
+    rail: false,
+    footer: false,
     renderRow: ({ row }) => String(row),
   }),
 );
@@ -69,6 +86,29 @@ assert.match(customMarkup, /padding:12px/);
 assert.ok(!customMarkup.includes('translateY(999px)'), 'Row geometry must remain engine-owned');
 assert.ok(!customMarkup.includes('class="ds-rail'));
 assert.ok(!customMarkup.includes('class="ds-footer'));
+// The headless entry is the same hook, and its module graph stops before explorer components.
+assert.equal(useHeadlessGrid, useGranumGrid);
+const headlessModules = new Set();
+(function follow(url) {
+  if (headlessModules.has(url)) return;
+  headlessModules.add(url);
+  const source = readFileSync(fileURLToPath(url), 'utf8');
+  for (const [, path] of source.matchAll(/(?:from|import)\s*['"](\.{1,2}\/[^'"]+)['"]/g))
+    follow(new URL(path, url).href);
+})(import.meta.resolve('granum-grid/headless'));
+const components = [...headlessModules].filter((url) => /\/react\/[A-Z][^/]*\.js$/.test(url));
+assert.deepEqual(components, [], 'granum-grid/headless must not load explorer components');
+function HeadlessRows() {
+  const grid = useHeadlessGrid({
+    provider: { id: 'headless', revision: '1', rowCount: 1_000, fetchRows: async () => [] },
+  });
+  return createElement(
+    'div',
+    grid.getViewportProps({ 'aria-label': 'Headless rows' }),
+    grid.rows.map((slot) => createElement('div', { key: slot.index, ...grid.getRowProps(slot) })),
+  );
+}
+assert.match(renderWithoutWarnings(createElement(HeadlessRows)), /aria-rowcount="1000"/);
 const baseCss = readFileSync(new URL(import.meta.resolve('granum-grid/base.css')), 'utf8');
 const themeCss = readFileSync(new URL(import.meta.resolve('granum-grid/styles.css')), 'utf8');
 assert.match(baseCss, /@layer granum-grid/);

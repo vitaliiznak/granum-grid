@@ -46,7 +46,7 @@ try {
   assert.equal(manifest.license, 'Apache-2.0');
   assert.deepEqual(
     Object.keys(manifest.exports),
-    ['.', './core', './data', './base.css', './styles.css'],
+    ['.', './headless', './core', './data', './base.css', './styles.css'],
     'Public entry points changed; update the package README, docs/GUIDE.md, and the consumer fixtures deliberately',
   );
   const files = new Set(packed.files.map(({ path }) => path));

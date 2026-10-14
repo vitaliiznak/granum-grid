@@ -15,6 +15,9 @@ export function isControl(target: EventTarget | null): boolean {
   return !!element && (isTextEntry(element) || !!element.closest('button,a'));
 }
 
+/** Dialogs and panels that keep native wheel, touch, and key scrolling inside the explorer. */
+export const NATIVE_SCROLL = 'dialog,[data-ds-native-scroll]';
+
 /** Whether `target` is inside one of `selector`, such as dialogs that own their scrolling. */
 export function isWithin(target: EventTarget | null, selector: string): boolean {
   return !!elementOf(target)?.closest(selector);

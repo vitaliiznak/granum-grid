@@ -8,6 +8,8 @@ export const DAY = 86_400_000;
 /** September 2026, UTC. */
 export const logTime = timeline(LOG_START, LOG_END, LOG_COUNT);
 const day = (d: number) => (d * DAY) / (LOG_END - LOG_START);
+/** Row at a position given as a fraction of the month, such as an incident's `x`. */
+export const logIndex = (x: number) => Math.round(x * (LOG_COUNT - 1));
 
 export const INCIDENTS = [
   {

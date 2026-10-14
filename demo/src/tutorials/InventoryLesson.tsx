@@ -17,9 +17,9 @@ export default function Inventory() {
         ariaLabel="Inventory products"
         rowHeight={40}
         style={{ height: 560, marginTop: 16 }}
-        features={{ hints: false }}
-        exploration={false}
-        renderRail={() => null}
+        hints={false}
+        tools={false}
+        rail={false}
         getRowKey={(row) => row.sku}
         renderRow={({ row, rowNumber }) => (
           <span role="gridcell">

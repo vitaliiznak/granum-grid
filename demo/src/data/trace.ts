@@ -11,6 +11,11 @@ import {
 
 export const MAX_TRACE_BYTES = 25 * 1024 * 1024;
 export const MAX_TRACE_EVENTS = 150_000;
+const maxSize = `${MAX_TRACE_BYTES / 1024 / 1024} MiB`;
+const maxEvents = MAX_TRACE_EVENTS.toLocaleString('en-US');
+/** The accepted recording size, as "25 MiB / 150,000 events". */
+export const TRACE_LIMITS = `${maxSize} / ${maxEvents} events`;
+export const TRACE_TOO_LARGE = `Choose a JSON recording smaller than ${maxSize}.`;
 export interface TraceRow {
   name: string;
   category: string;
@@ -27,8 +32,7 @@ export interface TraceRecording {
 }
 /** Chrome JSON subset: complete (X) and instant (I/i) events; timestamps are microseconds. */
 export function parseTrace(text: string): TraceRecording {
-  if (new TextEncoder().encode(text).byteLength > MAX_TRACE_BYTES)
-    throw new Error('Choose a JSON recording smaller than 25 MiB.');
+  if (new TextEncoder().encode(text).byteLength > MAX_TRACE_BYTES) throw new Error(TRACE_TOO_LARGE);
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -43,7 +47,9 @@ export function parseTrace(text: string): TraceRecording {
   if (!Array.isArray(events))
     throw new Error('Expected an event array or an object containing traceEvents.');
   if (events.length > MAX_TRACE_EVENTS)
-    throw new Error('This demo accepts up to 150,000 source events. Export a shorter recording.');
+    throw new Error(
+      `This demo accepts up to ${maxEvents} source events. Export a shorter recording.`,
+    );
   const rows: TraceRow[] = [];
   let ignored = 0;
   for (const event of events) {
@@ -98,8 +104,7 @@ export function traceRangeLabel(recording: TraceRecording, range: RowRange) {
     : 'Empty range';
 }
 export function traceBuckets(recording: TraceRecording, range: AggregateRequest): Bucket[] {
-  const parts = Math.min(range.buckets, range.end - range.start);
-  return splitRange(range.start, range.end, parts).map(({ start, end }) => {
+  return splitRange(range.start, range.end, range.buckets).map(({ start, end }) => {
     let min = Infinity,
       max = 0,
       sum = 0;
@@ -162,7 +167,7 @@ export function traceProvider(recording: TraceRecording, revision: string): Data
     },
     async fetchChapters(signal) {
       signal.throwIfAborted();
-      return splitRange(0, rows.length, Math.min(5, rows.length)).map(({ start, end }, i) => {
+      return splitRange(0, rows.length, 5).map(({ start, end }, i) => {
         return {
           id: `part-${i}`,
           start,

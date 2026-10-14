@@ -1,7 +1,16 @@
-import { CHROMOSOMES, GENES, baseAt, gcAt, locusAt, regionAt, type Locus } from '../data/genome';
+import {
+  BRCA1,
+  CHROMOSOMES,
+  GENES,
+  baseAt,
+  gcAt,
+  locusAt,
+  regionAt,
+  type Locus,
+} from '../data/genome';
 import { syntheticProvider } from '../data/synthetic';
 import { GenomeIcon } from './icons';
-import { formatCount, showAll, type DemoDataset } from './types';
+import { formatCount, type DemoDataset } from './types';
 
 const where = (index: number) => {
   const locus = locusAt(index);
@@ -79,7 +88,6 @@ const provider = syntheticProvider<Locus>({
   },
 });
 
-const brca1 = GENES.find((g) => g.name === 'BRCA1')!;
 const CONTEXT = 10;
 function Sequence({ index }: { index: number }) {
   const bases = [];
@@ -110,9 +118,9 @@ export const genome: DemoDataset<Locus> = {
   bytesPerRow: 64,
   formatRange: ({ start, end }) => `${where(start)}–${where(end - 1)}`,
   task: {
-    title: 'Explore chromosome boundaries, then zoom into the sequence.',
-    action: 'See whole genome',
-    run: showAll,
+    title: 'Explore chromosome boundaries, then inspect the sequence.',
+    action: 'Start at the first base',
+    run: (api) => api.goTo(0),
   },
   atlas: { axisLabel: 'Chr', formatValue: (v) => `${v.toFixed(0)}%` },
   map: {
@@ -137,32 +145,25 @@ export const genome: DemoDataset<Locus> = {
       feature: 'Flight',
       label: 'Fly to BRCA1',
       hint: 'A jump of 2.5 billion rows. The flight passes through the overview so the distance stays legible.',
-      run: ({ controller }) => controller.goTo(brca1.index),
+      run: (api) => api.goTo(BRCA1.index),
     },
     {
       feature: 'Markers',
       label: 'Next gene',
       hint: 'Genes are markers: magnetic on the map, and N / P step between them from the keyboard.',
-      run: ({ controller }) => controller.nextMarker(),
+      run: (api) => api.nextMarker(),
     },
     {
       feature: 'Search',
       label: 'Find GC-rich DNA',
       hint: 'Predicate search runs on the provider. Try gene = "TP53" or chr = "X" too.',
-      run: ({ search }) => search('gc > 52'),
+      run: (api) => api.openSearch('gc > 52'),
     },
     {
       feature: 'Chapters',
       label: 'Next chromosome',
       hint: 'Chromosomes are chapters. Ctrl/⌘ + ↓ steps forward; the sticky header names the current one.',
-      run: ({ controller }) => controller.nextChapter(),
-    },
-    {
-      feature: 'Zoom',
-      requiredView: 'zoom',
-      label: 'Whole genome at once',
-      hint: 'Range summaries group 3 billion bases into bands. Ctrl + wheel or pinch to dive back in.',
-      run: ({ fit }) => fit(),
+      run: (api) => api.nextChapter(),
     },
   ],
   renderRow: ({ row, index }) => {

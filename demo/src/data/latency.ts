@@ -4,17 +4,19 @@ let latency = DEFAULT_LATENCY;
 export const setLatency = (value: number) => {
   latency = value;
 };
-export function delay(signal: AbortSignal) {
+/** Resolve after `ms`, or reject with the signal's reason if it aborts first. */
+export function wait(ms: number, signal: AbortSignal) {
   signal.throwIfAborted();
   return new Promise<void>((resolve, reject) => {
     const abort = () => {
       clearTimeout(timer);
-      reject(new DOMException('Aborted', 'AbortError'));
+      reject(signal.reason);
     };
     const timer = setTimeout(() => {
       signal.removeEventListener('abort', abort);
       resolve();
-    }, latency);
+    }, ms);
     signal.addEventListener('abort', abort, { once: true });
   });
 }
+export const delay = (signal: AbortSignal) => wait(latency, signal);

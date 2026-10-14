@@ -1,10 +1,9 @@
-import { expect, test, MOBILE } from './fixtures';
+import { expect, test, MOBILE, fitsViewportWidth, openDataset } from './fixtures';
 
 test('the tour opens provider search through the public API with dataset-specific guidance', async ({
   page,
 }) => {
-  await page.goto('/?dataset=logs');
-  await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
+  await openDataset(page, '/?dataset=logs');
   const initialPosition = (await page.getByTestId('position').textContent())!;
   await page.getByRole('button', { name: 'Search Find 5xx responses' }).click();
   const dialog = page.getByRole('dialog', { name: 'Jump to a location' });
@@ -30,8 +29,7 @@ test('HTTP integration reads bounded pages and restores selection and location t
     const url = new URL(request.url());
     if (url.pathname.endsWith('/trace/rows')) rowCounts.push(Number(url.searchParams.get('count')));
   });
-  await page.goto('/http.html');
-  await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
+  await openDataset(page, '/http.html');
   await page.getByRole('button', { name: 'Find slow events', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Jump to a location' });
   await expect(dialog.getByRole('textbox')).toHaveValue('duration > 10');
@@ -60,9 +58,8 @@ test('HTTP integration reads bounded pages and restores selection and location t
 
 test('HTTP controls and search guidance fit a narrow viewport', async ({ page }, testInfo) => {
   await page.setViewportSize(MOBILE);
-  await page.goto('/http.html');
-  await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await openDataset(page, '/http.html');
+  expect(await fitsViewportWidth(page)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('http-mobile.png'), fullPage: true });
   await page.getByRole('button', { name: 'Find slow events', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Jump to a location' });
@@ -92,8 +89,7 @@ test('failed range summaries retry without changing the selected range', async (
       });
     } else await route.continue();
   });
-  await page.goto('/http.html');
-  await expect(page.locator('[data-status="ready"]').first()).toBeVisible();
+  await openDataset(page, '/http.html');
   await page.getByRole('button', { name: 'Select nearby events', exact: true }).click();
   await page.getByText('Show summary', { exact: true }).click();
   await expect(page.getByText('Error: Temporary summary failure', { exact: true })).toBeVisible();

@@ -1,6 +1,9 @@
 import type { DataProvider } from 'granum-grid';
 import type { TraceRow } from './trace';
 
+/** Path prefix of the dev server's trace service (`demo/server/trace.ts`). */
+export const TRACE_API = '/__granum-grid/trace/';
+
 export interface RequestMeasurement {
   operation: string;
   bytes: number;
@@ -25,7 +28,7 @@ export async function connectHttpTrace(
       Object.entries(params).map(([key, value]) => [key, String(value)]),
     );
     const start = performance.now();
-    const response = await fetch(`/__granum-grid/trace/${operation}?${query}`, { signal });
+    const response = await fetch(`${TRACE_API}${operation}?${query}`, { signal });
     if (!response.headers.get('content-type')?.includes('application/json'))
       // Static hosting answers with a 404 page or an HTML fallback; the local server uses JSON.
       throw new Error(

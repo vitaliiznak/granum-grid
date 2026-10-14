@@ -1,8 +1,9 @@
-import { StrictMode } from 'react';
+import { Fragment, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import Inventory from './InventoryLesson';
 import Sensors from './SensorsLesson';
 import Logs from './LogsLesson';
+import Compose from './ComposeLesson';
 import '../example-page.css';
 import './tutorials.css';
 
@@ -16,18 +17,18 @@ const lessons = {
       'Open Go to… and enter 90 to practice one-based row addresses.',
     ],
     component: Inventory,
-    next: 'sensors',
+    next: '?lesson=sensors',
   },
   sensors: {
     title: '2. Add a sensor map and summaries',
-    concept: 'A provider supplies the metric, overview, exact range summaries, and a named event.',
+    concept:
+      'A provider supplies the metric, overview, exact selection statistics, and a named event.',
     steps: [
-      'Choose See the whole day to display grouped readings.',
-      'Choose Inspect warm interval, then Show summary.',
-      'The selection has 20 readings and an exact average of 40 °C.',
+      'Choose Inspect warm interval: rows 721–740 are selected.',
+      'Choose Show summary: the 20 readings have an exact average of 40 °C.',
     ],
     component: Sensors,
-    next: 'logs',
+    next: '?lesson=logs',
   },
   logs: {
     title: '3. Search application logs',
@@ -38,11 +39,22 @@ const lessons = {
       'Narrow to unavailable, select a result, then use Back.',
     ],
     component: Logs,
+    next: './http.html',
+  },
+  compose: {
+    title: '5. Compose your own explorer',
+    concept: 'Use the headless hook with the map and search widgets, and own the state they share.',
+    steps: [
+      'Focus the rows and press N: the Restock marker brings SKU-100 to the top.',
+      'Use Back to return to row 1.',
+      'Choose Search products, enter restock, and choose the result.',
+    ],
+    component: Compose,
     next: null,
   },
 };
 const requested = new URLSearchParams(location.search).get('lesson') ?? 'inventory';
-const key = requested === 'sensors' || requested === 'logs' ? requested : 'inventory';
+const key = (Object.hasOwn(lessons, requested) ? requested : 'inventory') as keyof typeof lessons;
 const lesson = lessons[key];
 const Lesson = lesson.component;
 
@@ -57,11 +69,13 @@ createRoot(document.getElementById('root')!).render(
       </header>
       <nav aria-label="Tutorial lessons">
         {Object.entries(lessons).map(([id, item]) => (
-          <a key={id} href={`?lesson=${id}`} aria-current={id === key ? 'page' : undefined}>
-            {item.title}
-          </a>
+          <Fragment key={id}>
+            <a href={`?lesson=${id}`} aria-current={id === key ? 'page' : undefined}>
+              {item.title}
+            </a>
+            {id === 'logs' && <a href="./http.html">4. Connect an HTTP recording</a>}
+          </Fragment>
         ))}
-        <a href="./http.html">4. Connect an HTTP recording</a>
       </nav>
       <h2>{lesson.title}</h2>
       <p>{lesson.concept}</p>
@@ -78,9 +92,7 @@ createRoot(document.getElementById('root')!).render(
           already in browser memory.
         </p>
       </aside>
-      <a href={lesson.next ? `?lesson=${lesson.next}` : './http.html'}>
-        Continue to the next lesson →
-      </a>
+      {lesson.next && <a href={lesson.next}>Continue to the next lesson →</a>}
     </main>
   </StrictMode>,
 );

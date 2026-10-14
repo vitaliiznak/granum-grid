@@ -1,6 +1,6 @@
 import { clamp, wheelPixels } from '../core/mappings.js';
 import type { GranumGridEngine } from '../core/engine.js';
-import { isControl, isTextEntry } from './dom.js';
+import { NATIVE_SCROLL, isControl, isTextEntry } from './dom.js';
 
 /** Largest rubber-band shift. Further pull barely moves, so the edge reads as a wall. */
 const EDGE_LIMIT = 48;
@@ -22,7 +22,7 @@ export function splitEdgeDelta(pull: number, pixels: number): { pull: number; pa
   return { pull: pull + sign * release, pan: pixels - sign * release };
 }
 /** Feature switches are final: reduced motion has already turned off the motion ones. */
-export interface InputOptions {
+interface InputOptions {
   windowScroll?: boolean;
   inertia: boolean;
   elasticity: boolean;
@@ -36,8 +36,9 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
   const wheelSurface = options.windowScroll
     ? (viewport.closest<HTMLElement>('[data-ds-root]') ?? viewport)
     : viewport;
-  const touches = new Map<number, { x: number; y: number }>();
-  let distance = 0,
+  // The last clientY of each touch pointer; a second touch makes the gesture a pinch.
+  const touches = new Map<number, number>();
+  let pinch = false,
     lastTime = 0,
     velocity = 0,
     inertiaFrame = 0,
@@ -57,7 +58,7 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
       node !== wheelSurface;
       node = node.parentElement
     ) {
-      if (!node || node.matches('dialog,[data-ds-native-scroll]')) return true;
+      if (!node || node.matches(NATIVE_SCROLL)) return true;
       if (
         node.scrollHeight > node.clientHeight &&
         /^(auto|scroll)$/.test(getComputedStyle(node).overflowY)
@@ -105,7 +106,7 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
     cancelAnimationFrame(speedFrame);
     cancelAnimationFrame(edgeFrame);
     const state = engine.getSnapshot();
-    const scale = state.view === 'zoom' ? state.rowsPerPixel : 1 / state.rowHeight;
+    const scale = 1 / state.rowHeight;
     const split = options.elasticity ? splitEdgeDelta(pull, pixels) : { pull: 0, pan: pixels };
     if (options.elasticity) pull = split.pull;
     const before = state.position;
@@ -120,12 +121,7 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
       lastTime = time;
       options.onVelocity(velocity * scale);
     }
-    if (
-      movedRows &&
-      options.automaticAggregation &&
-      Math.abs(velocity) > 1.8 &&
-      state.view !== 'zoom'
-    ) {
+    if (movedRows && options.automaticAggregation && Math.abs(velocity) > 1.8) {
       speed = Math.min(
         state.rowCount,
         ((Math.abs(velocity) * state.height) / state.rowHeight) * 14,
@@ -149,34 +145,26 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
       if (native.scrolls) return;
     }
     cancelInertia();
-    if (event.ctrlKey) {
-      if (!viewport.contains(document.activeElement)) return;
-      event.preventDefault();
+    // Browser zoom remains available; there is no separate summary zoom mode.
+    if (event.ctrlKey) return;
+    const pixels = wheelPixels(
+      event.deltaY,
+      event.deltaMode,
+      viewport.clientHeight,
+      engine.getSnapshot().rowHeight,
+    );
+    if (!options.elasticity) {
       const state = engine.getSnapshot();
-      engine.setZoom(
-        state.rowsPerPixel * Math.exp(event.deltaY * 0.008),
-        event.clientY - viewport.getBoundingClientRect().top,
-      );
-    } else {
-      const pixels = wheelPixels(
-        event.deltaY,
-        event.deltaMode,
-        viewport.clientHeight,
-        engine.getSnapshot().rowHeight,
-      );
-      if (!options.elasticity) {
-        const state = engine.getSnapshot();
-        if (
-          (state.position <= 0 && pixels < 0) ||
-          (state.position >= Math.max(0, state.rowCount - 1) && pixels > 0)
-        ) {
-          if (options.windowScroll) event.preventDefault();
-          return;
-        }
+      if (
+        (state.position <= 0 && pixels < 0) ||
+        (state.position >= Math.max(0, state.rowCount - 1) && pixels > 0)
+      ) {
+        if (options.windowScroll) event.preventDefault();
+        return;
       }
-      event.preventDefault();
-      pan(pixels, performance.now());
     }
+    event.preventDefault();
+    pan(pixels, performance.now());
   };
   const down = (event: PointerEvent) => {
     cancelInertia();
@@ -186,36 +174,28 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
     suppressClick = false;
     if (event.pointerType !== 'touch' || isControl(event.target)) return;
     viewport.setPointerCapture(event.pointerId);
-    touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    touches.set(event.pointerId, event.clientY);
     moved = false;
     if (touches.size === 2) {
-      const [a, b] = [...touches.values()];
-      distance = Math.hypot(a.x - b.x, a.y - b.y);
+      pinch = true;
       moved = true;
     }
   };
   const move = (event: PointerEvent) => {
     const previous = touches.get(event.pointerId);
-    if (!previous) return;
+    if (previous === undefined) return;
     event.preventDefault();
-    touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    moved ||= Math.abs(previous.y - event.clientY) > 2;
+    touches.set(event.pointerId, event.clientY);
+    moved ||= Math.abs(previous - event.clientY) > 2;
     if (touches.size === 2) {
-      const [a, b] = [...touches.values()],
-        nextDistance = Math.hypot(a.x - b.x, a.y - b.y);
-      if (distance > 0 && nextDistance > 0)
-        engine.setZoom(
-          (engine.getSnapshot().rowsPerPixel * distance) / nextDistance,
-          (a.y + b.y) / 2 - viewport.getBoundingClientRect().top,
-        );
-      distance = nextDistance;
-    } else pan(previous.y - event.clientY, performance.now());
+      moved = true;
+    } else pan(previous - event.clientY, performance.now());
   };
   const up = (event: PointerEvent) => {
     if (!touches.has(event.pointerId)) return;
-    const wasPinch = distance > 0;
+    const wasPinch = pinch;
     touches.delete(event.pointerId);
-    distance = 0;
+    pinch = false;
     suppressClick = moved;
     if (
       touches.size ||
@@ -249,27 +229,7 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
     }
   };
   const stopOnKey = () => cancelInertia();
-  // Desktop Safari reports trackpad pinch as gesture events instead of ctrl+wheel. Like
-  // ctrl+wheel, it zooms only a focused explorer. Touch pinches use pointer events above.
-  let gestureScale = 1;
-  const gesture = (event: Event) => {
-    if (touches.size || !viewport.contains(document.activeElement)) return;
-    event.preventDefault();
-    const { scale, clientY } = event as Event & { scale: number; clientY?: number };
-    if (event.type === 'gesturestart' || !(scale > 0)) {
-      gestureScale = scale > 0 ? scale : 1;
-      return;
-    }
-    cancelInertia();
-    engine.setZoom(
-      (engine.getSnapshot().rowsPerPixel * gestureScale) / scale,
-      clientY === undefined ? undefined : clientY - viewport.getBoundingClientRect().top,
-    );
-    gestureScale = scale;
-  };
   wheelSurface.addEventListener('wheel', wheel, { passive: false });
-  viewport.addEventListener('gesturestart', gesture);
-  viewport.addEventListener('gesturechange', gesture);
   viewport.addEventListener('pointerdown', down);
   viewport.addEventListener('pointermove', move, { passive: false });
   viewport.addEventListener('pointerup', up);
@@ -286,8 +246,6 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
     options.onSpeed(0);
     options.onEdge(0);
     wheelSurface.removeEventListener('wheel', wheel);
-    viewport.removeEventListener('gesturestart', gesture);
-    viewport.removeEventListener('gesturechange', gesture);
     viewport.removeEventListener('pointerdown', down);
     viewport.removeEventListener('pointermove', move);
     viewport.removeEventListener('pointerup', up);

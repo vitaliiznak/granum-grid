@@ -73,27 +73,26 @@ describe('marker, chapter, and history navigation', () => {
     engine.previousChapter();
     expect(engine.getSnapshot().position).toBe(250);
   });
-  it('restores each location with its view and zoom through back and forward', () => {
+  it('restores each location with its row offset through back and forward', () => {
     const engine = setup();
     engine.goTo(100);
-    engine.zoomToRange({ start: 200, end: 400 });
-    const zoomed = engine.getLocation();
+    engine.goTo(300);
+    engine.pan(5);
+    const saved = engine.getLocation();
     engine.goTo(900);
     engine.back();
-    expect(engine.getLocation()).toEqual(zoomed);
+    expect(engine.getLocation()).toEqual(saved);
     engine.back();
-    expect(engine.getLocation()).toMatchObject({ position: 100, view: 'rows' });
+    expect(engine.getLocation()).toMatchObject({ position: 100 });
     engine.forward();
-    expect(engine.getLocation()).toEqual(zoomed);
+    expect(engine.getLocation()).toEqual(saved);
     // New navigation clears the forward stack.
     engine.goTo(5);
     expect(engine.getSnapshot().canGoForward).toBe(false);
   });
-  it('switches views without moving and cancels an animated flight in place', () => {
+  it('cancels an animated flight in place', () => {
     const engine = setup();
     engine.goTo(300);
-    engine.setView('zoom');
-    expect(engine.getLocation()).toMatchObject({ position: 300, view: 'zoom' });
     engine.setMotion(true);
     engine.goTo(900);
     expect(engine.getSnapshot().moving).toBe(true);

@@ -27,8 +27,6 @@ if (capture && !location.hash) {
       revision: dataset.provider.revision,
       location: {
         position: selected.index ?? dataset.initialIndex ?? 0,
-        view: 'rows',
-        rowsPerPixel: 1 / dataset.rowHeight,
       },
       selection: null,
     })}`,

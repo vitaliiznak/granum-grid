@@ -14,10 +14,11 @@ import {
   TEXT_OPERATORS,
   checkPredicate,
   compare,
+  dateResult,
   yieldToEventLoop,
+  type Predicate,
 } from './search';
 
-type Predicate = Extract<ProviderQuery, { kind: 'predicate' }>;
 interface SearchField {
   kind: 'number' | 'text';
   read(index: number): number | string;
@@ -43,14 +44,7 @@ async function search(
   await delay(context.signal);
   if (query.kind === 'date') {
     if (!config.date) throw new Error(`This dataset has no dates. Try ${config.examples}.`);
-    const index = config.date(query.value);
-    return {
-      matches:
-        index === null
-          ? []
-          : [{ id: `date-${query.value}`, index, label: query.value, kind: 'search' }],
-      complete: true,
-    };
+    return dateResult(query.value, config.date(query.value));
   }
   const text = query.kind === 'text' ? query.value.trim().toLowerCase() : null;
   if (text === '') throw new Error('Enter text to search for.');
@@ -135,7 +129,9 @@ export function syntheticProvider<Row>(options: {
     searchHelp: {
       examples: options.search.examples,
       text: true,
-      placeholder: 'Text, row number, percentage, date, or field query…',
+      placeholder: options.search.date
+        ? 'Text, row number, percentage, date, or field query…'
+        : 'Text, row number, percentage, or field query…',
       dates: Boolean(options.search.date),
       fields: Object.entries(options.search.fields).map(([name, field]) => ({
         name,

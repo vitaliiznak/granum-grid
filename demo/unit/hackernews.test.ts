@@ -3,6 +3,7 @@ import {
   createHackerNewsClient,
   estimatedRowCount,
   hackerNewsProvider,
+  commentBody,
   plainText,
   type AlgoliaHit,
   type HackerNewsClientOptions,
@@ -22,6 +23,17 @@ const UNINDEXED = new Set([8636, 8637, 8638, 8639, 8640]);
 function item(id: number) {
   if (id < 1 || id > MAX) return null;
   const time = posted(id) / S;
+  if (id === 11)
+    return {
+      id,
+      by: 'commenter',
+      time,
+      type: 'comment',
+      parent: 10,
+      kids: Array.from({ length: 60 }, (_, i) => i + 20),
+      text: '<p>See <a href="https://example.com/docs">the docs</a></p>',
+      url: 'javascript:alert(1)',
+    };
   if (id === DELETED) return { id, deleted: true, time, type: 'comment' };
   if (id % 10 === 0)
     return {
@@ -127,6 +139,10 @@ describe('Hacker News provider', () => {
       type: 'comment',
       text: "Hi & there '5001'",
       replies: 1,
+      parent: 5000,
+      kids: [5002],
+      links: [],
+      body: [{ code: false, parts: [{ text: "Hi & there '5001'" }] }],
     });
     expect(rows[14]).toMatchObject({
       id: 5010,
@@ -260,10 +276,39 @@ describe('Hacker News provider', () => {
     expect(estimatedRowCount(anchor + 86_400_000)).toBe(50_080_669 + 8000);
   });
 
-  it('reduces item markup to plain text', () => {
+  it('reduces item markup to plain text and keeps safe links', async () => {
     expect(plainText('<p>a &lt;b&gt; <a href="x">link</a>&#x2F;&#47; &bogus; &#xFFFFFF;')).toBe(
       'a <b> link// &bogus; &#xFFFFFF;',
     );
     expect(plainText('x'.repeat(300))).toHaveLength(280);
+    const body = commentBody(
+      '<p>See <a href="https://example.com/a?x=1&amp;y=2" rel="nofollow">docs</a> and <a href="javascript:alert(1)">no</a>.</p><pre><code>line\n  two</code></pre>',
+    );
+    expect(body.truncated).toBe(false);
+    expect(body.links).toEqual([{ href: 'https://example.com/a?x=1&y=2', label: 'docs' }]);
+    expect(body.paragraphs).toEqual([
+      {
+        code: false,
+        parts: [
+          { text: 'See ' },
+          { text: 'docs', href: 'https://example.com/a?x=1&y=2' },
+          { text: ' and no.' },
+        ],
+      },
+      { code: true, parts: [{ text: 'line\n  two' }] },
+    ]);
+    const clipped = commentBody('x'.repeat(20), 10);
+    expect(clipped.truncated).toBe(true);
+    expect(clipped.paragraphs[0].parts[0].text).toHaveLength(10);
+    const linked = await setup().provider.fetchRows(10, 1, signal);
+    expect(linked[0]).toMatchObject({
+      id: 11,
+      url: '',
+      replies: 60,
+      parent: 10,
+      links: [{ href: 'https://example.com/docs', label: 'the docs' }],
+    });
+    expect(linked[0].missing).toBe(false);
+    if (!linked[0].missing) expect(linked[0].kids).toHaveLength(48);
   });
 });

@@ -2,7 +2,6 @@
 // tuning constants, the mutable measurement store) are deliberately not exported.
 export { createEngine } from './engine.js';
 export type {
-  View,
   NavigationLocation,
   NavigationEvent,
   NavigationSnapshot,
@@ -24,4 +23,4 @@ export type { CoordinateMapping } from './mappings.js';
 export type { RowMeasurement, RowSizeReader } from './rowSizes.js';
 export { encodeView, decodeView } from './exploration.js';
 export { validRange } from '../data/bounds.js';
-export type { SavedView, Bookmark } from './exploration.js';
+export type { SavedView } from './exploration.js';

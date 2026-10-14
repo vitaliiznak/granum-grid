@@ -2,22 +2,19 @@ import {
   GranumGrid,
   decodeView,
   encodeView,
-  defaultFeatures,
   type ScrollStats,
   type AtlasRailOptions,
   type GranumGridApi,
-  type NavigationLocation,
+  type SavedView,
   type ScrollAlignment,
   type RowRenderContext,
-  type View,
+  type RowActivationContext,
 } from 'granum-grid';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { LiveExample } from './LiveExample';
-import { StylingExamples } from './StylingExamples';
-import { ToolsDemo } from './ai/ToolsDemo';
 import { MapSettings } from './MapSettings';
-import { DebugTools } from './DebugTools';
+import { DEMO_SWITCHES, DebugTools, switchFeatures, switchMap } from './DebugTools';
 import { DemoLimitations } from './DemoLimitations';
+import { RowInspector } from './RowInspector';
 import {
   DatasetGallery,
   DatasetIntro,
@@ -33,8 +30,6 @@ import { performance as bundledPerformance } from './datasets/performance';
 import type { DemoDataset } from './datasets';
 
 type Api = RefObject<GranumGridApi<unknown> | null>;
-/** Context hints would cover the guided demo; every other feature starts on. */
-const DEMO_FEATURES = { ...defaultFeatures, hints: false };
 
 const pageUrl = (dataset: string, hash: string) =>
   `${location.pathname}?page=1${dataset === 'logs' ? '' : `&dataset=${dataset}`}#view=${hash}`;
@@ -65,7 +60,7 @@ export default function App() {
     {},
   );
   const [latency, updateLatency] = useState(DEFAULT_LATENCY);
-  const [features, setFeatures] = useState(DEMO_FEATURES);
+  const [switches, setSwitches] = useState(DEMO_SWITCHES);
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [reduced, setReduced] = useState(false);
   const [stats, setStats] = useState<ScrollStats | null>(null);
@@ -73,8 +68,28 @@ export default function App() {
   const [expanded, setExpanded] = useState(new Set<number>());
   const api: Api = useRef<GranumGridApi<unknown>>(null);
   /** Each dataset keeps its own place while you visit the others. */
-  const locations = useRef(new Map<string, NavigationLocation>());
+  const places = useRef(new Map<string, SavedView>());
   const providerKey = `${provider.id}:${provider.revision}`;
+  const [inspected, setInspected] = useState<{
+    providerKey: string;
+    record: RowActivationContext<unknown>;
+  } | null>(null);
+  const closeInspector = useCallback(() => {
+    setInspected(null);
+    document
+      .querySelector<HTMLElement>('.demo-explorer [role="grid"]')
+      ?.focus({ preventScroll: true });
+  }, []);
+  const showRow = useCallback(
+    (index: number) => {
+      const mounted = api.current;
+      const count = mounted?.getSnapshot().rowCount ?? 0;
+      if (!mounted || index < 0 || index >= count) return;
+      mounted.goTo(index);
+      closeInspector();
+    },
+    [closeInspector],
+  );
   const mounted = useRef(providerKey);
   useEffect(() => {
     mounted.current = providerKey;
@@ -94,8 +109,13 @@ export default function App() {
   );
   const renderRow = useCallback(
     (context: RowRenderContext<unknown>) =>
-      dataset.renderRow(context, { dynamic, expanded, toggle: toggleExpanded }),
-    [dataset, dynamic, expanded, toggleExpanded],
+      dataset.renderRow(context, {
+        dynamic,
+        expanded,
+        toggle: toggleExpanded,
+        show: showRow,
+      }),
+    [dataset, dynamic, expanded, toggleExpanded, showRow],
   );
   const atlasSettings = datasetMapSettings[dataset.id] ?? {};
   const changeMapSettings = (patch: AtlasRailOptions) =>
@@ -108,14 +128,15 @@ export default function App() {
     showMagnifier: true,
     ...dataset.atlas,
     ...atlasSettings,
-    axisLabel: atlasSettings.axis === 'rows' ? 'Row' : dataset.atlas.axisLabel,
   };
   const chooseDataset = (id: string) => {
     if (id === dataset.id) return;
-    const current = api.current?.controller.getLocation();
-    if (current) locations.current.set(dataset.id, current);
+    // The place, not the selection, carries over when the visitor returns.
+    const current = api.current?.getView();
+    if (current) places.current.set(dataset.id, { ...current, selection: null });
     const next = id === 'performance' ? recordingDataset : findDataset(id);
     setDataset(next);
+    setInspected(null);
     setStats(null);
     setDynamic(false);
     const params = new URLSearchParams(location.search);
@@ -126,8 +147,9 @@ export default function App() {
   const loadRecording = (next: DemoDataset) => {
     setRecordingDataset(next);
     setDataset(next);
+    setInspected(null);
     setStats(null);
-    locations.current.delete('performance');
+    places.current.delete('performance');
     replaceUrl(new URLSearchParams({ dataset: 'performance' }));
   };
   useEffect(() => {
@@ -141,7 +163,7 @@ export default function App() {
         200,
       );
     };
-    const off = mountedApi.controller.subscribe(sync);
+    const off = mountedApi.subscribe(sync);
     return () => {
       clearTimeout(timer);
       off();
@@ -188,13 +210,12 @@ export default function App() {
       });
     });
   };
-  const initialLocation =
+  // A rebuilt engine (row sizing changed) starts where the reader is; the explorer ignores a
+  // view that belongs to another dataset or revision.
+  const initialView =
     mounted.current === providerKey
-      ? (api.current?.controller.getLocation() ??
-        (shared?.dataset === provider.id && shared.revision === provider.revision
-          ? shared.location
-          : undefined))
-      : locations.current.get(dataset.id);
+      ? (api.current?.getView() ?? shared)
+      : places.current.get(dataset.id);
   return (
     <main className={pageMode ? 'app app-page' : 'app'}>
       {!pageMode && (
@@ -210,7 +231,7 @@ export default function App() {
               <button
                 className="text-button"
                 aria-label="Try row 73,500,000"
-                onClick={() => api.current?.controller.goTo(73_499_999)}
+                onClick={() => api.current?.goTo(73_499_999)}
               >
                 Try row 73.5M <span aria-hidden="true">→</span>
               </button>
@@ -226,174 +247,116 @@ export default function App() {
       <GranumGrid
         key={providerKey}
         layout={pageMode ? 'page' : 'embedded'}
-        initialSelection={shared?.dataset === provider.id ? shared.selection : null}
         onSelectionChange={() => {
           // The new selection is already part of the mounted view.
           if (pageMode && api.current)
             history.replaceState(null, '', pageUrl(dataset.id, encodeView(api.current.getView())));
         }}
-        bookmarkStorageKey={isImported ? undefined : `deepscroll-demo:${providerKey}`}
+        tools={{
+          storageKey: isImported ? undefined : `deepscroll-demo:${providerKey}`,
+          formatRange: dataset.formatRange,
+        }}
+        hints={switches.hints && { storageKey: 'deepscroll-hints-v1' }}
         stickyChapters
-        fullPageUrl={
-          pageMode || isImported ? undefined : (view) => pageUrl(dataset.id, encodeView(view))
-        }
-        toolbarActions={
-          <>
-            {pageMode && (
-              <>
-                <DatasetSwitcher
-                  value={dataset.id}
-                  onChange={(id) => {
-                    chooseDataset(id);
-                    // The explorer remounts on a provider change; keep focus on the switcher.
-                    requestAnimationFrame(() => {
-                      document
-                        .querySelector<HTMLElement>('.dataset-switcher [aria-pressed="true"]')
-                        ?.focus({ preventScroll: true });
-                    });
-                  }}
-                />
-                <button className="ds-button" onClick={returnToNormal}>
-                  <span aria-hidden="true">↙ </span>Back to normal view
-                </button>
-                <DemoLimitations
-                  recording={isRecording}
-                  imported={isImported}
-                  live={live}
-                  compact
-                />
-              </>
-            )}
-            <DebugTools
-              latency={latency}
-              onLatency={changeLatency}
-              simulateLatency={!isRecording && !live}
-              features={features}
-              onFeatures={setFeatures}
-              reduced={reduced}
-              onReduced={setReduced}
-              stats={stats}
-              onReset={() => {
-                changeLatency(DEFAULT_LATENCY);
-                setFeatures(DEMO_FEATURES);
-                setReduced(false);
-                setDynamic(false);
-              }}
-            >
-              {isSignal && <RowSizing api={api} dynamic={dynamic} onDynamic={setDynamic} />}
-            </DebugTools>
-          </>
-        }
+        toolbar={{
+          fullPageUrl:
+            pageMode || isImported ? undefined : (view) => pageUrl(dataset.id, encodeView(view)),
+          actions: (
+            <>
+              {dataset.renderDetails && (
+                <span className="inspector-hint">Click a row or press Enter to inspect</span>
+              )}
+              {pageMode && (
+                <>
+                  <DatasetSwitcher
+                    value={dataset.id}
+                    onChange={(id) => {
+                      chooseDataset(id);
+                      // The explorer remounts on a provider change; keep focus on the switcher.
+                      requestAnimationFrame(() => {
+                        document
+                          .querySelector<HTMLElement>('.dataset-switcher [aria-pressed="true"]')
+                          ?.focus({ preventScroll: true });
+                      });
+                    }}
+                  />
+                  <button className="ds-button" onClick={returnToNormal}>
+                    <span aria-hidden="true">↙ </span>Back to normal view
+                  </button>
+                  <DemoLimitations
+                    recording={isRecording}
+                    imported={isImported}
+                    live={live}
+                    compact
+                  />
+                </>
+              )}
+              <DebugTools
+                latency={latency}
+                onLatency={changeLatency}
+                simulateLatency={!isRecording && !live}
+                switches={switches}
+                onSwitches={setSwitches}
+                reduced={reduced}
+                onReduced={setReduced}
+                stats={stats}
+                onReset={() => {
+                  changeLatency(DEFAULT_LATENCY);
+                  setSwitches(DEMO_SWITCHES);
+                  setReduced(false);
+                  setDynamic(false);
+                }}
+              >
+                {isSignal && <RowSizing api={api} dynamic={dynamic} onDynamic={setDynamic} />}
+              </DebugTools>
+            </>
+          ),
+        }}
         provider={provider}
         dataMode={grow ? 'append' : undefined}
         cache={dataset.cache}
-        atlas={atlas}
-        railActions={
-          <>
-            <RailView api={api} resetKey={providerKey} />
+        rail={{
+          ...switchMap(atlas, switches),
+          actions: (
             <MapSettings
               value={atlas}
               onChange={changeMapSettings}
               onReset={() => setDatasetMapSettings((current) => ({ ...current, [dataset.id]: {} }))}
               labels={dataset.map}
             />
-          </>
-        }
+          ),
+        }}
         ariaLabel={dataset.ariaLabel}
         header={dataset.header}
-        formatRange={dataset.formatRange}
-        summaryBucketSizes={dataset.summaryBucketSizes}
-        formatBucketSize={dataset.formatBucketSize}
-        renderAggregate={dataset.renderAggregate}
-        aggregateRowHeight={isRecording ? 156 : 120}
         rowHeight={dataset.rowHeight}
         dynamicRowHeight={isSignal && dynamic}
         initialIndex={dataset.initialIndex}
-        initialLocation={initialLocation}
+        initialView={initialView}
         apiRef={api}
         theme={theme}
-        features={features}
+        features={switchFeatures(switches)}
         reducedMotion={reduced ? true : 'system'}
         onStats={setStats}
         className={`demo-explorer dataset-${dataset.id}`}
         classNames={{ row: isSignal ? 'signal-row' : `demo-row ${dataset.id}-row` }}
         renderRow={renderRow}
+        onRowActivate={
+          dataset.renderDetails ? (record) => setInspected({ providerKey, record }) : undefined
+        }
       />
-      {!pageMode && (
-        <>
-          <ShortcutStrip />
-          <LiveExample />
-          <StylingExamples />
-          <ToolsDemo key={providerKey} datasetId={dataset.id} provider={provider} apiRef={api} />
-          <footer className="site-footer">
-            <span>
-              {dataset.sourceNote ?? 'Rows generated on demand. Overview uses sampled values.'}
-            </span>
-            <span>Granum Grid 0.1</span>
-          </footer>
-        </>
-      )}
-    </main>
-  );
-}
-
-/** Row detail is one row per 22px or closer. Summaries from that scale open grouped. */
-const ROW_DETAIL_MAX_ROWS_PER_PIXEL = 1 / 22;
-
-function RailView({ api, resetKey }: { api: Api; resetKey: string }) {
-  const [view, setView] = useState<View>('rows');
-  const [describedBy, setDescribedBy] = useState<string>();
-  const select = useRef<HTMLSelectElement>(null);
-  // A passive effect: the explorer attaches `api` during layout, after this nested control's
-  // own layout effects would run.
-  useEffect(() => {
-    const controller = api.current?.controller;
-    if (!controller) return;
-    const sync = () => {
-      const next = controller.getSnapshot().view;
-      setView((current) => (current === next ? current : next));
-    };
-    sync();
-    // Describe the choice with the explorer's own view guidance, as its built-in menu does.
-    setDescribedBy(
-      select.current?.closest('[data-ds-root]')?.querySelector('.ds-view-guide > summary > [id]')
-        ?.id,
-    );
-    return controller.subscribe(sync);
-  }, [api, resetKey]);
-  return (
-    <label className="rail-view">
-      <span>View</span>
-      {/* The narrow rail shows a short name; the native select keeps the full option names. */}
-      <span className="rail-view-control">
-        <span className="rail-view-value" aria-hidden="true">
-          {view === 'zoom' ? 'Summaries' : 'Rows'}
-        </span>
-        <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
-          <path d="m2.5 4 2.5 2.5L7.5 4" fill="none" stroke="currentColor" strokeWidth="1.3" />
-        </svg>
-        <select
-          ref={select}
-          className="ds-input"
-          aria-label="View"
-          aria-describedby={describedBy}
-          title="Change view"
-          value={view}
-          onChange={(event) => {
-            const next = event.target.value as View;
-            const controller = api.current?.controller;
-            if (!controller) return;
-            const scale = controller.getSnapshot().rowsPerPixel;
-            controller.setView(next);
-            if (next === 'zoom' && scale <= ROW_DETAIL_MAX_ROWS_PER_PIXEL) controller.setZoom(1);
-            setView(next);
-          }}
+      {inspected?.providerKey === providerKey && dataset.renderDetails && (
+        <RowInspector
+          key={`${providerKey}:${inspected.record.index}`}
+          record={inspected.record}
+          className={dataset.inspectorClassName}
+          copyLabel={dataset.copyLabel}
+          onClose={closeInspector}
         >
-          <option value="rows">Rows</option>
-          <option value="zoom">Range summaries</option>
-        </select>
-      </span>
-    </label>
+          {dataset.renderDetails(inspected.record.row, { show: showRow })}
+        </RowInspector>
+      )}
+      {!pageMode && <ShortcutStrip />}
+    </main>
   );
 }
 
@@ -415,15 +378,6 @@ function SiteHeader({
         <span className="header-location">Demo</span>
       </a>
       <div className="header-controls">
-        <a
-          href="#integration"
-          onClick={() => {
-            const section = document.getElementById('integration') as HTMLDetailsElement | null;
-            if (section) section.open = true;
-          }}
-        >
-          Use in React <span aria-hidden="true">↗</span>
-        </a>
         <button
           className="theme-toggle"
           aria-label="Toggle color theme"
@@ -466,7 +420,7 @@ function RowSizing({
 }) {
   const [targetRow, setTargetRow] = useState(73_500_000);
   const [align, setAlign] = useState<ScrollAlignment>('center');
-  const [saved, setSaved] = useState<NavigationLocation | null>(null);
+  const [saved, setSaved] = useState<SavedView | null>(null);
   return (
     <section className="debug-section" aria-label="Row sizing">
       <h3>Row sizing</h3>
@@ -511,10 +465,8 @@ function RowSizing({
           >
             Go to row
           </button>
-          <button onClick={() => setSaved(api.current?.controller.getLocation() ?? null)}>
-            Save position
-          </button>
-          <button disabled={!saved} onClick={() => saved && api.current?.controller.restore(saved)}>
+          <button onClick={() => setSaved(api.current?.getView() ?? null)}>Save position</button>
+          <button disabled={!saved} onClick={() => saved && api.current?.restoreView(saved)}>
             Restore position
           </button>
         </div>
