@@ -75,7 +75,15 @@ export default function App() {
   const [shared] = useState(() =>
     decodeView(window.location.hash.replace(/^#view=/, ''), provider),
   );
-  const [invalidLink] = useState(() => window.location.hash.startsWith('#view=') && !shared);
+  // A link to a row of a pasted Parquet URL is read once that file has opened.
+  const fileLink = useRef(
+    isParquet &&
+      window.location.hash.startsWith('#view=') &&
+      new URLSearchParams(window.location.search).has('url'),
+  );
+  const [invalidLink, setInvalidLink] = useState(
+    () => window.location.hash.startsWith('#view=') && !shared && !fileLink.current,
+  );
   const [datasetMapSettings, setDatasetMapSettings] = useState<Record<string, AtlasRailOptions>>(
     {},
   );
@@ -204,6 +212,12 @@ export default function App() {
     setInspected(null);
     setStats(null);
     places.current.delete('parquet');
+    if (fileLink.current) {
+      fileLink.current = false;
+      const linked = decodeView(window.location.hash.replace(/^#view=/, ''), next.provider);
+      if (linked) places.current.set('parquet', linked);
+      else setInvalidLink(true);
+    }
     const file = parquetDetails(next.provider);
     replaceUrl(
       new URLSearchParams(
@@ -307,6 +321,14 @@ export default function App() {
               dataset={dataset}
               initialUrl={new URLSearchParams(location.search).get('url')}
               onLoad={loadParquet}
+              linkToRow={() => {
+                const view = api.current?.getView();
+                const file = parquetDetails(provider);
+                if (!view || !file) return null;
+                const params = new URLSearchParams({ dataset: 'parquet' });
+                if (!file.bundled) params.set('url', file.url);
+                return `${location.origin}${location.pathname}?${params}#view=${encodeView(view)}`;
+              }}
             />
           )}
           {dataset.id === 'file' && (

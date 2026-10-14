@@ -299,7 +299,11 @@ Exit: no behavior change besides the cuts, and budgets enforced.
    production build. Found on the way: DuckDB-WASM downloads its Parquet, JSON, and ICU
    readers (signed extensions) from extensions.duckdb.org, so the page says so instead of
    "nothing leaves the page"; self-hosting them at build time, with checksums, is a
-   follow-up. Still to do: links to a row for URL sources, and show the provider.
+   follow-up. Done later the same day: **Link to this row** for the Parquet set (bundled or
+   pasted URL) copies a link that reopens the file at that row, and every dataset's intro
+   has **How this dataset connects**, showing type-checked example modules
+   (`demo/src/examples`, imported with `?raw`) and the adapter's source; generated sets say
+   they are generated and show what a provider for your own server looks like.
 
 Exit: a local file shows rows and an exact map with ten lines of host code or fewer, SQL
 search reports complete results, and browser tests pass in all three engines.

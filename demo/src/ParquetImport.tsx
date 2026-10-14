@@ -48,12 +48,16 @@ export function ParquetImport({
   dataset,
   initialUrl,
   onLoad,
+  linkToRow,
 }: {
   dataset: DemoDataset;
   /** A file to open on mount, such as the `url` of a shared link. */
   initialUrl: string | null;
   onLoad(dataset: DemoDataset): void;
+  /** A link that opens this file at the current row and selection. */
+  linkToRow?(): string | null;
 }) {
+  const [link, setLink] = useState<{ href: string; copied: boolean } | null>(null);
   const info = parquetDetails(dataset.provider);
   const [url, setUrl] = useState(initialUrl ?? '');
   const [error, setError] = useState('');
@@ -120,6 +124,36 @@ export function ParquetImport({
         </span>
       )}
       <span>Read with HTTP range requests · needs CORS · nothing is uploaded</span>
+      {linkToRow && (
+        <span className="row-link">
+          <button
+            type="button"
+            onClick={() => {
+              const href = linkToRow();
+              if (!href) return;
+              setLink({ href, copied: false });
+              // The address stays in the field when the clipboard is unavailable.
+              navigator.clipboard?.writeText(href).then(
+                () => setLink({ href, copied: true }),
+                () => {},
+              );
+            }}
+          >
+            Link to this row
+          </button>
+          {link && (
+            <>
+              <input
+                readOnly
+                aria-label="Link to this row"
+                value={link.href}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+              {link.copied && <span role="status">Copied</span>}
+            </>
+          )}
+        </span>
+      )}
       {error && <p role="alert">{error}</p>}
     </div>
   );

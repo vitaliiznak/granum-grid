@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } 
 import { datasetGroups, type DemoDataset } from './datasets';
 import { compact, formatCount } from './datasets/types';
 import { models } from './data/models';
+import { providerCode } from './providerCode';
 
 const sparklines = new Map<string, string>();
 function sparkline(id: string, profileValues?: (number | null)[]) {
@@ -201,7 +202,35 @@ export function DatasetIntro({
         </div>
       </dl>
       {dataset.sourceNote && <p className="source-note">{dataset.sourceNote}</p>}
+      <ProviderCode dataset={dataset} />
     </section>
+  );
+}
+
+/** The code behind a dataset, so a reader can see how little an integration takes. */
+function ProviderCode({ dataset }: { dataset: DemoDataset }) {
+  const connection = providerCode[dataset.id];
+  if (!connection) return null;
+  return (
+    <details className="provider-code">
+      <summary>How this dataset connects</summary>
+      {connection.code && (
+        <>
+          {dataset.origin === 'synthetic' && (
+            <p>
+              These rows are generated in your browser. A provider for your own server is this
+              small:
+            </p>
+          )}
+          <pre>
+            <code>{connection.code.trim()}</code>
+          </pre>
+        </>
+      )}
+      <a href={connection.source} target="_blank" rel="noreferrer">
+        {connection.label} source
+      </a>
+    </details>
   );
 }
 

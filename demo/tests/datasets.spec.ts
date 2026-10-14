@@ -37,3 +37,18 @@ test('a search step types into the real jump bar', async ({ page }) => {
     timeout: 8000,
   });
 });
+
+test('each dataset shows how it connects, with real provider code', async ({ page }) => {
+  await page.goto('/?dataset=file');
+  await page.getByText('How this dataset connects', { exact: true }).click();
+  await expect(page.locator('.provider-code code')).toContainText('createSqlSource');
+  await expect(page.getByRole('link', { name: '@granum/sql source' })).toHaveAttribute(
+    'href',
+    /packages\/sql\/src\/index\.ts$/,
+  );
+  await page.goto('/?dataset=logs');
+  await page.getByText('How this dataset connects', { exact: true }).click();
+  // Generated rows are not passed off as a server's: the code shows what yours would be.
+  await expect(page.locator('.provider-code')).toContainText('generated in your browser');
+  await expect(page.locator('.provider-code code')).toContainText('fetchRows');
+});

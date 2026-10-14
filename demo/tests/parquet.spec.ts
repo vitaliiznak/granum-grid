@@ -84,3 +84,23 @@ test('a server that ignores byte ranges is refused before it sends the file', as
     page.getByRole('heading', { name: 'A 2 GB Parquet file, read in place' }),
   ).toBeVisible();
 });
+
+test('a link to a row reopens a pasted Parquet file at that row', async ({ page, pageErrors }) => {
+  await serveParquet(page);
+  await page.goto('/?dataset=parquet');
+  await page.getByLabel('Parquet file URL').fill(FILE_URL);
+  await page.getByRole('button', { name: 'Open Parquet URL' }).click();
+  await expect(page.getByRole('heading', { name: 'readings.parquet' })).toBeVisible();
+  await page.getByRole('button', { name: 'Go to…' }).click();
+  await page.getByRole('textbox', { name: 'Go to row, date, or event' }).fill('735');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('position')).toHaveText('Row 735 of 1,000');
+  await page.getByRole('button', { name: 'Link to this row' }).click();
+  const link = await page.getByRole('textbox', { name: 'Link to this row' }).inputValue();
+  expect(new URL(link).searchParams.get('url')).toBe(FILE_URL);
+  await page.goto(link);
+  await expect(page.getByRole('heading', { name: 'readings.parquet' })).toBeVisible();
+  await expect(page.getByTestId('position')).toHaveText('Row 735 of 1,000');
+  await expect(page.locator('.shared-view-error')).toHaveCount(0);
+  expect(pageErrors).toEqual([]);
+});
