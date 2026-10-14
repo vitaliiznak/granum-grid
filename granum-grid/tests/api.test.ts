@@ -27,7 +27,9 @@ it('captures independent views, restores selection and location, and rejects for
     api.scrollToIndex(2_999_999_999, { align: 'start' });
     api.setSelection({ start: 2_999_999_990, end: 3_000_000_000 });
     const saved = api.getView();
-    expect(saved.location.position).toBe(2_999_999_999);
+    // The last row ends at the viewport's bottom and stays the current row.
+    expect(saved.location.position).toBe(api.getSnapshot().maxPosition);
+    expect(api.getSnapshot().activeIndex).toBe(2_999_999_999);
     api.scrollToIndex(0, { align: 'start' });
     api.setSelection(null);
     api.restoreView(saved);

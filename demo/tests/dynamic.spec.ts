@@ -114,3 +114,21 @@ test('wrapping responds to width and measured rows stay anchored', async ({ page
   await expect(target).toHaveAttribute('data-status', 'ready');
   await expect(page.getByTestId('position')).toHaveText('Row 61,700,000 of 100,000,000');
 });
+
+test('switching measured heights keeps the current row and history', async ({ page }) => {
+  await page.getByRole('button', { name: 'Spike 3', exact: true }).click();
+  const position = page.getByTestId('position');
+  await expect(position).toHaveText('Row 61,700,000 of 100,000,000');
+  for (const measured of [false, true]) {
+    await withDebug(page, (dialog) =>
+      dialog.getByRole('checkbox', { name: 'Dynamic row heights' }).setChecked(measured),
+    );
+    await expect(position).toHaveText('Row 61,700,000 of 100,000,000');
+    await expect(page.getByRole('grid').locator('[aria-rowindex="61700000"]')).toHaveAttribute(
+      'data-status',
+      'ready',
+    );
+  }
+  await expect(page.getByRole('button', { name: 'Back to previous location' })).toBeEnabled();
+  await assertAdjacent(page);
+});

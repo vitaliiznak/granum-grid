@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { DataSession } from '../src/data/session';
+import { DataSession, sessionKey } from '../src/data/session';
 import type { AggregateRequest, Bucket, DataProvider } from '../src/data/types';
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 const rows = async (start: number, count: number) =>
@@ -393,4 +393,36 @@ it('counts a search as an active request and rejects addresses outside the revis
   await expect(excessive).rejects.toThrow('invalid search addresses');
   expect(session.getStats().activeRequests).toBe(0);
   await expect(open({}).search(query, context)).rejects.toThrow('does not support search');
+});
+
+it('keeps cached rows when the same provider object is rebuilt', async () => {
+  const make = (fetchRows: DataProvider<number>['fetchRows']): DataProvider<number> => ({
+    id: 'readings',
+    revision: '1',
+    rowCount: 1000,
+    fetchRows,
+  });
+  const first = vi.fn(rows);
+  const before = make(first);
+  const session = new DataSession(before);
+  session.start();
+  session.setRange('visible', 0, 10);
+  await vi.waitFor(() => expect(session.has(0)).toBe(true));
+  // Built again during render: same identity, revision, rows, and capabilities.
+  const second = vi.fn(rows);
+  const after = make(second);
+  expect(sessionKey(after, false)).toEqual(sessionKey(before, false));
+  expect(sessionKey({ ...after, revision: '2' }, false)).not.toEqual(sessionKey(before, false));
+  expect(sessionKey({ ...after, rowCount: 1001 }, false)).not.toEqual(sessionKey(before, false));
+  expect(sessionKey({ ...after, rowCount: 1001 }, true)).toEqual(sessionKey(before, true));
+  expect(sessionKey({ ...after, fetchMarkers: async () => [] }, false)).not.toEqual(
+    sessionKey(before, false),
+  );
+  session.updateAppendProvider(after);
+  expect(session.has(0)).toBe(true);
+  session.setRange('visible', 600, 10);
+  await vi.waitFor(() => expect(session.has(600)).toBe(true));
+  expect(first).toHaveBeenCalledTimes(1);
+  expect(second).toHaveBeenCalledTimes(1);
+  session.stop();
 });

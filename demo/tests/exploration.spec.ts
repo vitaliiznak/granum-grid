@@ -152,18 +152,26 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
     await popup.reload();
     await expect(popup.getByTestId('position')).toHaveText('Row 73,500,010 of 100,000,000');
     await expect.poll(nativeProgress).toBeCloseTo(0.735, 5);
-    // Native scrollbar offsets address the whole dataset, including its middle.
+    // Native scrollbar offsets address the whole dataset: its middle shows the middle row.
+    // The range ends where the last row meets the bottom, so the middle row sits mid-screen.
     await popup.evaluate(() =>
       window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) / 2),
     );
-    await expect(popup.getByTestId('position')).toHaveText('Row 50,000,000 of 100,000,000');
+    await expect(popup.getByRole('grid').locator('[aria-rowindex="50000000"]')).toBeInViewport();
+    const middle = Number(
+      (await popup.getByTestId('position').innerText())
+        .match(/^Row ([\d,]+)/)![1]
+        .replaceAll(',', ''),
+    );
     await expect(popup.getByRole('slider', { name: 'Dataset position' })).toHaveAttribute(
       'aria-valuenow',
-      '50000000',
+      String(middle),
     );
     await popup.locator('.ds-rail-title').hover();
     await popup.mouse.wheel(0, 400);
-    await expect(popup.getByTestId('position')).toHaveText('Row 50,000,010 of 100,000,000');
+    await expect(popup.getByTestId('position')).toHaveText(
+      `Row ${(middle + 10).toLocaleString('en-US')} of 100,000,000`,
+    );
     // Scrubbing the map updates the native scrollbar in the reverse direction.
     const track = (await popup.locator('.ds-track').boundingBox())!;
     await popup.keyboard.down('Shift');
@@ -176,9 +184,20 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
     await popup.getByRole('grid').press('End');
     await expect(popup.getByTestId('position')).toHaveText('Row 100,000,000 of 100,000,000');
     await expect.poll(nativeProgress).toBe(1);
+    // The last row ends at the bottom, so the top row depends on the viewport's height.
+    const topRow = await popup.getByRole('grid').evaluate((element) => {
+      const top = element.getBoundingClientRect().top + element.clientTop + 0.5;
+      const row = [...element.querySelectorAll('[role=row]')].find((candidate) => {
+        const box = candidate.getBoundingClientRect();
+        return box.top <= top && box.bottom > top;
+      });
+      return Number(row!.getAttribute('aria-rowindex'));
+    });
     await popup.getByRole('grid').hover();
     await popup.mouse.wheel(0, -120);
-    await expect(popup.getByTestId('position')).toHaveText('Row 99,999,997 of 100,000,000');
+    await expect(popup.getByTestId('position')).toHaveText(
+      `Row ${(topRow - 3).toLocaleString('en-US')} of 100,000,000`,
+    );
     await popup.setViewportSize(MOBILE);
     await expect
       .poll(() =>

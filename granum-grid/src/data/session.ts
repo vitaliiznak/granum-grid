@@ -27,6 +27,22 @@ const MAX_PENDING_TRANSPORTS = 8;
 /** Rough in-memory sizes used to keep metadata within the cache budget. */
 const BUCKET_BYTES = 96;
 const ITEM_BYTES = 160;
+/**
+ * What a session's cached rows and metadata depend on. Provider objects with equal keys can
+ * share a session, so one rebuilt during render keeps its cache. Append mode leaves out the
+ * row count, which may grow. Internal to the library.
+ */
+export function sessionKey(provider: DataProvider<unknown>, append: boolean): unknown[] {
+  return [
+    provider.id,
+    provider.revision,
+    append ? null : provider.rowCount,
+    !!provider.fetchOverview,
+    !!provider.fetchOverviewTracks,
+    !!provider.fetchMarkers,
+    !!provider.fetchChapters,
+  ];
+}
 export class DataSession<Row> {
   readonly cache: PageCache<Row>;
   overview: Bucket[] = [];
@@ -60,6 +76,10 @@ export class DataSession<Row> {
     if (!Number.isFinite(this.requestTimeoutMs) || this.requestTimeoutMs < 1)
       throw new RangeError('requestTimeoutMs must be positive');
   }
+  /**
+   * Install a provider with the same identity and revision and at least as many rows. An
+   * equal count only replaces the provider object; cached rows and metadata stay.
+   */
   updateAppendProvider(provider: DataProvider<Row>) {
     if (
       provider.id !== this.provider.id ||

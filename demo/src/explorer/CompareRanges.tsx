@@ -53,12 +53,12 @@ export function CompareRanges<Row>({
       try {
         // A saved view is the public way to place a pane at a fractional row address.
         const s = from.getSnapshot();
-        const count = to.getSnapshot().rowCount;
-        if (!count) return;
-        const progress = s.position / Math.max(1, s.rowCount - 1);
+        const target = to.getSnapshot();
+        if (!target.rowCount) return;
+        // Each pane reaches its end together: the ratio runs from the top to the end clamp.
+        const progress = s.maxPosition ? s.position / s.maxPosition : 0;
         const view = to.getView();
-        // A tall final row can end at a fractional address; a saved view stays below the count.
-        const position = Math.min(progress * Math.max(0, count - 1), count - 0.001);
+        const position = progress * target.maxPosition;
         if (view.location.position !== position)
           to.restoreView({ ...view, location: { position }, selection: null });
       } finally {

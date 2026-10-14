@@ -36,7 +36,7 @@ import { useFollowOutput } from './useFollowOutput.js';
 import { useRowRequests } from './useRowRequests.js';
 import { handleViewportKey } from './keyboard.js';
 import { bucketAt, chapterAt } from '../core/navigation.js';
-import { DataSession } from '../data/session.js';
+import { DataSession, sessionKey } from '../data/session.js';
 import { defaultFeatures, type Features } from '../features.js';
 import type {
   CacheOptions,
@@ -226,9 +226,12 @@ export function useGranumGrid<Row>({
       // Append mode keeps the engine across count changes; snapshots rebuild it.
       append ? null : provider.rowCount,
       append,
-      rowHeight,
-      dynamicRowHeight,
     ],
+  );
+  // Row addresses do not depend on row height, so a new height keeps the place and history.
+  useClientLayoutEffect(
+    () => engine.setRowLayout(rowHeight, dynamicRowHeight),
+    [engine, rowHeight, dynamicRowHeight],
   );
   useWindowScroll(engine, windowScroll);
   const [selectionState, setSelectionState] = useState({ engine, value: initialSelection });
@@ -282,11 +285,8 @@ export function useGranumGrid<Row>({
   const session = useKeyed(
     () => new DataSession(provider, cache),
     [
-      append ? provider.id : provider,
+      ...sessionKey(provider, append),
       append,
-      provider.id,
-      provider.revision,
-      append ? null : provider.rowCount,
       cache?.maxBytes,
       cache?.pageSize,
       cache?.estimateRowBytes,
@@ -303,6 +303,10 @@ export function useGranumGrid<Row>({
   if (rowFocus && !currentFocus) setRowFocus(null);
   const focusedIndex = onRowActivate && currentFocus ? rowFocus.index : snapshot.activeIndex;
   const unseenRows = useFollowOutput(engine, session, provider, followOutput, snapshot);
+  // A provider object rebuilt during render with the same key keeps the session and its cache.
+  useEffect(() => {
+    if (!append) session.updateAppendProvider(provider);
+  }, [append, session, provider]);
   useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   useEffect(() => {
     latestSession.current = session;
@@ -325,8 +329,10 @@ export function useGranumGrid<Row>({
     () =>
       engine.onNavigate((event) => {
         const chapter = chapterAt(session.chapters, event.to.position);
+        // A jump below the end clamp names the requested row, not the first visible one.
+        const row = engine.getSnapshot().activeIndex ?? Math.floor(event.to.position);
         setAnnouncement(
-          `Jumped to row ${(Math.floor(event.to.position) + 1).toLocaleString()}${chapter ? `, ${chapter.label}` : ''}`,
+          `Jumped to row ${(row + 1).toLocaleString()}${chapter ? `, ${chapter.label}` : ''}`,
         );
         latestOnNavigate.current?.(event);
       }),

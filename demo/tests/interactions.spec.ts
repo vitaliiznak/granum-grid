@@ -220,3 +220,47 @@ test('browser zoom gestures remain available without changing rows', async ({ pa
   expect(prevented).toBe(false);
   await expect(page.getByTestId('position')).toHaveText(position);
 });
+
+test('a wheel gesture that starts at either end goes to the page, and sideways wheels pass through', async ({
+  page,
+}) => {
+  const grid = page.getByRole('grid');
+  const position = page.getByTestId('position');
+  // One gesture: events dispatched together, well within the gesture gap.
+  const gesture = (...deltas: [number, number][]) =>
+    grid.evaluate(
+      (element, deltas) =>
+        deltas.map(([deltaY, deltaX]) => {
+          const event = new WheelEvent('wheel', {
+            deltaY,
+            deltaX,
+            cancelable: true,
+            bubbles: true,
+          });
+          element.dispatchEvent(event);
+          return event.defaultPrevented;
+        }),
+      deltas,
+    );
+  const nextGesture = () => page.waitForTimeout(300);
+  await expect(position).toHaveText('Row 1 of 100,000,000');
+  // At the first row, pushing up scrolls the page.
+  expect(await gesture([-100, 0])).toEqual([false]);
+  await nextGesture();
+  // A gesture that starts by moving rows keeps them after it reaches the top.
+  expect(await gesture([100, 0], [-1000, 0], [-100, 0])).toEqual([true, true, true]);
+  await expect(position).toHaveText('Row 1 of 100,000,000');
+  // Sideways wheels belong to wide content and horizontally scrolling ancestors.
+  expect(await gesture([0, 120], [10, 120])).toEqual([false, false]);
+  await grid.press('End');
+  await expect(position).toHaveText('Row 100,000,000 of 100,000,000');
+  await nextGesture();
+  expect(await gesture([100, 0])).toEqual([false]);
+  // overscroll-behavior: contain keeps every gesture in the rows.
+  await grid.evaluate((element) => {
+    element.style.overscrollBehaviorY = 'contain';
+  });
+  await nextGesture();
+  expect(await gesture([100, 0])).toEqual([true]);
+  await expect(position).toHaveText('Row 100,000,000 of 100,000,000');
+});

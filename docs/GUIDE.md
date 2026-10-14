@@ -14,8 +14,10 @@ rationale and decisions.
 
 A `DataProvider<Row>` needs `id`, `revision`, `rowCount`, and
 `fetchRows(start, count, signal)`. API indices are zero-based, visible row numbers are
-one-based, and ranges are half-open `[start, end)`. Define providers outside render or
-memoize them.
+one-based, and ranges are half-open `[start, end)`. A provider rebuilt during render keeps
+its data session and cached rows while its `id`, `revision`, `rowCount`, and summary
+methods stay the same, so change `revision` whenever rows change. Define providers outside
+render or memoize them anyway: the `api` handle follows provider identity.
 
 - `Row` is opaque. The library passes it to your renderer without inspecting or
   serializing it, so primitive, nested, nullable, and non-JSON values work. Parsing
@@ -194,7 +196,8 @@ function Notes() {
 }
 ```
 
-With `dynamicRowHeight`, `rowHeight` is the estimate for unloaded/unmeasured rows. One `ResizeObserver` measures the border boxes of loaded DOM rows and batches corrections. Wrapping, expansion, and late content changes are measured automatically. Use padding inside rows rather than external vertical margins; margins are not part of a measured border box. In a headless layout, spread `getRowProps(slot)` on the actual row element, including its measurement `ref`, and do not impose a fixed height on that element.
+With `dynamicRowHeight`, `rowHeight` is the estimate for unloaded/unmeasured rows. Changing
+`rowHeight` or `dynamicRowHeight` keeps the current row and history. One `ResizeObserver` measures the border boxes of loaded DOM rows and batches corrections. Wrapping, expansion, and late content changes are measured automatically. Use padding inside rows rather than external vertical margins; margins are not part of a measured border box. In a headless layout, spread `getRowProps(slot)` on the actual row element, including its measurement `ref`, and do not impose a fixed height on that element.
 
 The engine keeps a sparse cache of measured heights, not an array of 100 million sizes. The hook keeps up to 4,096 measurements, and mounted rows stay measured beyond that budget; the framework-independent `createEngine` takes `maxMeasuredRows` to change it. `onStats.measuredRows` reports the count separately from the row-data byte estimate. A width change clears old width-dependent measurements and remeasures mounted content. Provider identity/revision changes create a fresh measurement cache. Hosts can call `api.resetMeasurements()` when offscreen content or typography changes.
 
@@ -213,7 +216,7 @@ Rows retain the leading row address and pixel offset while content changes, clam
 - Use **Go to…**, Cmd/Ctrl+K inside the component, or `/` in the viewport. See [search](#search) for the accepted input.
 - Arrows move one row; PageUp/PageDown move a visible span; Home/End reach the endpoints. N/P visit markers. Cmd/Ctrl+Up/Down visit chapter boundaries.
 - Back/Forward and Alt+Left/Right restore committed jumps. Wheel motion is not a history entry. Mouse back/forward interception depends on the browser.
-- Read one record per line. The current address is the first visible row, so the final row can rest at the top of the viewport; the space below it is marked as the end of the dataset. Pulling past either end resists and springs back while elastic edges are on. The dataset map always covers the whole dataset. Ctrl+wheel and pinch remain browser zoom gestures.
+- Read one record per line. The current address is the first visible row. Scrolling stops when the last row ends at the bottom of the viewport; a jump to a row below that point shows it there and keeps it current until the reader scrolls. A wheel gesture that starts by pushing past either end scrolls the page, as a native scroller does, while one that starts by moving rows keeps them to its end, resisting and springing back while elastic edges are on. Set `overscroll-behavior: contain` on the viewport to keep every wheel gesture in the rows. Sideways wheels pass through to wide content. The dataset map always covers the whole dataset. Ctrl+wheel and pinch remain browser zoom gestures.
 - Reduced motion follows the system preference or `reducedMotion={true}`. The component retains direct navigation while suppressing flights, touch inertia, elastic edges, and the fast-fling overview.
 
 `goTo(index)` accepts a safe integer, clamps it to the dataset, chooses an animated or

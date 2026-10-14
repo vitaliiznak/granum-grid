@@ -76,7 +76,7 @@ const rows: Reading[] = Array.from({ length: 10_000 }, (_, index) => ({
   value: 20 + Math.sin(index / 100) * 5,
 }));
 
-// Stable between renders: changing provider identity creates a new data session.
+// The id and revision name these rows: change the revision when the rows change.
 const provider = createArrayProvider(rows, { id: 'readings', revision: '1' });
 
 export default function App() {
@@ -316,9 +316,11 @@ may increase, never decrease; `follow` is append mode that also stays at the end
 props `toolbar`, `rail`, and `footer` take `false` to hide the region, an object to
 configure it, or a function to render your own; `panel` holds your own content above the
 rows.
-Keep provider objects outside render or memoize them: changing object identity in
-snapshot mode creates a new data session. Changing identity/revision also resets
-navigation; appending with the same identity retains its prior addresses.
+A provider rebuilt during render keeps its data session and cached rows while its `id`,
+`revision`, `rowCount`, and summary methods are unchanged. Changing `id` or `revision`
+starts a new session and resets navigation; appending with the same identity retains its
+prior addresses. Keep provider objects outside render or memoize them anyway, so the
+`api` handle keeps one identity.
 
 Loaded rows re-render only when their row, index, focus, or `renderRow` function
 changes. For rows with expensive content, define `renderRow` outside the component or
@@ -331,7 +333,7 @@ parent render. Inline `onStats`, `onNavigate`, and `onSelectionChange` callbacks
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | The explorer has no layout or theme                      | Import `granum-grid/styles.css` once. Use `base.css` only when supplying your own theme.         |
 | A new Vite app is narrow or centered                     | Replace the starter `index.css` as shown above and remove any imported starter `App.css`.        |
-| Position or requests reset on every render               | Keep the provider stable; create it outside render or use `useMemo`.                             |
+| Position or requests reset on every render               | Keep the provider's `id` and `revision` stable; change the revision only when rows change.       |
 | Rows show an error                                       | Check the response shape, exact requested count, revision, and HTTP status.                      |
 | Search or summaries are unavailable                      | Implement the corresponding optional provider methods; `createArrayProvider` supplies rows only. |
 | An API jump is off by one                                | `scrollToIndex(4999)` targets visible row 5,000. Ranges use `[start, end)`.                      |

@@ -4,6 +4,8 @@ import { NATIVE_SCROLL, isControl, isTextEntry } from './dom.js';
 
 /** Largest rubber-band shift. Further pull barely moves, so the edge reads as a wall. */
 const EDGE_LIMIT = 48;
+/** Wheel events closer together than this, trackpad momentum included, are one gesture. */
+const WHEEL_GESTURE_GAP = 200;
 
 /** Signed visual offset for accumulated overscroll. Positive is past the end. */
 export function edgeVisual(pull: number): number {
@@ -52,6 +54,16 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
     suppressClick = false;
   // Whether a wheel target scrolls natively. Reused within a gesture to skip layout reads.
   let native = { target: null as EventTarget | null, until: 0, scrolls: false };
+  // Who receives the current wheel gesture in an embedded viewport, decided when it starts.
+  let wheelOwner: 'rows' | 'page' = 'rows',
+    lastWheel = -Infinity;
+  /** Whether a push of `pixels` would move past either end. */
+  const blocked = (pixels: number) => {
+    const { position, maxPosition } = engine.getSnapshot();
+    return (pixels < 0 && position <= 0) || (pixels > 0 && position >= maxPosition);
+  };
+  /** `overscroll-behavior: contain` or `none` on the viewport keeps every gesture in the rows. */
+  const contained = () => /^(contain|none)$/.test(getComputedStyle(viewport).overscrollBehaviorY);
   const scrollsNatively = (target: EventTarget | null) => {
     for (
       let node = target as HTMLElement | null;
@@ -135,15 +147,19 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
   };
   const wheel = (event: WheelEvent) => {
     if (event.defaultPrevented || isTextEntry(event.target)) return;
+    const now = performance.now();
+    const newGesture = now - lastWheel > WHEEL_GESTURE_GAP;
+    lastWheel = now;
     if (options.windowScroll) {
       // Panels and dialogs retain their own native scrolling, including any
       // nested explorer. The fixed page's remaining surface uses row pixels.
-      const now = performance.now();
       if (event.target !== native.target || now > native.until)
         native = { target: event.target, until: 0, scrolls: scrollsNatively(event.target) };
       native.until = now + 200;
       if (native.scrolls) return;
     }
+    // Sideways wheels belong to wide content and horizontally scrolling ancestors.
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
     cancelInertia();
     // Browser zoom remains available; there is no separate summary zoom mode.
     if (event.ctrlKey) return;
@@ -153,18 +169,16 @@ export function bindInputs(viewport: HTMLElement, engine: GranumGridEngine, opti
       viewport.clientHeight,
       engine.getSnapshot().rowHeight,
     );
-    if (!options.elasticity) {
-      const state = engine.getSnapshot();
-      if (
-        (state.position <= 0 && pixels < 0) ||
-        (state.position >= Math.max(0, state.rowCount - 1) && pixels > 0)
-      ) {
-        if (options.windowScroll) event.preventDefault();
-        return;
-      }
+    if (!options.windowScroll) {
+      // As with a native scroller, a gesture that starts by pushing past an end scrolls the
+      // page, and one that starts by moving rows keeps them until it ends.
+      if (newGesture) wheelOwner = blocked(pixels) && !contained() ? 'page' : 'rows';
+      if (wheelOwner === 'page') return;
     }
     event.preventDefault();
-    pan(pixels, performance.now());
+    // Without elastic edges, a push past either end does nothing.
+    if (!options.elasticity && blocked(pixels)) return;
+    pan(pixels, now);
   };
   const down = (event: PointerEvent) => {
     cancelInertia();

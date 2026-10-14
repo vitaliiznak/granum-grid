@@ -28,6 +28,18 @@ test('orientation is consistent and the final row is reachable without a tall sp
   await grid.focus();
   await grid.press('End');
   await expect(page.getByTestId('position')).toHaveText('Row 100,000,000 of 100,000,000');
+  // The final row ends at the bottom of the viewport, with rows above it rather than a gap.
+  await expect(grid.locator('[aria-rowindex="100000000"]')).toHaveAttribute('data-status', 'ready');
+  await expect
+    .poll(() =>
+      grid.evaluate((element) => {
+        const row = element.querySelector('[aria-rowindex="100000000"]')!.getBoundingClientRect();
+        const top = element.getBoundingClientRect().top + element.clientTop;
+        return Math.round(top + element.clientHeight - row.bottom);
+      }),
+    )
+    .toBe(0);
+  await expect(grid.locator('.ds-dataset-end')).toHaveCount(0);
   await expect(page.getByRole('slider', { name: 'Dataset position' })).toHaveAttribute(
     'aria-valuenow',
     '100000000',

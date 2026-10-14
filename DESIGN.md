@@ -49,8 +49,16 @@ magnifier, precision dragging, previews, and a visited trail.
 
 ## Interaction rules
 
-- The current address is the first fully visible row. The map always covers the whole
-  dataset while the reading surface displays individual records.
+- The current address is the first fully visible row. Scrolling stops when the last row
+  ends at the viewport's bottom, so the end never shows a blank viewport; a jump to a row
+  below that point keeps it current until the reader moves. In page layout the native
+  scroll range runs from the first row to that end, so its middle centers the middle row.
+  The map always covers the whole dataset while the reading surface displays individual
+  records.
+- A wheel gesture belongs to whoever it starts in, as with native scroll latching: one
+  that starts by pushing past either end scrolls the page, and one that starts by moving
+  rows keeps them until it pauses for 200 ms. `overscroll-behavior: contain` on the
+  viewport keeps every gesture. Mostly sideways wheels are never taken.
 - Percent is a dataset address: 0% is the first row and 100% the last. Breadcrumbs never
   invent a precise timestamp from a bucket.
 - A scrub is one history entry; Escape or pointer cancellation restores its start. Wheel
@@ -216,9 +224,17 @@ results describe the test machine; 60 fps is a target, not a claim.
   corners.
 - **The rail's arrow keys pan one fixed row height.** Routing them through
   `handleMovementKey` would change the slider's step with dynamic row heights.
-- **The playground's linked comparison panes share a progress ratio** and place each
-  other with `restoreView`, held just below the row count because saved views reject an
-  address past the last row.
+- **The playground's linked comparison panes share a progress ratio** from the top to
+  each pane's `maxPosition`, so both reach their ends together, and place each other
+  with `restoreView`.
+- **Row height is layout, not identity.** `rowHeight` and `dynamicRowHeight` change the
+  engine in place (`setRowLayout`) instead of rebuilding it, because row addresses do not
+  depend on height: the current row, its pixel offset, and history stay. Leaving measured
+  heights drops measurements so alignment uses the fixed height.
+- **A data session belongs to the provider's data, not its object.** Sessions are keyed
+  by `id`, `revision`, `rowCount` (outside append mode), and which summary methods exist.
+  A provider rebuilt during render swaps into the existing session, so cached rows stay;
+  before, every parent render refetched the visible pages.
 - **`demo/src/data/trace.ts` imports only types from `granum-grid`.** The dev server's trace
   plugin loads it without a library build.
 - **No shared select component for map settings.** It was longer than the plain selects.

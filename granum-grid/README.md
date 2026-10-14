@@ -120,7 +120,8 @@ The package test pins the runtime exports of `granum-grid` and `granum-grid/head
 Chrome and Edge 100+, Firefox 104+, and Safari/iOS Safari 15.4+. This is the floor the code needs (for example `Array.prototype.findLast`, `AbortSignal.throwIfAborted`, `<dialog>`, and CSS cascade layers); it is declared as `browserslist` in `package.json`, and `npm run lint` checks JavaScript and Web APIs against it. Browsers without cascade layers ignore the stylesheets entirely, so there is no partial-layout fallback. The optional skin in `styles.css` tints some borders and highlights with `color-mix()` (Chrome 111, Firefox 113, Safari 16.2); earlier browsers show them untinted. Dynamic viewport units fall back to `vh`.
 
 - Ctrl+wheel and trackpad pinch retain browser page zoom.
-- On touch screens the viewport captures vertical swipes to pan rows (`touch-action: pan-x pinch-zoom`). A swipe that reaches either end of the dataset does not continue into the page. With elastic edges on, the wheel resists and springs back at either end as well. With elastic edges off, the wheel continues into the page. Leave page area outside an embedded explorer on phones, or use `layout="page"`.
+- A wheel gesture that starts by pushing past either end of the dataset scrolls the page, as a native scroller does; one that starts by moving rows keeps them to its end. Set `overscroll-behavior: contain` on the viewport to keep every wheel gesture in the rows. Sideways wheels pass through to wide content.
+- On touch screens the viewport captures vertical swipes to pan rows (`touch-action: pan-x pinch-zoom`). A swipe that reaches either end of the dataset does not continue into the page. Leave page area outside an embedded explorer on phones, or use `layout="page"`.
 
 ## Documentation
 

@@ -11,8 +11,14 @@ export interface NavigationEvent {
 }
 export interface NavigationSnapshot extends NavigationLocation {
   rowCount: number;
+  /**
+   * The current row: the first visible row, or the row a jump asked for when it lies below
+   * `maxPosition` and so cannot reach the top.
+   */
   activeIndex: number | null;
   progress: number;
+  /** The largest position: the end of the last row meets the bottom of the viewport. */
+  maxPosition: number;
   moving: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
@@ -86,6 +92,8 @@ export interface GranumGridEngine extends NavigationController {
   endScrub(cancel?: boolean): void;
   /** Adapter: report the viewport height in CSS pixels. */
   setViewport(height: number): void;
+  /** Adapter: change the row height or measuring mode; the current row and history stay. */
+  setRowLayout(rowHeight: number, dynamicRowHeight: boolean): void;
   /** Adapter: enable animated flights (disabled for reduced motion). */
   setMotion(enabled: boolean): void;
   /** Adapter: markers and chapters used by marker and chapter navigation. */
@@ -108,10 +116,23 @@ export function atEnd(
 export function createEngine(options: EngineOptions): GranumGridEngine {
   if (!Number.isSafeInteger(options.rowCount) || options.rowCount < 0)
     throw new RangeError('rowCount must be a nonnegative safe integer');
-  const rowHeight = options.rowHeight ?? 32;
+  let rowHeight = options.rowHeight ?? 32;
   if (!Number.isFinite(rowHeight) || rowHeight < 1)
     throw new RangeError('rowHeight must be positive');
+  let dynamic = !!options.dynamicRowHeight;
   const rowSizes = new RowSizes(options.rowCount, rowHeight, options.maxMeasuredRows);
+  /** The last row's end meets the viewport's bottom, so scrolling never leaves blank rows. */
+  const endPosition = (rowCount: number, height: number) =>
+    !rowCount
+      ? 0
+      : dynamic
+        ? clamp(rowSizes.advance(rowCount, -height), 0, rowCount)
+        : Math.max(0, rowCount - height / rowHeight);
+  /**
+   * A row a jump asked for that lies below `maxPosition`. It stays the active row, and the
+   * viewport stays at the end, until the reader moves.
+   */
+  let activeRow: number | undefined;
   const lastIndex = () => Math.max(0, options.rowCount - 1);
   /** Validate a host-supplied row index and clamp it to the dataset. */
   const clampIndex = (index: number) => {
@@ -141,6 +162,7 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     rowCount: options.rowCount,
     activeIndex: options.rowCount ? 0 : null,
     progress: 0,
+    maxPosition: endPosition(options.rowCount, 480),
     moving: false,
     canGoBack: false,
     canGoForward: false,
@@ -164,12 +186,10 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       canGoForward: forwardStack.length > 0,
       backLocation: backStack.at(-1) ?? null,
     };
-    const last = Math.max(0, next.rowCount - 1);
-    const maxPosition = options.dynamicRowHeight
-      ? last + Math.max(0, 1 - next.height / rowSizes.size(last))
-      : last;
-    next.position = clamp(next.position, 0, maxPosition);
-    next.activeIndex = next.rowCount ? Math.floor(next.position) : null;
+    next.maxPosition = endPosition(next.rowCount, next.height);
+    next.position = clamp(next.position, 0, next.maxPosition);
+    if (activeRow !== undefined && activeRow < Math.floor(next.position)) activeRow = undefined;
+    next.activeIndex = next.rowCount ? (activeRow ?? Math.floor(next.position)) : null;
     next.progress = rowToProgress(next.position, next.rowCount);
     if (
       Object.keys(next).every(
@@ -190,6 +210,14 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
   function interrupt() {
     flight = undefined;
     update({ moving: false, flightSpan: 0, targetIndex: null });
+  }
+  /** Settle at a jump's destination; a row below the end clamp stays the active row. */
+  function arrive(patch: Partial<NavigationSnapshot> & NavigationLocation, row?: number) {
+    activeRow =
+      patch.position > endPosition(snapshot.rowCount, snapshot.height)
+        ? (row ?? Math.floor(patch.position))
+        : undefined;
+    update(patch);
   }
   /** Keep the latest 100 visited positions, skipping any within 0.1% of one already kept. */
   function addToTrail(positions: readonly number[]) {
@@ -214,21 +242,25 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
           : Math.max(0, snapshot.height - height);
     return clamp(rowSizes.advance(index, -offset), 0, lastIndex());
   }
-  function changeMeasurements(change: () => boolean) {
+  function changeMeasurements(change: () => boolean, patch: Partial<NavigationSnapshot> = {}) {
     const index = Math.floor(snapshot.position);
     const offset = (snapshot.position - index) * rowSizes.size(index);
     if (!change()) return;
     update({
+      ...patch,
       position: alignment
         ? alignedPosition(alignment.index, alignment.align)
-        : index +
-          Math.min(offset / rowSizes.size(index), 1 - Number.EPSILON * Math.max(1, index) * 2),
+        : activeRow !== undefined
+          ? activeRow
+          : index +
+            Math.min(offset / rowSizes.size(index), 1 - Number.EPSILON * Math.max(1, index) * 2),
       layoutVersion: snapshot.layoutVersion + 1,
       measuredRows: rowSizes.measuredCount,
     });
   }
   function travel(to: NavigationLocation, reason: NavigationEvent['reason'], motion = true) {
     interrupt();
+    activeRow = undefined;
     const from = location();
     if (
       animate &&
@@ -236,9 +268,12 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       Math.abs(to.position - from.position) > (2 * snapshot.height) / rowHeight
     ) {
       flight = { from, to, reason, duration: 420 };
-      update({ moving: true, targetIndex: Math.floor(to.position) });
+      update({
+        moving: true,
+        targetIndex: Math.floor(Math.min(to.position, snapshot.maxPosition)),
+      });
     } else {
-      update(to);
+      arrive(to);
       notify(from, reason);
     }
   }
@@ -259,7 +294,9 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     if (config.align) return engine.scrollToIndex(index, config);
     index = clampIndex(index);
     takeOver();
-    if (index === snapshot.position) return;
+    // Already in view at the end: the row becomes current without moving or a history entry.
+    if (Math.min(index, snapshot.maxPosition) === snapshot.position)
+      return arrive({ position: index });
     if (config.history !== 'skip') record(location());
     travel({ position: index }, config.reason ?? 'jump', config.motion !== 'instant');
   }
@@ -294,14 +331,31 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       if (Number.isFinite(height) && height > 0) {
         update({ height });
         if (alignment) update({ position: alignedPosition(alignment.index, alignment.align) });
+        else if (activeRow !== undefined) update({ position: activeRow });
       }
+    },
+    setRowLayout: (height: number, dynamicRowHeight: boolean) => {
+      if (!Number.isFinite(height) || height < 1)
+        throw new RangeError('rowHeight must be positive');
+      if (height === rowHeight && dynamicRowHeight === dynamic) return;
+      rowHeight = height;
+      dynamic = dynamicRowHeight;
+      changeMeasurements(
+        () => {
+          rowSizes.setEstimate(height);
+          // Fixed heights ignore measurements, so alignment must not read stale ones.
+          if (!dynamic) rowSizes.clear();
+          return true;
+        },
+        { rowHeight },
+      );
     },
     setMotion: (enabled: boolean) => {
       animate = enabled;
       if (!enabled && flight) {
         const pending = flight;
         flight = undefined;
-        update({ ...pending.to, moving: false, flightSpan: 0, targetIndex: null });
+        arrive({ ...pending.to, moving: false, flightSpan: 0, targetIndex: null });
         notify(pending.from, pending.reason);
       }
     },
@@ -321,36 +375,35 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
         align = top < 0 || rowSizes.size(index) > snapshot.height ? 'start' : 'end';
       }
       interrupt();
+      activeRow = undefined;
       const from = location();
       alignment = { index, align };
       const position = alignedPosition(index, align);
       if (config.history !== 'skip' && position !== from.position) record(from);
       // Measurements can change the target during travel, so aligned navigation is immediate.
-      update({ position });
+      arrive({ position }, index);
       notify(from, config.reason ?? 'jump');
     },
     restore: (to: NavigationLocation) => {
       if (!Number.isFinite(to.position)) throw new RangeError('Invalid navigation location');
       takeOver();
+      activeRow = undefined;
       update({ position: to.position });
     },
     measureRows: (rows: readonly RowMeasurement[], retained: readonly number[] = []) => {
-      if (options.dynamicRowHeight)
-        changeMeasurements(() => rowSizes.measure(rows, snapshot.position, retained));
+      if (dynamic) changeMeasurements(() => rowSizes.measure(rows, snapshot.position, retained));
     },
     resetMeasurements: () => changeMeasurements(() => rowSizes.clear()),
     pan: (pixels: number) => {
       if (!Number.isFinite(pixels)) return;
       takeOver();
       const from = snapshot.position;
-      update({
-        position: options.dynamicRowHeight
-          ? rowSizes.advance(from, pixels)
-          : from + pixels / rowHeight,
-      });
+      const position = dynamic ? rowSizes.advance(from, pixels) : from + pixels / rowHeight;
+      if (clamp(position, 0, snapshot.maxPosition) !== from) activeRow = undefined;
+      update({ position });
       return (
         pixels -
-        (options.dynamicRowHeight
+        (dynamic
           ? rowSizes.distance(from, snapshot.position)
           : (snapshot.position - from) * rowHeight)
       );
@@ -362,6 +415,7 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     scrub: (position: number) => {
       if (Number.isFinite(position)) {
         takeOver();
+        activeRow = undefined;
         update({ position });
       }
     },
@@ -415,7 +469,7 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       });
       if (t === 1) {
         flight = undefined;
-        update({ ...current.to, moving: false, flightSpan: 0, targetIndex: null });
+        arrive({ ...current.to, moving: false, flightSpan: 0, targetIndex: null });
         notify(current.from, current.reason);
       }
       return !!flight;

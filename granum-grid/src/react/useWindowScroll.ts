@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import type { GranumGridEngine } from '../core/engine.js';
-import { progressToRow } from '../core/mappings.js';
 import { NATIVE_SCROLL, isWithin, ownsKeys } from './dom.js';
 import { handleMovementKey } from './keyboard.js';
 
@@ -33,12 +32,12 @@ export function useWindowScroll(engine: GranumGridEngine, enabled: boolean) {
     };
     const sync = () => {
       const s = engine.getSnapshot();
-      limit = Math.min(1_000_000, Math.max(0, s.rowCount - 1) * s.rowHeight);
+      limit = Math.min(1_000_000, s.maxPosition * s.rowHeight);
       if (limit + viewportHeight !== spacerHeight) {
         spacerHeight = limit + viewportHeight;
         spacer.style.height = `${spacerHeight}px`;
       }
-      setScroll(s.progress * limit);
+      setScroll(s.maxPosition ? (s.position / s.maxPosition) * limit : 0);
     };
     const resize = () => {
       viewportHeight = window.innerHeight;
@@ -56,7 +55,7 @@ export function useWindowScroll(engine: GranumGridEngine, enabled: boolean) {
       try {
         // Native scrollbar drags address the entire dataset. Wheel/touch input
         // pans the engine directly so compressed scroll pixels never skip rows.
-        engine.scrub(limit ? progressToRow(y / limit, engine.getSnapshot().rowCount) : 0);
+        engine.scrub(limit ? Math.min(1, y / limit) * engine.getSnapshot().maxPosition : 0);
       } finally {
         handling = false;
       }

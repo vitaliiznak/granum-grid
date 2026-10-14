@@ -105,6 +105,20 @@ describe('sparse measured row sizes', () => {
   });
 });
 
+describe('row height estimates', () => {
+  it('change for unmeasured rows while measurements stay', () => {
+    const sizes = new RowSizes(1000, 20);
+    sizes.measure([{ index: 10, height: 50 }], 0);
+    expect(sizes.distance(0, 100)).toBe(100 * 20 + 30);
+    expect(sizes.setEstimate(10)).toBe(true);
+    expect(sizes.distance(0, 100)).toBe(100 * 10 + 40);
+    expect(sizes.size(10)).toBe(50);
+    expect(sizes.advance(0, 100 * 10 + 40)).toBe(100);
+    expect(sizes.setEstimate(10)).toBe(false);
+    expect(() => sizes.setEstimate(0)).toThrow(RangeError);
+  });
+});
+
 describe('dynamic height navigation', () => {
   const create = () =>
     createEngine({ rowCount: 100_000_000, rowHeight: 40, dynamicRowHeight: true });

@@ -31,7 +31,7 @@ export class RowSizes implements RowSizeReader {
 
   constructor(
     public rowCount: number,
-    readonly estimate: number,
+    public estimate: number,
     readonly maxMeasurements = 4096,
   ) {
     if (!Number.isSafeInteger(rowCount) || rowCount < 0)
@@ -80,6 +80,16 @@ export class RowSizes implements RowSizeReader {
     if (this.measured.size > this.maxMeasurements)
       changed = this.evict(anchor, retained) || changed;
     if (!changed) return false;
+    this.rebuildSums();
+    return true;
+  }
+
+  /** Change the height assumed for unmeasured rows; measured heights stay. */
+  setEstimate(estimate: number): boolean {
+    if (!Number.isFinite(estimate) || estimate < 1)
+      throw new RangeError('rowHeight must be at least 1 pixel');
+    if (estimate === this.estimate) return false;
+    this.estimate = estimate;
     this.rebuildSums();
     return true;
   }
