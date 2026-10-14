@@ -3,7 +3,7 @@
 The film uses **Gear** by Andrew Ev, a positive, driving electronic house track
 from Mixkit. Its embedded tempo is 127 BPM. The edit opens on the rhythmic hook,
 keeps a build and drop, then returns to the full arrangement for the closing pitch.
-[`scripts/soundtrack.mjs`](scripts/soundtrack.mjs) holds the source, license,
+[`scripts/soundtrack.mjs`](https://github.com/vitaliiznak/granum-grid/blob/media-studio/media/scripts/soundtrack.mjs) on the `media-studio` branch holds the source, license,
 SHA-256 checksum, credit, and reproducible edit.
 
 - Track listing: https://mixkit.co/free-stock-music/tag/corporate/ (Gear, Andrew Ev)
@@ -26,7 +26,7 @@ passages are omitted. The final section is trimmed to picture, with a 4-second
 fade out; extended captures can loop the source. Single-scene exports use the
 opening hook. The mix targets -16 LUFS with a -2.5 dBTP master ceiling before AAC.
 
-Download once with `node media/scripts/soundtrack.mjs fetch`. The script validates
+On that branch, download once with `node media/scripts/soundtrack.mjs fetch`. The script validates
 the checksum before caching the source in Git-ignored `output/music/`. Captures
 validate it again, work offline, and fail early if it is missing or changed.
 Keep the standalone cached recording out of version control. The output intended

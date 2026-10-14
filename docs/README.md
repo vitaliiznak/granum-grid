@@ -4,7 +4,7 @@ Use Granum Grid to explore an ordered dataset with a known row count: render row
 jump to exact addresses, and add summaries and search through your own provider.
 The library can be installed in another app independently of the demo.
 
-**Learn by building with the [lessons](wiki/Home.md).** Use inventory, sensor,
+**Learn by building with the [lessons](lessons/README.md).** Use inventory, sensor,
 log, and recording datasets to build progressively richer integrations. Each lesson
 has working code and checkpoints. For a direct setup recipe, use the
 [quick start](QUICK_START.md).
@@ -14,7 +14,7 @@ has working code and checkpoints. For a direct setup recipe, use the
 | I want to…                                      | Read                                                                                                                                                |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Get my first explorer running                   | [Quick start](QUICK_START.md)                                                                                                                       |
-| Learn through different datasets                | [Lessons](wiki/Home.md)                                                                                                                             |
+| Learn through different datasets                | [Lessons](lessons/README.md)                                                                                                                             |
 | Adapt an existing array                         | [Array recipe](QUICK_START.md#use-your-own-array)                                                                                                   |
 | Load data from my server                        | [HTTP provider recipe](QUICK_START.md#connect-an-http-api) and [provider rules](GUIDE.md#provider-contract)                                         |
 | Read a Parquet file with no server              | [`@granum/parquet`](../packages/parquet/README.md)                                                                                                  |
@@ -39,7 +39,7 @@ source is in [`granum-grid/`](../granum-grid/), with its [package README](../gra
 ## Explore the examples
 
 - [Visual tour](../README.md#visual-tour): see the navigation and range workflows.
-- [HTTP recording lesson](wiki/HTTP-recording.md): a local server and client using a real, redacted Chromium recording.
+- [HTTP recording lesson](lessons/HTTP-recording.md): a local server and client using a real, redacted Chromium recording.
 - [Media studio](../media/README.md): reproduce screenshots and video.
 
 Generated demo data, sampled search, and recording-based examples have different
@@ -48,8 +48,8 @@ as performance or completeness evidence.
 
 ## Lessons
 
-The [lessons](wiki/Home.md) are tutorial material for library users: setup, complete
-examples, expected results, and exercises. Edit them in `docs/wiki/` and review them
+The [lessons](lessons/README.md) are tutorial material for library users: setup, complete
+examples, expected results, and exercises. Edit them in `docs/lessons/` and review them
 with the code: their code blocks must match the companions in `demo/src/tutorials`,
 which `npm run check` verifies. They are read here in the repository; there is no
 separate GitHub Wiki copy.

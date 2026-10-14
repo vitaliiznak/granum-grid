@@ -43,7 +43,7 @@ GitHub Actions also uploads the checked archive as the `npm-package` artifact. I
 
    Complete npm's authentication/2FA prompt if requested. This is the only step above that publishes. A dry run does not verify publishing permissions, reserve the name, or claim success.
 
-6. Verify `npm view granum-grid@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/`, then replace the unpublished-release wording and local-archive install steps in `granum-grid/README.md`, `docs/QUICK_START.md`, `docs/wiki/Setup.md`, and `media/README.md`.
+6. Verify `npm view granum-grid@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/`, then replace the unpublished-release wording and local-archive install steps in `granum-grid/README.md`, `docs/QUICK_START.md`, `docs/lessons/Setup.md`, and `media/README.md`.
 
 7. Ask three developers outside the project to install the published package, connect it to their own data, and file an [integration report](../.github/ISSUE_TEMPLATE/integration-report.md). Hold new features until their reports are in; their friction list becomes the roadmap.
 
@@ -85,7 +85,7 @@ The app includes the static gallery and every tutorial companion except HTTP. Th
 lesson requires the local dev/preview server; GitHub Pages cannot host its API.
 Relative asset URLs keep the app usable at a domain root or project path.
 
-The lessons are read in the repository under `docs/wiki/`; there is no GitHub Wiki
+The lessons are read in the repository under `docs/lessons/`; there is no GitHub Wiki
 copy to deploy.
 
 Browser reports and failure traces and the checked npm tarball are retained as
@@ -116,7 +116,7 @@ Expected destinations:
 
 - [Demo app](https://vitaliiznak.github.io/granum-grid/)
 - [Tutorial companions](https://vitaliiznak.github.io/granum-grid/tutorials.html)
-- [Lessons](https://github.com/vitaliiznak/granum-grid/blob/main/docs/wiki/Home.md)
+- [Lessons](https://github.com/vitaliiznak/granum-grid/blob/main/docs/lessons/README.md)
 
 ### Verify and recover
 

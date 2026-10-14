@@ -1,6 +1,6 @@
 # 2. Add a sensor map and summaries
 
-[All lessons](Home.md) · [Previous: Inventory](Inventory.md) · [Next: Logs](Logs.md)
+[All lessons](README.md) · [Previous: Inventory](Inventory.md) · [Next: Logs](Logs.md)
 
 **Build:** a day of minute readings with an overview, a named warm interval, and
 exact statistics for a selected range, read from the provider.

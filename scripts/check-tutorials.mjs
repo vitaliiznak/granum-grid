@@ -3,7 +3,7 @@ import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const wiki = resolve(root, 'docs/wiki');
+const lessons = resolve(root, 'docs/lessons');
 let snippets = 0;
 let links = 0;
 const documents = [
@@ -20,9 +20,9 @@ const documents = [
   ...(await readdir(resolve(root, 'docs')))
     .filter((name) => extname(name) === '.md')
     .map((name) => resolve(root, 'docs', name)),
-  ...(await readdir(wiki))
+  ...(await readdir(lessons))
     .filter((name) => extname(name) === '.md')
-    .map((name) => resolve(wiki, name)),
+    .map((name) => resolve(lessons, name)),
 ];
 for (const path of documents) {
   const name = path.slice(root.length);

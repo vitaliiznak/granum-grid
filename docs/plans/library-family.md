@@ -254,10 +254,13 @@ people and do not compress.
 ### Phase 0: decide, prune, draw the lines (2–3 days)
 
 1. Done 2026-10-14: the maintainer accepted the recommendations.
-2. Waiting: after the pending media work lands (`README.md` and `media/` are modified in
-   the working tree), cut the three generated datasets, Bitcoin, and Performance, update
-   the specs that mention them, and rename `docs/wiki/` to `docs/lessons/` (the README
-   links to it).
+2. Done 2026-10-14: the maintainer had the pending media work reviewed and landed
+   (`c61fee2`). Then genome, market, stars, Bitcoin, and the Performance gallery entry and
+   trace import were cut (the recording stays for the HTTP example and lesson);
+   row-inspection tests moved to the Parquet fixture; `docs/wiki/` became `docs/lessons/`;
+   the README was rewritten around the current playground; and the media studio was frozen
+   on the local `media-studio` branch (not pushed), with `main` keeping the film's captions,
+   description, and music credit.
 3. Done 2026-10-14: `automaticAggregation` and frame-rate sampling left the library (the
    playground samples frames itself in `demo/src/useFrameRate.ts`); deepscroll storage
    keys renamed; the GitHub Wiki sync script, its test, CI job, and sidebar removed.

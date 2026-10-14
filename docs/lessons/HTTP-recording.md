@@ -1,6 +1,6 @@
 # 4. Investigate a recording over HTTP
 
-[All lessons](Home.md) · [Previous: Logs](Logs.md) · [Next: Compose](Compose.md)
+[All lessons](README.md) · [Previous: Logs](Logs.md) · [Next: Compose](Compose.md)
 
 **Build:** an explorer whose rows stay on the server, then inspect a slow event,
 compare nearby ranges, and share a saved location and selection.

@@ -35,7 +35,8 @@ test('orientation is consistent and the final row is reachable without a dataset
       grid.evaluate((element) => {
         const row = element.querySelector('[aria-rowindex="100000000"]')!.getBoundingClientRect();
         const top = element.getBoundingClientRect().top + element.clientTop;
-        return Math.round(top + element.clientHeight - row.bottom);
+        // `|| 0` turns a rounded -0 (Firefox's subpixel layout) into 0.
+        return Math.round(top + element.clientHeight - row.bottom) || 0;
       }),
     )
     .toBe(0);

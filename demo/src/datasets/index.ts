@@ -1,27 +1,11 @@
-import { bitcoin } from './bitcoin';
-import { genome } from './genome';
 import { hackernews } from './hackernews';
 import { logs } from './logs';
-import { market } from './market';
 import { signal } from './signal';
-import { stars } from './stars';
-import { performance } from './performance';
 import { parquet } from './parquet';
 import { fileStart } from './sql';
 import type { DemoDataset } from './types';
 
-const datasets: DemoDataset[] = [
-  fileStart,
-  parquet,
-  bitcoin,
-  hackernews,
-  performance,
-  logs,
-  signal,
-  genome,
-  market,
-  stars,
-];
+const datasets: DemoDataset[] = [fileStart, parquet, hackernews, logs, signal];
 /** Datasets read from a real source first, then the generated ones. */
 export const datasetGroups = (['real', 'synthetic'] as const).map((origin) => ({
   origin,

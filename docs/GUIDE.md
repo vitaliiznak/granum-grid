@@ -298,7 +298,7 @@ shows **Back** and **Go to…**; diagnostics are under **debug** in the demo, an
 
 ## Open in a separate tab and scroll the window
 
-The demo's **Open full page** link opens the same location and selected range in a separate tab. Its URL updates while navigating and restores after reload. **Back to normal view** returns to the embedded demo in that tab, keeping the dataset, position, selection, and current debug and simulation settings. The **debug** button opens one panel in both layouts for behavior switches, reduced-motion emulation, row-height testing, and performance statistics. Generated datasets also expose simulated server latency from 0–10 seconds (default: 1 second); changes apply to new requests while cached rows remain instant. Recorded traces do not expose simulated latency. For a host application, add a route that renders one `GranumGrid` with `layout="page"`, then pass a URL builder to the embedded instance:
+The demo's **Open full page** link opens the same location and selected range in a separate tab. Its URL updates while navigating and restores after reload. **Back to normal view** returns to the embedded demo in that tab, keeping the dataset, position, selection, and current debug and simulation settings. The **debug** button opens one panel in both layouts for behavior switches, reduced-motion emulation, row-height testing, and performance statistics. Generated datasets also expose simulated server latency from 0–10 seconds (default: 1 second); changes apply to new requests while cached rows remain instant. Real sources (the Parquet file, Hacker News, and your own file) do not expose simulated latency. For a host application, add a route that renders one `GranumGrid` with `layout="page"`, then pass a URL builder to the embedded instance:
 
 ```tsx
 import { encodeView, decodeView } from 'granum-grid';
@@ -399,7 +399,7 @@ The hook's `focusedIndex`, `getRowProps`, and `getViewportProps` keep the highli
 and `aria-activedescendant` in sync. Scrolling or replacing the data session resets
 pointer focus to the scroll anchor. The host owns the panel, Escape handling,
 restoring DOM focus, and discarding inspected data when the provider changes.
-The Bitcoin demo shows this pattern, including copying the loaded candle as JSON.
+The Parquet and SQL datasets show this pattern, including copying the loaded row as JSON.
 The Hacker News demo uses it to read an item's text, links, and thread.
 
 ### Mounted API

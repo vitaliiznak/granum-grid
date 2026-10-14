@@ -131,7 +131,7 @@ Chrome and Edge 100+, Firefox 104+, and Safari/iOS Safari 15.4+. This is the flo
 - [Integration guide](https://github.com/vitaliiznak/granum-grid/blob/main/docs/GUIDE.md): provider rules, server-owned ordering, search, dynamic heights, selection and host tools, saved views, page layout, live feeds, limits and defaults, and the host integration API.
 - [Styling](https://github.com/vitaliiznak/granum-grid/blob/main/STYLING.md): themes, CSS hooks, the dataset map, custom controls, and headless layouts.
 - [Scope and current limits](https://github.com/vitaliiznak/granum-grid/blob/main/README.md#scope-and-current-limits) and the [documentation home](https://github.com/vitaliiznak/granum-grid/blob/main/docs/README.md).
-- [Live demo](https://vitaliiznak.github.io/granum-grid/) and [lessons](https://github.com/vitaliiznak/granum-grid/blob/main/docs/wiki/Home.md).
+- [Live demo](https://vitaliiznak.github.io/granum-grid/) and [lessons](https://github.com/vitaliiznak/granum-grid/blob/main/docs/lessons/README.md).
 
 ## License
 

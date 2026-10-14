@@ -26,13 +26,11 @@ import {
 import { findDataset } from './datasets';
 import { stopWorker } from './data/worker-client';
 import { DEFAULT_LATENCY, setLatency } from './data/latency';
-import { TraceImport } from './TraceImport';
 import { ParquetImport } from './ParquetImport';
 import { SqlImport } from './SqlImport';
 import { fileStart } from './datasets/sql';
 import { parquet as bundledParquet, parquetDetails } from './datasets/parquet';
 import { useExplorerTools } from './explorer';
-import { performance as bundledPerformance } from './datasets/performance';
 import type { DemoDataset } from './datasets';
 
 type Api = RefObject<GranumGridApi<unknown> | null>;
@@ -53,24 +51,19 @@ export default function App() {
     findDataset(new URLSearchParams(window.location.search).get('dataset')),
   );
   const provider = dataset.provider;
-  const isRecording = dataset.id === 'performance';
   const isParquet = dataset.id === 'parquet';
   const live =
-    dataset.id === 'bitcoin'
-      ? 'binance'
-      : dataset.id === 'hackernews'
-        ? 'hackernews'
-        : isParquet
-          ? 'parquet'
-          : dataset.id === 'file'
-            ? 'sql'
-            : undefined;
-  const [recordingDataset, setRecordingDataset] = useState(bundledPerformance);
+    dataset.id === 'hackernews'
+      ? 'hackernews'
+      : isParquet
+        ? 'parquet'
+        : dataset.id === 'file'
+          ? 'sql'
+          : undefined;
   const [parquetDataset, setParquetDataset] = useState<DemoDataset>(bundledParquet);
   // An opened file lives only in this tab; the card keeps its latest revision.
   const [fileDataset, setFileDataset] = useState<DemoDataset>(fileStart);
-  const isImported = isRecording && provider.revision.startsWith('local-');
-  // A pasted Parquet URL reopens from `?url=`; it has no full-page link, like an imported file.
+  // A pasted Parquet URL reopens from `?url=`; it has no full-page link.
   const ownParquet = isParquet && !parquetDetails(provider)?.bundled;
   const [shared] = useState(() =>
     decodeView(window.location.hash.replace(/^#view=/, ''), provider),
@@ -165,7 +158,7 @@ export default function App() {
   // Selection, bookmarks, comparison, and hints are playground features on the public API.
   const tools = useExplorerTools(provider, {
     comparison,
-    storageKey: isImported ? undefined : `granum-demo:${providerKey}`,
+    storageKey: `granum-demo:${providerKey}`,
     formatRange: dataset.formatRange,
     hints: switches.hints && { storageKey: 'granum-hints-v1' },
   });
@@ -186,14 +179,7 @@ export default function App() {
     // The place, not the selection, carries over when the visitor returns.
     const current = api.current?.getView();
     if (current) places.current.set(dataset.id, { ...current, selection: null });
-    const next =
-      id === 'performance'
-        ? recordingDataset
-        : id === 'parquet'
-          ? parquetDataset
-          : id === 'file'
-            ? fileDataset
-            : findDataset(id);
+    const next = id === 'parquet' ? parquetDataset : id === 'file' ? fileDataset : findDataset(id);
     setDataset(next);
     setInspected(null);
     setStats(null);
@@ -234,14 +220,6 @@ export default function App() {
     places.current.delete('file');
     replaceUrl(new URLSearchParams({ dataset: 'file' }));
   };
-  const loadRecording = (next: DemoDataset) => {
-    setRecordingDataset(next);
-    setDataset(next);
-    setInspected(null);
-    setStats(null);
-    places.current.delete('performance');
-    replaceUrl(new URLSearchParams({ dataset: 'performance' }));
-  };
   useEffect(() => {
     const mountedApi = api.current;
     if (!pageMode || !mountedApi) return;
@@ -258,7 +236,8 @@ export default function App() {
       clearTimeout(timer);
       off();
     };
-    // A replaced recording keeps the dataset id; its revision creates a new controller.
+    // A new revision (a filtered file, another Parquet URL) keeps the dataset id; it creates a
+    // new controller.
   }, [pageMode, dynamic, dataset.id, provider.id, provider.revision]);
   // A live source learns its current row count after mount; append mode keeps every address.
   const grow = dataset.grow;
@@ -313,9 +292,8 @@ export default function App() {
           <SiteHeader theme={theme} onTheme={setTheme} />
           <DatasetGallery current={dataset} onChange={chooseDataset} />
           <DatasetIntro dataset={dataset} stats={stats}>
-            <DemoLimitations recording={isRecording} imported={isImported} live={live} />
+            <DemoLimitations live={live} />
           </DatasetIntro>
-          {isRecording && <TraceImport imported={isImported} onLoad={loadRecording} />}
           {isParquet && (
             <ParquetImport
               dataset={dataset}
@@ -372,7 +350,7 @@ export default function App() {
         toolbar={{
           fullPageUrl:
             // A local file lives in this tab only, so a new page could not reopen it.
-            pageMode || isImported || ownParquet || dataset.id === 'file'
+            pageMode || ownParquet || dataset.id === 'file'
               ? undefined
               : (view) => pageUrl(dataset.id, encodeView(view)),
           actions: (
@@ -397,18 +375,13 @@ export default function App() {
                   <button className="ds-button" onClick={returnToNormal}>
                     <span aria-hidden="true">↙ </span>Back to normal view
                   </button>
-                  <DemoLimitations
-                    recording={isRecording}
-                    imported={isImported}
-                    live={live}
-                    compact
-                  />
+                  <DemoLimitations live={live} compact />
                 </>
               )}
               <DebugTools
                 latency={latency}
                 onLatency={changeLatency}
-                simulateLatency={!isRecording && !live}
+                simulateLatency={!live}
                 switches={switches}
                 onSwitches={setSwitches}
                 reduced={reduced}

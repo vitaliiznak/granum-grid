@@ -261,7 +261,7 @@ the dialog uses it and what the provider must still validate.
 
 ### Try the working HTTP example
 
-The [HTTP recording lesson](wiki/HTTP-recording.md) runs a complete server and client
+The [HTTP recording lesson](lessons/HTTP-recording.md) runs a complete server and client
 over the repository's real, redacted Chromium recording: revisions, bounded requests,
 cancellation, summaries, search, and saved views.
 

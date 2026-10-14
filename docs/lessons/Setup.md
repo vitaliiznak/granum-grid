@@ -1,6 +1,6 @@
 # Setup: run a lesson or build your own app
 
-[All lessons](Home.md) → [1. Inventory](Inventory.md)
+[All lessons](README.md) → [1. Inventory](Inventory.md)
 
 There are two ways to follow the lessons. Use the repository companions to explore
 the finished behavior, or use an existing React + TypeScript app to build it yourself.

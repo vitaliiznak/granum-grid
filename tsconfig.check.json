@@ -12,8 +12,6 @@
     "demo/unit",
     "demo/tests",
     "demo/vite.config.ts",
-    "media/src",
-    "media/vite.config.ts",
     "playwright.config.ts",
     "vitest.config.ts"
   ]

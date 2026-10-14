@@ -1,4 +1,48 @@
+import { readFileSync } from 'node:fs';
 import { expect, test as base, type Locator, type Page } from '@playwright/test';
+
+// 1,000 rows in ten row groups: id, label ("reading N"), value, when.
+const file = readFileSync(
+  new URL('../../packages/parquet/tests/fixtures/readings.parquet', import.meta.url),
+);
+export const FILE_URL = 'https://files.example/readings.parquet';
+const CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-headers': 'range',
+  'access-control-expose-headers': 'content-length, content-range, etag',
+};
+
+/** Serve the fixture with byte ranges, and keep the bundled FineWeb file off the network. */
+export async function serveParquet(
+  page: Page,
+  { ranges = true, rows = true }: { ranges?: boolean; rows?: boolean } = {},
+) {
+  const requests: string[] = [];
+  await page.route('https://huggingface.co/**', (route) => route.abort('blockedbyclient'));
+  await page.route('https://files.example/**', (route) => {
+    const request = route.request();
+    if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+    const range = /^bytes=(\d+)-(\d+)$/.exec(request.headers().range ?? '');
+    requests.push(request.headers().range ?? request.method());
+    if (request.method() === 'HEAD')
+      return route.fulfill({
+        status: 200,
+        headers: { ...CORS, 'content-length': String(file.length), etag: '"fixture"' },
+      });
+    if (!range || !ranges) return route.fulfill({ status: 200, headers: CORS, body: file });
+    // Without rows, only the first read (the footer) answers; row reads stay pending.
+    if (!rows && requests.filter((entry) => entry.startsWith('bytes=')).length > 1)
+      return new Promise<void>(() => {});
+    const start = Number(range[1]),
+      end = Math.min(file.length, Number(range[2]) + 1);
+    return route.fulfill({
+      status: 206,
+      headers: { ...CORS, 'content-range': `bytes ${start}-${end - 1}/${file.length}` },
+      body: file.subarray(start, end),
+    });
+  });
+  return requests;
+}
 
 /** Phone-sized viewport for narrow-layout cases. */
 export const MOBILE = { width: 390, height: 844 };

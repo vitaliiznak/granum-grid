@@ -1,6 +1,7 @@
-# Bundled performance recording
+# Bundled browser recording
 
-`exploration-trace.json` is an actual Chromium DevTools Protocol recording captured on
+`exploration-trace.json` serves the [HTTP example](../../../server/trace.ts) and the HTTP
+recording lesson. It is an actual Chromium DevTools Protocol recording captured on
 13 October 2026 while navigating an earlier version of the local deepscroll signal demo
 (now Granum Grid); its `metadata.activity` lists the steps. The underlying signal rows
 are synthetic; the browser trace events and timings are recorded measurements from this
@@ -20,7 +21,7 @@ npm run record:trace
 ```
 
 A recapture jumps to row 73,500,000, scrolls, jumps to Spike 3, and waits for the
-nearby rows. The bundled dataset's revision is derived from the file contents, so saved
-views from an earlier recording are rejected after recapturing.
+nearby rows. The recording's revision is derived from the file contents, so saved views
+from an earlier recording are rejected after recapturing.
 
 The script launches headless Chromium and closes it in `finally`.

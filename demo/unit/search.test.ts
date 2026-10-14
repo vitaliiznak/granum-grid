@@ -1,12 +1,8 @@
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { logs } from '../src/datasets/logs';
-import { genome } from '../src/datasets/genome';
 import { signal } from '../src/datasets/signal';
 import { DEFAULT_LATENCY, setLatency } from '../src/data/latency';
 import { logAt } from '../src/data/logs';
-import { gcAt } from '../src/data/genome';
-import { stars } from '../src/datasets/stars';
-import { market } from '../src/datasets/market';
 import { syntheticProvider } from '../src/data/synthetic';
 import { parseTrace, traceProvider } from '../src/data/trace';
 import { parseJump } from '../../granum-grid/src/core/navigation';
@@ -38,24 +34,6 @@ it('uses case-insensitive text equality consistently in the signal provider', as
   );
   expect(result.matches.length).toBeGreaterThan(0);
   expect(result.matches.every((m) => m.index % 4 === 0)).toBe(true);
-});
-
-it('does not claim a gene landmark exhausts matching base rows', async () => {
-  const result = await genome.provider.search!(
-    { kind: 'predicate', field: 'gene', operator: '=', value: 'TP53' },
-    context(),
-  );
-  expect(result.matches.length).toBeGreaterThan(0);
-  expect(result.complete).toBe(false);
-});
-
-it('excludes missing numeric values even from inequality results', async () => {
-  const result = await genome.provider.search!(
-    { kind: 'predicate', field: 'gc', operator: '!=', value: 50 },
-    context(),
-  );
-  expect(result.matches.length).toBeGreaterThan(0);
-  expect(result.matches.every((m) => gcAt(m.index) !== null)).toBe(true);
 });
 
 it.each(['gateway', 'auth', 'orders', 'payments', 'search', 'cdn'])(
@@ -109,23 +87,12 @@ async function verifyText<Row>(
     expect(matchesRow(row)).toBe(true);
   }
 }
-it('verifies plain-text matches against genome, star, market, and signal rows', async () => {
-  await verifyText(genome.provider, 'brca1', (row) =>
-    row.region.label.toLowerCase().includes('brca1'),
-  );
-  await verifyText(stars.provider, 'vega', (row) => row.name === 'Vega');
-  await verifyText(market.provider, 'sell', (row) => row.side === 'SELL');
+it('verifies plain-text matches against signal rows', async () => {
   await verifyText(signalProvider, 'east', (row) => row.category === 'East');
 });
 
 it('keeps every advertised demo search usable and every address in bounds', async () => {
-  const providers: DataProvider<unknown>[] = [
-    logs.provider,
-    genome.provider,
-    stars.provider,
-    market.provider,
-    signalProvider,
-  ];
+  const providers: DataProvider<unknown>[] = [logs.provider, signalProvider];
   for (const provider of providers) {
     for (const example of provider.searchHelp!.examples) {
       const parsed = parseJump(example, provider.rowCount, 0, []);

@@ -10,7 +10,7 @@ const packageSource = (name: string) =>
 
 /**
  * Resolve every public entry point of the workspace packages to their source, so `dist/`
- * may be stale or absent. Shared by the media studio and Vitest; `tsconfig.source.json`
+ * may be stale or absent. Shared with Vitest; `tsconfig.source.json`
  * maps the same entries for type checking.
  */
 export const granumGridSource = [

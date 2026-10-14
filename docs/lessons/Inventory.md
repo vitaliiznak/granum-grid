@@ -1,6 +1,6 @@
 # 1. Build an inventory explorer
 
-[All lessons](Home.md) · [Setup](Setup.md) · [Next: Sensors](Sensors.md)
+[All lessons](README.md) · [Setup](Setup.md) · [Next: Sensors](Sensors.md)
 
 **Build:** a product list with your own row content and a button that jumps to a SKU.
 **Run the finished lesson:** `/tutorials.html?lesson=inventory` on your local demo server.

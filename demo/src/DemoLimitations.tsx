@@ -1,38 +1,31 @@
 import { useRef } from 'react';
 
 export function DemoLimitations({
-  recording,
-  imported,
   live,
   compact = false,
 }: {
-  recording: boolean;
-  imported: boolean;
   /**
    * Rows come from this public third-party API, a Parquet file read over HTTP, or DuckDB in
    * this tab.
    */
-  live?: 'binance' | 'hackernews' | 'parquet' | 'sql';
+  live?: 'hackernews' | 'parquet' | 'sql';
   compact?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const summary = recording
-    ? 'Local recording · up to 100 search results'
-    : live === 'binance'
-      ? 'Live public API · shared rate limit'
-      : live === 'hackernews'
-        ? 'Live public API · one request per item'
-        : live === 'parquet'
-          ? 'Real file over HTTP · one row group per jump'
-          : live === 'sql'
-            ? 'DuckDB in this tab · each revision is a copy in memory'
-            : 'Generated data · search may miss matches';
+  const summary =
+    live === 'hackernews'
+      ? 'Live public API · one request per item'
+      : live === 'parquet'
+        ? 'Real file over HTTP · one row group per jump'
+        : live === 'sql'
+          ? 'DuckDB in this tab · each revision is a copy in memory'
+          : 'Generated data · search may miss matches';
   return (
     <aside className={`demo-limitations${compact ? ' demo-limitations-compact' : ''}`}>
       {!compact && (
         <p>
           <strong>Demo limitations</strong> {summary}.
-          {!recording && !live && ' Your own provider can search the full dataset on a server.'}
+          {!live && ' Your own provider can search the full dataset on a server.'}
         </p>
       )}
       <button
@@ -49,22 +42,7 @@ export function DemoLimitations({
             Close
           </button>
         </div>
-        {recording ? (
-          <>
-            <p>
-              <strong>Local recording.</strong> This example holds the supported events in browser
-              memory. Summaries are exact for those events. Search checks the recording and reports
-              when results are truncated; the search dialog shows up to 100 matches.
-            </p>
-            <p>
-              <strong>Returning later.</strong>{' '}
-              {imported
-                ? 'Imported files and their bookmarks last only for this session. Reloading returns to the bundled recording; import your file again to explore it.'
-                : 'Bookmarks stay in this browser. Full-page links restore position and selection for the same recording revision.'}{' '}
-              Search input and results are not saved across reloads.
-            </p>
-          </>
-        ) : live === 'sql' ? (
+        {live === 'sql' ? (
           <>
             <p>
               <strong>A database in this tab.</strong> DuckDB-WASM, about 8 MB, loads the first time
@@ -132,26 +110,6 @@ export function DemoLimitations({
               from your position, not every match, and Algolia does not index deleted or dead items.
               Row addresses are item IDs, so bookmarks and links keep working while later visits add
               rows.
-            </p>
-          </>
-        ) : live ? (
-          <>
-            <p>
-              <strong>Live third-party data.</strong> Rows, summaries, and markers come from
-              Binance’s public market-data API on demand. The demo needs a network connection, and
-              Binance refuses some regions. Nothing is generated; seconds without a published candle
-              appear as gaps.
-            </p>
-            <p>
-              <strong>Rate limit.</strong> Binance allows 6,000 request weight per minute per
-              address. The demo spends at most half and pauses every request when Binance answers
-              with a rate-limit error, so rows may wait or fail until the pause ends.
-            </p>
-            <p>
-              <strong>Summaries and search.</strong> Summaries use the coarsest candles that fit:
-              exact when whole candles tile a group, otherwise estimated. Price searches find the
-              first matching seconds from your position, not every match. Row addresses are fixed
-              seconds, so bookmarks and links keep working while later visits add rows.
             </p>
           </>
         ) : (

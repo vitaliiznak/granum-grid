@@ -1,43 +1,4 @@
-import { readFileSync } from 'node:fs';
-import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
-
-// 1,000 rows in ten row groups: id, label ("reading N"), value, when.
-const file = readFileSync(
-  new URL('../../packages/parquet/tests/fixtures/readings.parquet', import.meta.url),
-);
-const FILE_URL = 'https://files.example/readings.parquet';
-const CORS = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-headers': 'range',
-  'access-control-expose-headers': 'content-length, content-range, etag',
-};
-
-/** Serve the fixture with byte ranges, and keep the bundled FineWeb file off the network. */
-async function serveParquet(page: Page, { ranges = true } = {}) {
-  const requests: string[] = [];
-  await page.route('https://huggingface.co/**', (route) => route.abort('blockedbyclient'));
-  await page.route('https://files.example/**', (route) => {
-    const request = route.request();
-    if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
-    const range = /^bytes=(\d+)-(\d+)$/.exec(request.headers().range ?? '');
-    requests.push(request.headers().range ?? request.method());
-    if (request.method() === 'HEAD')
-      return route.fulfill({
-        status: 200,
-        headers: { ...CORS, 'content-length': String(file.length), etag: '"fixture"' },
-      });
-    if (!range || !ranges) return route.fulfill({ status: 200, headers: CORS, body: file });
-    const start = Number(range[1]),
-      end = Math.min(file.length, Number(range[2]) + 1);
-    return route.fulfill({
-      status: 206,
-      headers: { ...CORS, 'content-range': `bytes ${start}-${end - 1}/${file.length}` },
-      body: file.subarray(start, end),
-    });
-  });
-  return requests;
-}
+import { expect, test, FILE_URL, serveParquet } from './fixtures';
 
 test('a pasted Parquet URL opens in the playground and any row is one jump away', async ({
   page,

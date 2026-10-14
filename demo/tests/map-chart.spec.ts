@@ -158,16 +158,22 @@ test('one named chart uses its own scale and preview without moving the current 
   await expect(chart).toHaveCount(0);
   await expect(axis).toHaveCount(0);
 
-  await page.getByRole('button', { name: /Human genome/ }).click();
+  await page.getByRole('button', { name: /^Signal archive/ }).click();
   await withMapSettings(page, async (panel) => {
     await panel.getByRole('combobox', { name: 'Scrollbar width' }).selectOption('auto');
-    await panel.getByRole('checkbox', { name: 'Show genome tracks' }).check();
+    await panel.getByRole('checkbox', { name: 'Show channel tracks' }).check();
   });
-  await expect(chart.locator('option')).toHaveText(['GC content', 'Gene density', 'Repeats']);
+  await expect(chart.locator('option')).toHaveText([
+    'Signal amplitude',
+    'North',
+    'East',
+    'West',
+    'South',
+  ]);
   await expect(chart).toHaveValue('primary');
-  await expect(axis).toHaveAttribute('aria-label', 'GC content scale: 30% to 60%');
-  await chart.selectOption({ label: 'Repeats' });
-  await expect(axis).toHaveAttribute('aria-label', 'Repeats scale: 20% to 70%');
+  await expect(axis).toHaveAttribute('aria-label', /^Signal amplitude scale: /);
+  await chart.selectOption({ label: 'West' });
+  await expect(axis).toHaveAttribute('aria-label', /^West scale: /);
   await page.setViewportSize(MOBILE);
   await expect(chart).not.toBeVisible();
   await expect(slider).toBeVisible();

@@ -8,7 +8,7 @@ export function RowInspector({
   children,
   onClose,
   className,
-  copyLabel = 'Candle data as JSON',
+  copyLabel = 'Row as JSON',
 }: {
   record: RowActivationContext<unknown>;
   children: ReactNode;

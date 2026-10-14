@@ -55,8 +55,8 @@ for (const pageMode of [false, true]) {
   });
 }
 
-test('recorded traces expose debug without artificial server latency', async ({ page }) => {
-  await page.goto('/?dataset=performance');
+test('real sources expose debug without artificial server latency', async ({ page }) => {
+  await page.goto('/?dataset=file');
   await page.getByRole('button', { name: 'debug', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'debug', exact: true });
   await expect(dialog.getByRole('slider', { name: 'Simulated server latency' })).toHaveCount(0);

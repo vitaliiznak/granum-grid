@@ -1,6 +1,6 @@
 # Apply the library to another dataset
 
-[All lessons](Home.md) · [Previous: Compose](Compose.md)
+[All lessons](README.md) · [Previous: Compose](Compose.md)
 
 The five lessons cover rows, summaries, search, transport, and composition. Choose the next
 capability based on what a person needs to do with your data.
@@ -14,9 +14,9 @@ capability based on what a person needs to do with your data.
 | Genomic coordinates | Jump to a named region | Domain-specific labels, verified coordinate conversion |
 | Market records | Navigate a stable time-ordered snapshot | Explicit missing periods and justified aggregation |
 
-The gallery's genome, market, and star datasets are generated demonstrations.
-Treat domain coordinates and landmarks as example inputs; use your own validated
-sources when building an application. The library does not supply these datasets.
+The gallery's generated datasets are demonstrations. Treat their values and landmarks as
+example inputs; use your own validated sources when building an application. The library
+does not supply these datasets.
 
 ## Add a live feed
 

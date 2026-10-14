@@ -1,6 +1,6 @@
 # 5. Compose your own explorer
 
-[All lessons](Home.md) · [Previous: HTTP](HTTP-recording.md) · [Next steps](Next-steps.md)
+[All lessons](README.md) · [Previous: HTTP](HTTP-recording.md) · [Next steps](Next-steps.md)
 
 **Build:** the inventory from lesson 1 with your own toolbar and rows, the dataset map,
 and the search dialog, without the ready-made `GranumGrid`.

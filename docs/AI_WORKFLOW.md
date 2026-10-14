@@ -16,8 +16,7 @@ npx playwright install chromium
 npm run test:smoke
 ```
 
-Use `npm run dev` for an interactive demo and `npm run media:dev` for the media
-studio. Open the loopback URL Vite prints. Stop servers you started when finished.
+Use `npm run dev` for an interactive demo. Open the loopback URL Vite prints. Stop servers you started when finished.
 The generated providers and bundled trace need no network service or API key.
 
 `npm run ai:doctor` checks the Node major, root/demo manifest-lockfile agreement,
@@ -45,18 +44,17 @@ Run commands from the repository root. Add a regression case where behavior chan
 | Engine, range math, cache, providers                 | `npm run check`; focus first with `npx vitest run granum-grid/tests/session.test.ts` or the relevant test path  |
 | React, inputs, layout, styles, demo interactions      | `npm run check`, `npm run test:smoke`, relevant browser spec, and visual inspection when appearance changes    |
 | Public API, exports, package/build metadata           | `npm run check`, `npm run build`, `npm run test:package`; update `docs/GUIDE.md`, `granum-grid/README.md`, and the `scripts/package-*` consumer fixtures when applicable |
-| Media studio/capture                                  | `npm run check`, `npm run media:build`; capture only affected scenes using `media/README.md`                   |
 | Broad change / release candidate                      | `npm run check:full` after installing all three browsers                                                       |
 
-`npm run typecheck` covers library, demo, media, unit/browser tests, and the
+`npm run typecheck` covers library, adapter packages, demo, unit/browser tests, and the
 Vite/Vitest/Playwright configs without emitting files; the package-consumer fixture is
 checked separately against an installed tarball, not workspace aliases.
 `npm run test:tutorials` compares the seven lesson code blocks with `demo/src/tutorials`
 and checks local links and headings in the root `README.md`, `STYLING.md`, `DESIGN.md`,
-and `AGENTS.md`, in `docs/*.md`, `docs/wiki/`, `granum-grid/README.md`, `media/README.md`,
-`media/MUSIC.md`, and the trace fixture README. `npm run lint` applies hook rules to library,
-demo, and media, public-entry imports to demo and media, and browserslist API checks to
-the library.
+and `AGENTS.md`, in `docs/*.md`, `docs/lessons/`, `granum-grid/README.md`, `media/README.md`,
+`media/MUSIC.md`, and the trace fixture README. `npm run lint` applies hook rules to the
+library and demo, public-entry imports to the demo, the layer fence to the library, and
+browserslist API checks to the library and adapter packages.
 
 Before a full check:
 

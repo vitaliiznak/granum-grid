@@ -33,13 +33,8 @@ const layerRules = LAYERS.map((layer, index) => ({
 
 export default defineConfig([
   {
-    // Hook rules for every React surface: library, demo, and media studio.
-    files: [
-      'granum-grid/src/**/*.{ts,tsx}',
-      'packages/*/src/**/*.ts',
-      'demo/src/**/*.{ts,tsx}',
-      'media/src/**/*.{ts,tsx}',
-    ],
+    // Hook rules for every React surface: library and demo.
+    files: ['granum-grid/src/**/*.{ts,tsx}', 'packages/*/src/**/*.ts', 'demo/src/**/*.{ts,tsx}'],
     languageOptions: { parser: tseslint.parser },
     linterOptions: { reportUnusedDisableDirectives: 'error' },
     plugins: { 'react-hooks': reactHooks },
@@ -49,8 +44,8 @@ export default defineConfig([
     },
   },
   {
-    // The demo and media studio prove what a consumer can build, so they use public entries only.
-    files: ['demo/src/**/*.{ts,tsx}', 'media/src/**/*.{ts,tsx}'],
+    // The demo proves what a consumer can build, so it uses public entries only.
+    files: ['demo/src/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',

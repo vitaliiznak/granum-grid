@@ -25,7 +25,7 @@ browser debugging, and handoffs. No API key, backend, or AI service is needed.
 | React, layout, styles                   | `granum-grid/src/react/`, `granum-grid/src/base.css`, `styles.css`, `STYLING.md`           |
 | Data adapter packages                   | `packages/parquet/` (`@granum/parquet`), `packages/sql/` (`@granum/sql`)                   |
 | Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                 |
-| Screenshots and video                   | `media/README.md`, `media/scripts/capture.mjs`                                             |
+| Film and screenshots (frozen studio)    | `media/README.md`; the studio is on the `media-studio` branch                              |
 | Packaging, consumers, size budgets      | `scripts/build-package.mjs`, `package-test.mjs`, `size.mjs`, `docs/PUBLISHING.md`          |
 | Current multi-step plan                 | `docs/plans/library-family.md`                                                             |
 
@@ -58,8 +58,8 @@ and tests before treating documentation as implemented behavior.
 - `npm run test:smoke`: four Chromium acceptance cases for navigation, history, and selection.
 - `npm run release:check`: lint, `check`, library/demo builds, isolated React 18/19
   tarball consumers, and per-entry size budgets (`test:package`).
-- `npm run check:full`: format check, `release:check`, the media build,
-  Chromium/Firefox/WebKit tests, and the Pages smoke test. Requires browser installs
+- `npm run check:full`: format check, `release:check`, Chromium/Firefox/WebKit tests,
+  and the Pages smoke test. Requires browser installs
   and possibly npm registry access for consumer dependencies. CI runs the same steps
   separately.
 - Use the change-to-check table in [the workflow](docs/AI_WORKFLOW.md). Reproduce

@@ -1,6 +1,6 @@
 # 3. Search application logs
 
-[All lessons](Home.md) · [Previous: Sensors](Sensors.md) · [Next: HTTP](HTTP-recording.md)
+[All lessons](README.md) · [Previous: Sensors](Sensors.md) · [Next: HTTP](HTTP-recording.md)
 
 **Build:** a log explorer that can search text and supported fields, navigate to
 matches, and clearly explain truncated results.
