@@ -30,8 +30,8 @@ function BugIcon() {
 /**
  * Debug switches across the library's layers: map layers are `AtlasRailOptions`, motion and
  * data are hook `features`, and hints belong to the playground. Map layers start on, features
- * start at the library defaults except elastic edges, which the playground turns on to show
- * them, and context hints start off because they would cover the guided demo.
+ * start at the library defaults, and context hints start off because they would cover the
+ * guided demo. Scrolling is the browser's own and has no switch.
  */
 export const DEMO_SWITCHES = {
   overview: true,
@@ -43,7 +43,6 @@ export const DEMO_SWITCHES = {
   preview: true,
   trail: true,
   ...defaultFeatures,
-  edgeElasticity: true,
   hints: false,
 };
 type DemoSwitches = typeof DEMO_SWITCHES;
@@ -82,8 +81,6 @@ const labels: Record<keyof DemoSwitches, string> = {
   precision: 'Precision scrubbing',
   preview: 'Real row previews',
   trail: 'Visited trail',
-  inertia: 'Touch inertia',
-  edgeElasticity: 'Elastic edges',
   transitions: 'View transitions',
   progressiveEstimates: 'Progressive estimates',
   prefetch: 'Predictive prefetch',

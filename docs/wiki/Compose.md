@@ -64,15 +64,17 @@ export default function Compose() {
       <div className="ds-root" data-ds-root="" style={{ height: 480, marginTop: 16 }}>
         <div className="ds-body">
           <div {...grid.getViewportProps({ 'aria-label': 'Composed inventory' })}>
-            {grid.rows.map((slot) => (
-              <div key={slot.index} {...grid.getRowProps(slot)}>
-                <span role="gridcell">
-                  {slot.status === 'ready'
-                    ? `${slot.index + 1}. ${slot.row.sku} · ${slot.row.name}`
-                    : 'Loading…'}
-                </span>
-              </div>
-            ))}
+            <div {...grid.getLayerProps()}>
+              {grid.rows.map((slot) => (
+                <div key={slot.index} {...grid.getRowProps(slot)}>
+                  <span role="gridcell">
+                    {slot.status === 'ready'
+                      ? `${slot.index + 1}. ${slot.row.sku} · ${slot.row.name}`
+                      : 'Loading…'}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
           <AtlasRail grid={grid} highlights={highlights} />
         </div>

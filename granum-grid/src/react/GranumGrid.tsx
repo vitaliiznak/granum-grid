@@ -238,46 +238,44 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
             style: props.styles?.viewport,
           })}
         >
-          <div className="ds-pan-layer" style={{ transform: `translateY(${grid.edgeOffset}px)` }}>
-            <div className="ds-view-layer" role="rowgroup">
-              {endGap > 0.5 && (
-                <div
-                  className="ds-dataset-end"
-                  data-compact={endGap < 28 ? '' : undefined}
-                  style={{ top: contentEnd, height: endGap }}
-                  aria-hidden="true"
-                >
-                  <span>End of dataset</span>
-                </div>
-              )}
-              {grid.rows.map((slot) => (
-                <DatasetRow
-                  key={
-                    slot.status === 'ready' && props.getRowKey
-                      ? `row:${props.getRowKey(slot.row, slot.index)}`
-                      : `index:${slot.index}`
-                  }
-                  status={slot.status}
-                  rowProps={grid.getRowProps(slot, {
-                    className: props.classNames?.row,
-                    style: props.styles?.row,
-                  })}
-                >
-                  {slot.status === 'ready' ? (
-                    <LoadedRow
-                      render={props.renderRow}
-                      row={slot.row}
-                      index={slot.index}
-                      focused={slot.index === grid.focusedIndex}
-                    />
-                  ) : (
-                    (props.renderPlaceholder?.(slot, api.retry) ?? (
-                      <RowPlaceholder slot={slot} retry={api.retry} />
-                    ))
-                  )}
-                </DatasetRow>
-              ))}
-            </div>
+          <div {...grid.getLayerProps()}>
+            {endGap > 0.5 && (
+              <div
+                className="ds-dataset-end"
+                data-compact={endGap < 28 ? '' : undefined}
+                style={{ top: contentEnd, height: endGap }}
+                aria-hidden="true"
+              >
+                <span>End of dataset</span>
+              </div>
+            )}
+            {grid.rows.map((slot) => (
+              <DatasetRow
+                key={
+                  slot.status === 'ready' && props.getRowKey
+                    ? `row:${props.getRowKey(slot.row, slot.index)}`
+                    : `index:${slot.index}`
+                }
+                status={slot.status}
+                rowProps={grid.getRowProps(slot, {
+                  className: props.classNames?.row,
+                  style: props.styles?.row,
+                })}
+              >
+                {slot.status === 'ready' ? (
+                  <LoadedRow
+                    render={props.renderRow}
+                    row={slot.row}
+                    index={slot.index}
+                    focused={slot.index === grid.focusedIndex}
+                  />
+                ) : (
+                  (props.renderPlaceholder?.(slot, api.retry) ?? (
+                    <RowPlaceholder slot={slot} retry={api.retry} />
+                  ))
+                )}
+              </DatasetRow>
+            ))}
           </div>
           {!snapshot.rowCount && (
             <div className="ds-empty">{props.emptyContent ?? 'No rows in this dataset.'}</div>

@@ -17,8 +17,8 @@ the source of truth.
   readable. A precise row address, a chapter breadcrumb, and reversible jumps keep the
   reader oriented.
 - Position is a floating, zero-based row address, independent of browser scroll height.
-  The embedded viewport never uses a dataset-height spacer; page layout maps a bounded
-  native scroll range to global progress.
+  Both layouts scroll natively over a bounded spacer (at most 8 million px), never a
+  dataset-height one; the scroll offset maps to the row address.
 - Visible rows are DOM content, for accessibility and custom rendering. Canvas draws the
   map, and important canvas targets have keyboard equivalents.
 - A row count, ordered slice fetching, and a renderer are enough for useful navigation.
@@ -55,10 +55,9 @@ magnifier, precision dragging, previews, and a visited trail.
   scroll range runs from the first row to that end, so its middle centers the middle row.
   The map always covers the whole dataset while the reading surface displays individual
   records.
-- A wheel gesture belongs to whoever it starts in, as with native scroll latching: one
-  that starts by pushing past either end scrolls the page, and one that starts by moving
-  rows keeps them until it pauses for 200 ms. `overscroll-behavior: contain` on the
-  viewport keeps every gesture. Mostly sideways wheels are never taken.
+- Scrolling is the browser's own: wheel, trackpad, touch, momentum, scroll chaining at the
+  ends, and the scrollbar. `overscroll-behavior: contain` on the viewport keeps a gesture
+  in the rows.
 - Percent is a dataset address: 0% is the first row and 100% the last. Breadcrumbs never
   invent a precise timestamp from a bucket.
 - A scrub is one history entry; Escape or pointer cancellation restores its start. Wheel
@@ -73,8 +72,7 @@ magnifier, precision dragging, previews, and a visited trail.
 - Shortcuts act only inside the focused explorer and ignore editable fields. With no
   further target, navigation stays where it is instead of wrapping.
 - Jumps are instant. The map's viewport marker shows where the reader went, and Back
-  returns. Reduced motion keeps the same destinations without inertia, elastic edges, or
-  transitions.
+  returns. Reduced motion keeps the same destinations without transitions.
 - Loading improves the screen locally: estimates first, then exact rows page by page,
   each with its own retry. An abort is not an error.
 
@@ -98,10 +96,8 @@ Choices a contributor needs before changing the library, with options decided ag
 - **The default is a grid, not an app.** Three props render rows and the dataset map.
   The toolbar, footer, and heading row are opt-in (`toolbar`, `footer`, `header`); the
   playground, the HTTP page, and the lessons that teach Back pass them. The Go to dialog
-  stays reachable from Cmd/Ctrl+K, `/`, and `api.openSearch()` without a toolbar. Elastic
-  edges are off by default when embedded, because a box inside a page should stop at its
-  ends like a plain scroller, and on with `layout="page"`, where the explorer owns the
-  document; `defaultFeatures` lists the embedded value. The map's own legend labels its
+  stays reachable from Cmd/Ctrl+K, `/`, and `api.openSearch()` without a toolbar. The
+  map's own legend labels its
   overview accuracy, so hiding the heading row never hides that label. Considered and not
   taken: hiding the map by default (it is the reason to choose this over a virtual list)
   and dropping the search shortcuts without a toolbar (they are invisible until used).
@@ -134,6 +130,20 @@ Choices a contributor needs before changing the library, with options decided ag
   `JumpBar` and `AtlasRail` are controlled widgets that take the hook's
   result as `grid`, not a hidden context, so each can be placed alone. Search runs
   through `DataSession.search`, so request statistics need no UI flag.
+
+- **Native scrolling** (2026-10-14). The viewport is a real scroller over a spacer capped
+  at 8 million px (`dom/scroll.ts`); the engine's float address stays the source of truth.
+  A scroll step up to two viewports moves the rows by exactly those pixels; a longer step,
+  such as a scrollbar drag, goes to the address the offset maps to. The mapping is one to
+  one within four viewports of either end and compressed between, so both ends are exact
+  and a long local scroll cannot strand the reader against an end: the offset is
+  re-anchored to the rows near an end and after each pause. Rows live in a layer kept at
+  the scroll offset, so the compositor scrolls them without a frame of lag. This replaced
+  hand-built wheel handling, inertia, elastic edges, and touch panning, which no test could
+  make feel native on every trackpad, and which trapped touch scrolling at the ends.
+  Considered and not taken: keeping custom physics as an option (two input models), and
+  a dataset-height spacer (browsers cap element height near 17–33 million px). Follows
+  the local/global technique HighTable describes.
 
 - **Jumps are instant** (2026-10-14). A long jump used to fly through a widened view that
   drew the overview behind the rows (`ViewCanvas`), with an engine clock (`step`) and a

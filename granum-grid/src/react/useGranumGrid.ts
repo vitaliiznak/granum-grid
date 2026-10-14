@@ -22,9 +22,8 @@ import { validRange } from '../data/bounds.js';
 import { createGranumGridApi, type GranumGridApi } from '../core/api.js';
 import { readView, type SavedView } from '../core/exploration.js';
 import { INTERNAL, type GridInternals } from './internal.js';
-import { useWindowScroll } from './useWindowScroll.js';
 import { useRowMeasurements } from './useRowMeasurements.js';
-import { bindInputs } from '../dom/input.js';
+import { bindScroll } from '../dom/scroll.js';
 import { isControl, ownsKeys } from '../dom/targets.js';
 import { useKeyed } from './useKeyed.js';
 import { useReducedMotion } from './useReducedMotion.js';
@@ -120,6 +119,10 @@ interface RowElementProps extends HTMLAttributes<HTMLDivElement> {
   'data-focused': boolean | undefined;
   'data-activatable': boolean | undefined;
 }
+interface LayerElementProps extends HTMLAttributes<HTMLDivElement> {
+  ref: (element: HTMLDivElement | null) => void;
+  'data-ds-part': 'layer';
+}
 interface AnnouncementProps {
   className: string;
   style: CSSProperties;
@@ -144,12 +147,16 @@ export interface GranumGridState<Row> {
   markers: Marker[];
   /** The provider chapter containing the current row, for a breadcrumb. */
   chapter: Chapter | null;
-  /** Elastic edge offset in pixels; translate the rows by it. */
-  edgeOffset: number;
   stats: ScrollStats;
   /** Rows appended while the reader was away from the end (`dataMode: 'follow'`). */
   unseenRows: number;
+  /** The scroll container: it scrolls natively and holds the rows layer. */
   getViewportProps: (props?: HTMLAttributes<HTMLDivElement>) => ViewportElementProps;
+  /**
+   * The element inside the viewport that holds the rows. It is kept at the scroll offset, so
+   * rows placed at `slot.y` (viewport pixels) scroll natively with the content.
+   */
+  getLayerProps: (props?: HTMLAttributes<HTMLDivElement>) => LayerElementProps;
   getRowProps: (slot: RowSlot<Row>, props?: HTMLAttributes<HTMLDivElement>) => RowElementProps;
   getAnnouncementProps: () => AnnouncementProps;
   /** Read by the library's widgets; not part of the public API. */
@@ -196,15 +203,12 @@ export function useGranumGrid<Row>({
     throw new RangeError('overscan must be an integer from 0 to 1000');
   // An embedded explorer sits inside a page, so its edges stop like a plain scroller's; a
   // page explorer owns the document and springs back at its ends.
-  const features = { ...defaultFeatures, edgeElasticity: windowScroll, ...overrides };
+  const features = { ...defaultFeatures, ...overrides };
   const id = useId();
-  const [edgeOffset, setEdgeOffset] = useState(0);
   const velocity = useRef(0);
   const [announcement, setAnnouncement] = useState('');
   const reduceMotion = useReducedMotion(reducedMotion);
   // Reduced motion turns off every animated or momentum behavior; resolve it once here.
-  const inertia = !reduceMotion && features.inertia;
-  const elasticity = !reduceMotion && features.edgeElasticity;
   const engine = useKeyed(
     () =>
       createEngine({
@@ -227,7 +231,6 @@ export function useGranumGrid<Row>({
     () => engine.setRowLayout(rowHeight, dynamicRowHeight),
     [engine, rowHeight, dynamicRowHeight],
   );
-  useWindowScroll(engine, windowScroll);
   const [selectionState, setSelectionState] = useState({ engine, value: initialSelection });
   const candidate =
     controlledSelection !== undefined
@@ -379,18 +382,16 @@ export function useGranumGrid<Row>({
     observer.observe(viewport);
     return () => observer.disconnect();
   }, [viewport, engine, dynamicRowHeight, measurements]);
+  const [layer, setLayer] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
+    const onVelocity = (value: number) => {
+      velocity.current = value;
+    };
+    // The page layout scrolls the document; the embedded viewport scrolls itself.
+    if (windowScroll) return bindScroll(window, engine, { onVelocity });
     if (!viewport) return;
-    return bindInputs(viewport, engine, {
-      windowScroll,
-      inertia,
-      elasticity,
-      onEdge: setEdgeOffset,
-      onVelocity: (value) => {
-        velocity.current = value;
-      },
-    });
-  }, [viewport, windowScroll, engine, inertia, elasticity]);
+    return bindScroll(viewport, engine, { layer, onVelocity });
+  }, [viewport, layer, windowScroll, engine]);
   useRowRequests(engine, session, { start, count, prefetch: features.prefetch, velocity });
   // Session statistics include searches started through `session.search`.
   const stats: ScrollStats = {
@@ -449,10 +450,13 @@ export function useGranumGrid<Row>({
     'data-ds-part': 'viewport',
     style: {
       position: 'relative',
-      overflow: 'hidden',
+      overflowX: 'hidden',
+      // The page layout scrolls the document instead, with this viewport fixed in place.
+      overflowY: windowScroll ? 'hidden' : 'auto',
+      // Rows are replaced as they scroll; the browser must not shift the offset to keep one.
+      overflowAnchor: 'none',
       minWidth: 0,
       flex: 1,
-      touchAction: 'pan-x pinch-zoom',
       ...props.style,
     } as CSSProperties,
     onClick: (event: React.MouseEvent<HTMLDivElement>) => {
@@ -518,7 +522,6 @@ export function useGranumGrid<Row>({
     selection,
     markers,
     chapter: chapterAt(session.chapters, snapshot.position) ?? null,
-    edgeOffset,
     stats,
     unseenRows,
     [INTERNAL]: {
@@ -531,6 +534,20 @@ export function useGranumGrid<Row>({
       append,
     },
     getViewportProps,
+    getLayerProps: (props: HTMLAttributes<HTMLDivElement> = {}): LayerElementProps => ({
+      ...props,
+      ref: setLayer,
+      role: 'rowgroup',
+      className: `ds-view-layer ${props.className ?? ''}`.trim(),
+      'data-ds-part': 'layer',
+      style: {
+        ...props.style,
+        // The scroll binding owns `transform`; rows outside the viewport are clipped.
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+      } as CSSProperties,
+    }),
     getRowProps: (
       slot: RowSlot<Row>,
       props: HTMLAttributes<HTMLDivElement> = {},

@@ -79,9 +79,9 @@
   :where(.ds-viewport) {
     flex: 1;
     position: relative;
-    overflow: hidden;
+    overflow: hidden auto;
+    overflow-anchor: none;
     min-width: 0;
-    touch-action: none;
   }
   :where(.ds-row) {
     position: absolute;
@@ -98,9 +98,10 @@
   :where(.ds-row[data-activatable]) {
     cursor: pointer;
   }
-  :where(.ds-view-layer, .ds-pan-layer) {
+  :where(.ds-view-layer) {
     position: absolute;
     inset: 0;
+    overflow: hidden;
   }
   :where(.ds-dataset-end) {
     position: absolute;

@@ -249,8 +249,8 @@ Rows retain the leading row address and pixel offset while content changes, clam
 - Use Cmd/Ctrl+K inside the component, `/` in the viewport, or **Go to…** in the `toolbar`. See [search](#search) for the accepted input.
 - Arrows move one row; PageUp/PageDown move a visible span; Home/End reach the endpoints. N/P visit markers. Cmd/Ctrl+Up/Down visit chapter boundaries.
 - Alt+Left/Right and the `toolbar`'s Back/Forward restore committed jumps. Wheel motion is not a history entry. Mouse back/forward interception depends on the browser.
-- Read one record per line. The current address is the first visible row. Scrolling stops when the last row ends at the bottom of the viewport; a jump to a row below that point shows it there and keeps it current until the reader scrolls. A wheel gesture that starts by pushing past either end scrolls the page, as a native scroller does, while one that starts by moving rows keeps them to its end, resisting and springing back while elastic edges are on. Elastic edges are off by default in an embedded explorer, which stops at its ends like a plain scroller, and on with `layout="page"`; set `features={{ edgeElasticity }}` to choose. Set `overscroll-behavior: contain` on the viewport to keep every wheel gesture in the rows. Sideways wheels pass through to wide content. The dataset map always covers the whole dataset. Ctrl+wheel and pinch remain browser zoom gestures.
-- Reduced motion follows the system preference or `reducedMotion={true}`. The component retains direct navigation while suppressing touch inertia, elastic edges, and animated transitions.
+- Read one record per line. The current address is the first visible row. Scrolling stops when the last row ends at the bottom of the viewport; a jump to a row below that point shows it there and keeps it current until the reader scrolls. The viewport is a native scroller: wheel, trackpad, touch, momentum, and the scrollbar are the browser's own. Small scroll steps move the rows by exactly the pixels scrolled; a scrollbar drag goes to the address its offset maps to. At either end of the dataset a wheel or swipe continues into the page, as with any scroller; set `overscroll-behavior: contain` on the viewport to keep it in the rows (Chromium and Safari honor it for the wheel; Firefox still hands a wheel at the boundary to the page, as it does for any scroller). The dataset map always covers the whole dataset. Ctrl+wheel and pinch remain browser zoom gestures.
+- Reduced motion follows the system preference or `reducedMotion={true}`. The component keeps the same navigation and turns off its animated transitions; native scrolling follows the browser's own reduced-motion behavior.
 
 `goTo(index)` accepts a safe integer, clamps it to the dataset, jumps at once, and
 records history unless `history: 'skip'`. `onNavigate` fires after committed navigation,
@@ -288,8 +288,9 @@ Those are application features; the playground builds all of them on the public 
 - `rangeProvider(provider, range)` reads a sub-range as its own provider, for a second
   explorer beside the first, without materializing rows.
 
-With `layout="page"`, a panel that scrolls on its own needs `data-ds-native-scroll`, so
-the wheel scrolls the panel instead of the rows.
+With `layout="page"`, arrow, page, and space keys outside the explorer move its rows. A
+panel that scrolls on its own needs `data-ds-native-scroll`, so those keys scroll the panel
+instead.
 
 `stickyChapters` keeps the current provider chapter above the rows. The `toolbar`
 shows **Back** and **Go to…**; diagnostics are under **debug** in the demo, and
@@ -315,7 +316,7 @@ const view = decodeView(location.hash.replace(/^#view=/, ''), provider);
 
 `decodeView` returns `null` for malformed, oversized, out-of-range, or other-revision input. The library does not install a router or rewrite host URLs; the host chooses the route and sharing policy.
 
-The library owns the full viewport in page mode. Mount one page-mode explorer per document, outside ancestors with transforms that establish fixed-position containing blocks. The native scrollbar and dataset map show the same global progress: dragging either halfway reaches the middle of the dataset. The document scroll range is capped (see [limits](#limits-and-defaults)), so native scrollbar dragging is approximate for very large datasets. Wheel input, touch panning over the rows, and keyboard steps retain precise local movement; Go to selects an exact row. Native `window.scrollTo`/`scrollBy` offsets use the compressed global range. On unmount the spacer and listeners are removed and the previous scroll-restoration setting returns. The headless hook takes the same `layout: 'page'` for custom full-page layouts; the host supplies the fixed viewport.
+The library owns the full viewport in page mode. Mount one page-mode explorer per document, outside ancestors with transforms that establish fixed-position containing blocks. The native scrollbar and dataset map show the same global progress: dragging either halfway reaches the middle of the dataset. The document scroll range is capped (see [limits](#limits-and-defaults)), so native scrollbar dragging is approximate for very large datasets. Wheel input, touch scrolling, and keyboard steps move rows by exact pixels; Go to selects an exact row. Native `window.scrollTo`/`scrollBy` offsets use the same mapping as the embedded viewport. On unmount the spacer and listeners are removed and the previous scroll-restoration setting returns. The headless hook takes the same `layout: 'page'` for custom full-page layouts; the host supplies the fixed viewport.
 
 ## Append-only live feeds
 
@@ -346,7 +347,7 @@ new revision.
 | Markers and chapters    | At most 4,096 each; markers closer than 28 px are grouped, and group lists show 40 per page | Fixed                    |
 | Search dialog           | 100 matches without pagination; up to 4 examples from `searchHelp`                          | Fixed                    |
 | Saved view text         | 8,192 characters for `decodeView`                                                           | Fixed                    |
-| Page layout scroll      | Native document scroll range capped at 1,000,000 CSS px                                     | `layout="page"`          |
+| Native scroll range     | Capped at 8,000,000 CSS px; four viewports at each end scroll one to one, the middle is compressed | Both layouts             |
 
 Row requests are scheduled for visible rows first, then map previews, then the predicted
 stopping point. Visible and preview pages stay cached even above the budget, and
@@ -362,14 +363,16 @@ host supplies `onStats`. These defaults are not performance guarantees.
 
 `useGranumGrid` returns the `api` handle, the navigation `snapshot`, bounded row slots,
 viewport, row, and announcement prop getters, and display state: `selection`,
-`markers`, the current `chapter`, `edgeOffset`, `unseenRows`, and `stats`.
+`markers`, the current `chapter`, `unseenRows`, and `stats`. A custom layout renders its
+rows inside `getLayerProps()` within `getViewportProps()`: the layer is kept at the scroll
+offset, so rows placed at `slot.y` scroll natively.
 It fetches data and binds browser input; custom layouts choose the row content and place
 the map. Its data session and coordinate mapping are internal to the library's widgets.
 `onNavigate` reports committed jumps, and `onStats` reports cache and request counts and
-frame rate. The ready-made component adds the map and the Go to dialog; the toolbar,
+measured rows. The ready-made component adds the map and the Go to dialog; the toolbar,
 footer, and column headings are opt-in.
-`features` switches motion and data behavior; `defaultFeatures` lists every flag with its
-embedded default (`layout="page"` also turns on `edgeElasticity`). The component's regions
+`features` switches transitions, loading estimates, and prefetching; `defaultFeatures`
+lists every flag with its default. The component's regions
 (`toolbar`, `rail`, `footer`) each take `true` or options to show the built-in region,
 `false` to hide it, or a render function; only `rail` is shown when omitted. `panel` holds
 host content; map layers are `rail` options. Layers and package entry points are listed in the

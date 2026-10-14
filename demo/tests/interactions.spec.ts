@@ -205,46 +205,55 @@ test('browser zoom gestures remain available without changing rows', async ({ pa
   await expect(page.getByTestId('position')).toHaveText(position);
 });
 
-test('a wheel gesture that starts at either end goes to the page, and sideways wheels pass through', async ({
+test('the wheel scrolls rows natively and hands off to the page at the ends', async ({
   page,
+  browserName,
 }) => {
   const grid = page.getByRole('grid');
   const position = page.getByTestId('position');
-  // One gesture: events dispatched together, well within the gesture gap.
-  const gesture = (...deltas: [number, number][]) =>
-    grid.evaluate(
-      (element, deltas) =>
-        deltas.map(([deltaY, deltaX]) => {
-          const event = new WheelEvent('wheel', {
-            deltaY,
-            deltaX,
-            cancelable: true,
-            bubbles: true,
-          });
-          element.dispatchEvent(event);
-          return event.defaultPrevented;
-        }),
-      deltas,
-    );
-  const nextGesture = () => page.waitForTimeout(300);
+  const pageY = () => page.evaluate(() => window.scrollY);
+  // Put the explorer mid-page, so the page itself can scroll in both directions.
+  await grid.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+  const over = async () => {
+    const box = (await grid.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  };
+  // Firefox keeps wheel input on its first target for 1.5 s; let each gesture end.
+  const nextGesture = () => page.waitForTimeout(1600);
+  await over();
   await expect(position).toHaveText('Row 1 of 100,000,000');
-  // At the first row, pushing up scrolls the page.
-  expect(await gesture([-100, 0])).toEqual([false]);
-  await nextGesture();
-  // A gesture that starts by moving rows keeps them after it reaches the top.
-  expect(await gesture([100, 0], [-1000, 0], [-100, 0])).toEqual([true, true, true]);
+  // At the first row there is nothing above, so the page scrolls instead.
+  const start = await pageY();
+  expect(start).toBeGreaterThan(0);
+  await page.mouse.wheel(0, -120);
+  await expect.poll(pageY).toBeLessThan(start);
   await expect(position).toHaveText('Row 1 of 100,000,000');
-  // Sideways wheels belong to wide content and horizontally scrolling ancestors.
-  expect(await gesture([0, 120], [10, 120])).toEqual([false, false]);
-  await grid.press('End');
-  await expect(position).toHaveText('Row 100,000,000 of 100,000,000');
+  // Between the ends the rows take the wheel and the page stays.
   await nextGesture();
-  expect(await gesture([100, 0])).toEqual([false]);
-  // overscroll-behavior: contain keeps every gesture in the rows.
+  await grid.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+  await over();
+  const middle = await pageY();
+  await page.mouse.wheel(0, 400);
+  await expect(position).toHaveText('Row 11 of 100,000,000');
+  expect(await pageY()).toBe(middle);
+  // Sideways wheels do not move rows.
+  await nextGesture();
+  await page.mouse.wheel(240, 0);
+  await page.waitForTimeout(200);
+  await expect(position).toHaveText('Row 11 of 100,000,000');
+  // overscroll-behavior: contain keeps the wheel in the rows even at an end. Firefox hands a
+  // wheel at a boundary to the page anyway, for a plain scrolling div too (checked 2026-10-14).
+  if (browserName === 'firefox') return;
+  await grid.press('Home');
+  await expect(position).toHaveText('Row 1 of 100,000,000');
   await grid.evaluate((element) => {
     element.style.overscrollBehaviorY = 'contain';
+    element.scrollIntoView({ block: 'center' });
   });
+  await over();
   await nextGesture();
-  expect(await gesture([100, 0])).toEqual([true]);
-  await expect(position).toHaveText('Row 100,000,000 of 100,000,000');
+  const contained = await pageY();
+  await page.mouse.wheel(0, -120);
+  await page.waitForTimeout(300);
+  expect(await pageY()).toBe(contained);
 });

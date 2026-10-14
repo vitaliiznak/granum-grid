@@ -306,13 +306,22 @@ search reports complete results, and browser tests pass in all three engines.
 
 ### Phase 2: native scrolling and accessibility (6–9 days, the riskiest)
 
-1. Local/global native scrolling for fixed heights, in embedded and page layouts.
-2. Dynamic heights on the same mapping. The measurement-anchoring tests stay green
-   unchanged.
-3. Remove custom physics and flights. Rewrite only the assertions in the `interactions`,
-   `exploration`, `defaults`, and `performance` specs that test custom physics, not
-   those that test anchoring or history.
-4. The ARIA pattern from the screen-reader session.
+1. Done 2026-10-14: `dom/scroll.ts` binds an element scroller (embedded) or the window
+   (page layout) to the engine over a spacer capped at 8 million px. Steps up to two
+   viewports move rows by exact pixels; longer steps (a scrollbar drag) go to the mapped
+   address; the mapping is one to one within four viewports of each end and compressed
+   between, re-anchored near the ends and after each pause. Rows sit in a layer kept at
+   the scroll offset (`getLayerProps()`), so headless layouts need it too.
+2. Done for the automated suite: dynamic heights use the same mapping (offsets follow
+   `rowSizes`); the `dynamic` spec passed unchanged. Not yet felt by a person.
+3. Done 2026-10-14: flights and `ViewCanvas` removed first (commit `4430c86`), then the
+   custom wheel, inertia, elastic edges, touch panning, `edgeOffset`, and the
+   `inertia`/`edgeElasticity` switches. Tests changed only where they asserted custom
+   physics: synthetic `WheelEvent`s (which never scroll natively) became real
+   `page.mouse.wheel` input; the acceptance spec now asserts a bounded spacer instead of
+   none; the page-layout progress check allows the 0.0001 the exact end zones cost.
+4. Waiting on a person: the ARIA pattern from a screen-reader session, and the device
+   checks below.
 
 Exit: three-browser suite green, touch hands off to the page at both ends, and device
 and screen-reader notes recorded here. People check a macOS trackpad, a Windows precision

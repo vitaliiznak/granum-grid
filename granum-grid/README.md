@@ -103,7 +103,7 @@ Stop at the layer that fits. Each one is built from the layer below it, and the 
 | `useGranumGrid`                               | `granum-grid/headless`                 | All markup. The hook supplies rows, navigation, selection, input, and ARIA props                              |
 | Engine and data session                       | `granum-grid/core`, `granum-grid/data` | Rendering and input, without React                                                                            |
 
-Widgets take the hook's result as `grid`: `<AtlasRail grid={grid} />` accepts the same options as the component's `rail` prop. The hook holds no dialog, search, bookmark, or map-mode state. Pass your own places with its `markers` option, and an `onOpenSearch` handler for `/`, Ctrl/Cmd+K, and `api.openSearch(query)`; without the handler those do nothing, and the keys stay with the browser. The hook's state carries rows, prop getters, the handle, and display state (`snapshot`, `selection`, `markers`, the current `chapter`, `edgeOffset`, `stats`); its data session and coordinate mapping stay internal.
+Widgets take the hook's result as `grid`: `<AtlasRail grid={grid} />` accepts the same options as the component's `rail` prop. The hook holds no dialog, search, bookmark, or map-mode state. Pass your own places with its `markers` option, and an `onOpenSearch` handler for `/`, Ctrl/Cmd+K, and `api.openSearch(query)`; without the handler those do nothing, and the keys stay with the browser. The hook's state carries rows, prop getters, the handle, and display state (`snapshot`, `selection`, `markers`, the current `chapter`, `stats`); its data session and coordinate mapping stay internal.
 
 ## Entry points
 
@@ -123,8 +123,7 @@ The package test pins the runtime exports of `granum-grid` and `granum-grid/head
 Chrome and Edge 100+, Firefox 104+, and Safari/iOS Safari 15.4+. This is the floor the code needs (for example `Array.prototype.findLast`, `AbortSignal.throwIfAborted`, `<dialog>`, and CSS cascade layers); it is declared as `browserslist` in `package.json`, and `npm run lint` checks JavaScript and Web APIs against it. Browsers without cascade layers ignore the stylesheets entirely, so there is no partial-layout fallback. The optional skin in `styles.css` tints some borders and highlights with `color-mix()` (Chrome 111, Firefox 113, Safari 16.2); earlier browsers show them untinted. Dynamic viewport units fall back to `vh`.
 
 - Ctrl+wheel and trackpad pinch retain browser page zoom.
-- A wheel gesture that starts by pushing past either end of the dataset scrolls the page, as a native scroller does; one that starts by moving rows keeps them to its end. Set `overscroll-behavior: contain` on the viewport to keep every wheel gesture in the rows. Sideways wheels pass through to wide content.
-- On touch screens the viewport captures vertical swipes to pan rows (`touch-action: pan-x pinch-zoom`). A swipe that reaches either end of the dataset does not continue into the page. Leave page area outside an embedded explorer on phones, or use `layout="page"`.
+- The viewport scrolls natively: wheel, trackpad, touch, momentum, and the scrollbar are the browser's own, and a gesture at either end of the dataset continues into the page. Set `overscroll-behavior: contain` on the viewport to keep it in the rows; Firefox still passes a wheel at the boundary to the page, as it does for any scroller. The scroll range is capped at 8 million px; within four viewports of each end it is one to one, and the middle is compressed so the scrollbar still spans the whole dataset.
 
 ## Documentation
 

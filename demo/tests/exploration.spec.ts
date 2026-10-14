@@ -66,9 +66,15 @@ test('range summaries, linked comparison, bookmarks and dialog focus', async ({ 
   await expect(dialog.getByText('Estimated summary', { exact: true })).toHaveCount(2);
   await expect(dialog.locator('.ds-legend').first()).toContainText('exact overview');
   await expect(dialog.locator('.ds-meta-error')).toHaveCount(0);
-  await a.dispatchEvent('wheel', { deltaY: 320, deltaMode: 0 });
-  await expect(a.locator('[role=row]').first()).toHaveAttribute('aria-rowindex', '7');
-  await expect(b.locator('[role=row]').first()).toHaveAttribute('aria-rowindex', '7');
+  // Real wheel input: the pane scrolls natively (how far is the browser's choice; Firefox
+  // caps a step at about a page), and the linked pane follows to the same row.
+  await a.hover();
+  await page.mouse.wheel(0, 320);
+  const firstRow = (pane: typeof a) =>
+    pane.locator('[role=row]').first().getAttribute('aria-rowindex');
+  await expect.poll(() => firstRow(a)).not.toBe('1');
+  await page.waitForTimeout(400);
+  await expect.poll(() => firstRow(b)).toBe(await firstRow(a));
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
   await expect(compare).toBeFocused();
@@ -142,16 +148,18 @@ test('separate tab keeps native scrolling and the map in sync and fits a phone',
   try {
     await expect(popup.getByTestId('position')).toHaveText('Row 73,500,000 of 100,000,000');
     await expect(popup.locator('[data-ds-root]')).toHaveCSS('position', 'fixed');
+    // The scrollbar addresses the whole dataset. Four viewports at each end scroll one to one,
+    // so the middle is proportional to within about 0.0001.
     const nativeProgress = () =>
       popup.evaluate(() => scrollY / (document.documentElement.scrollHeight - innerHeight));
-    await expect.poll(nativeProgress).toBeCloseTo(0.735, 5);
+    await expect.poll(nativeProgress).toBeCloseTo(0.735, 3);
     await popup.getByRole('grid').hover();
     await popup.mouse.wheel(0, 400);
     await expect(popup.getByTestId('position')).toHaveText('Row 73,500,010 of 100,000,000');
     await expect.poll(() => popup.url()).toContain('73500009');
     await popup.reload();
     await expect(popup.getByTestId('position')).toHaveText('Row 73,500,010 of 100,000,000');
-    await expect.poll(nativeProgress).toBeCloseTo(0.735, 5);
+    await expect.poll(nativeProgress).toBeCloseTo(0.735, 3);
     // Native scrollbar offsets address the whole dataset: its middle shows the middle row.
     // The range ends where the last row meets the bottom, so the middle row sits mid-screen.
     await popup.evaluate(() =>

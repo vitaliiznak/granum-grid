@@ -21,7 +21,7 @@ test('exact row jump and reversible history', async ({ page }) => {
   await page.getByRole('button', { name: 'Forward', exact: true }).click();
   await expect(page.getByTestId('position')).toHaveText('Row 73,500,000 of 100,000,000');
 });
-test('orientation is consistent and the final row is reachable without a tall spacer', async ({
+test('orientation is consistent and the final row is reachable without a dataset-height spacer', async ({
   page,
 }) => {
   const grid = page.getByRole('grid');
@@ -49,8 +49,12 @@ test('orientation is consistent and the final row is reachable without a tall sp
   const heights = await grid.evaluate((element) => ({
     height: element.clientHeight,
     scrollHeight: element.scrollHeight,
+    scrollTop: element.scrollTop,
   }));
-  expect(heights.scrollHeight).toBeLessThan(heights.height + 150);
+  // The native scroll range is capped at 8 million pixels, not 100 million rows' 3.2 billion,
+  // and the last row puts the native scrollbar at its end.
+  expect(heights.scrollHeight).toBeLessThanOrEqual(8_000_000 + heights.height);
+  expect(Math.round(heights.scrollTop + heights.height)).toBe(heights.scrollHeight);
 });
 test('a typed row selection opens its exact rows', async ({ page }) => {
   await page.getByRole('button', { name: 'Select rows', exact: true }).click();

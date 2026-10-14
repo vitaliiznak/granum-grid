@@ -163,18 +163,20 @@ export function HeadlessConsumer() {
         actions={<span>{scroll.chapter?.label}</span>}
       />
       <div {...scroll.getViewportProps({ style: { height: 320 }, 'aria-label': 'Headless rows' })}>
-        {scroll.rows.map((slot) => (
-          <div
-            key={slot.index}
-            {...scroll.getRowProps(slot, {
-              className: 'my-row',
-              style: { padding: 12 },
-              onClick: () => undefined,
-            })}
-          >
-            <span role="gridcell">{slot.status === 'ready' ? slot.row.value : 'Loading'}</span>
-          </div>
-        ))}
+        <div {...scroll.getLayerProps({ className: 'my-layer' })}>
+          {scroll.rows.map((slot) => (
+            <div
+              key={slot.index}
+              {...scroll.getRowProps(slot, {
+                className: 'my-row',
+                style: { padding: 12 },
+                onClick: () => undefined,
+              })}
+            >
+              <span role="gridcell">{slot.status === 'ready' ? slot.row.value : 'Loading'}</span>
+            </div>
+          ))}
+        </div>
         <div {...scroll.getAnnouncementProps()} />
       </div>
     </>

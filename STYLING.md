@@ -208,19 +208,22 @@ function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }
           style: { height: 320 },
         })}
       >
-        {grid.rows.map((slot) => (
-          <div
-            key={slot.index}
-            {...grid.getRowProps(slot, {
-              className: 'my-row',
-              style: { padding: 12 },
-            })}
-          >
-            <span role="gridcell">
-              {slot.status === 'ready' ? slot.row.value : slot.error ? 'Unavailable' : 'Loading…'}
-            </span>
-          </div>
-        ))}
+        {/* The layer is kept at the scroll offset, so rows at their `y` scroll natively. */}
+        <div {...grid.getLayerProps()}>
+          {grid.rows.map((slot) => (
+            <div
+              key={slot.index}
+              {...grid.getRowProps(slot, {
+                className: 'my-row',
+                style: { padding: 12 },
+              })}
+            >
+              <span role="gridcell">
+                {slot.status === 'ready' ? slot.row.value : slot.error ? 'Unavailable' : 'Loading…'}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
       <div {...grid.getAnnouncementProps()} />
     </section>
@@ -228,7 +231,7 @@ function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }
 }
 ```
 
-No stylesheet is required for positioning, clipping, touch navigation, or visually hidden announcements. Prop getters merge your classes, styles, and handlers while retaining the internal viewport ref, row measurement ref, ARIA addresses, and row geometry. The viewport click/key handlers call yours first and respect `preventDefault()`.
+No stylesheet is required for positioning, clipping, native scrolling, or visually hidden announcements. Prop getters merge your classes, styles, and handlers while retaining the internal viewport ref, row measurement ref, ARIA addresses, and row geometry. The viewport click/key handlers call yours first and respect `preventDefault()`.
 
 `grid.rows` holds only the bounded visible slots. Each slot is `ready` with a `row`, or `loading`/`error` with an optional aggregate `estimate`; error slots carry an `error` message. Placeholder estimates are never presented as `Row` values.
 
@@ -263,4 +266,4 @@ function Explorer({ provider }: { provider: DataProvider<{ value: number }> }) {
 }
 ```
 
-`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](granum-grid/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Translate your own row wrapper by `grid.edgeOffset` if you want elastic edge feedback. When a dataset is shorter than the viewport, the built-in viewport marks the space below its last row as the end of the dataset.
+`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](granum-grid/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Place your rows inside `grid.getLayerProps()` within the viewport: the layer is kept at the scroll offset, so rows at `slot.y` scroll natively. When a dataset is shorter than the viewport, the built-in viewport marks the space below its last row as the end of the dataset.
