@@ -92,8 +92,10 @@ devices, a screen reader, or npm publication.
 Hosted CI had failed on every push since before this work: three Firefox `map-gravity`
 tests timed out because the Config panel moved under the pointer, and their retries ran
 the suite past its 10-minute limit, so WebKit never ran and Pages never deployed. The run
-for the rewritten `main` failed the same way; the panel fix after it passes those tests
-locally in all three browsers.
+for the rewritten `main` failed the same way. With the panel fix, run 38569004851
+verified in all three browsers and deployed Pages; the live playground's Parquet dataset
+showed its first rows in 3.5 s and reached row 486,996 in 1.3 s. Its "Deploy wiki" job
+fails because the GitHub wiki has no first page yet: create one in the web UI once.
 
 ## Next action
 
