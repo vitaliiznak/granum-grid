@@ -31,7 +31,7 @@ their own files.
 - **Step 4, partly.** Real datasets come first in the gallery and the README, and
   DESIGN.md Decisions keep only choices a contributor needs (269 → 201 lines).
 
-## Remaining, each blocked on the maintainer
+## Remaining
 
 3. **Publish 0.1 to npm and find three integrators.** Status: ready to publish.
    - `granum-grid` is free on npm (`npm view` returns 404 on 2026-10-14). This machine
@@ -41,31 +41,19 @@ their own files.
    - Integrators file the new
      [integration report](../../.github/ISSUE_TEMPLATE/integration-report.md). Freeze new
      features until three are in; their friction list becomes the roadmap.
-4. **Cut the repository's weight.** Two parts need a decision.
-   - **Media out of history.** A `main`-only clone is 18.7 MB; without
-     `media/granum-grid-launch.mp4` in history it is 8.4 MB, and without the film and
-     `media/images/*.png` it is 0.95 MB (measured with `git filter-repo` on a scratch
-     clone). Recommended: publish the film and screenshots as release assets (the README
-     already plays the film from a GitHub attachment), point README and `media/README.md`
-     links at them, ignore `media/*.mp4` and `media/images/`, then rewrite:
-
-     ```sh
-     # After every clone and worktree has pushed or saved its work:
-     git clone --single-branch git@github.com:vitaliiznak/granum-grid.git rewrite && cd rewrite
-     git filter-repo --invert-paths --path media/granum-grid-launch.mp4 --path-glob 'media/images/*.png'
-     git remote add origin git@github.com:vitaliiznak/granum-grid.git
-     git push --force origin main   # then re-clone everywhere
-     ```
-
-     Git LFS keeps the paths but counts README image views against the free 1 GB monthly
-     bandwidth, so release assets fit better. A local clone also keeps old blobs alive
-     through the stash and Codex's `refs/codex/turn-diffs/*` checkpoint refs; delete those
-     before expecting a smaller `.git` here.
+4. **Cut the repository's weight.** Status: media moved; dataset cut waits.
+   - **Media out of history (done 2026-10-14).** Screenshots and the film are assets of
+     the `media` GitHub release, git ignores `media/images/` and `media/*.mp4`, and
+     `git filter-repo` removed both from the history of `main` and `master`. A `main`
+     clone measured 18.7 MB before and about 1 MB after on a scratch rehearsal. Every
+     other clone and worktree must re-clone or reset onto the rewritten history; the
+     `library-primitive` worktree and Codex's local `refs/codex/*` checkpoints still
+     point at the old commits. GitHub may keep unreachable objects until its own cleanup.
    - **Two generated datasets.** Keep Server logs and Signal archive (the default, the
      hero picture, and most tests). Removing Human genome, Market tape, and Star catalog
      also removes three film scenes (`media/src/scenes.ts`) and three screenshots, so the
      film needs a new cut. The film and screenshots were re-rendered in uncommitted work
-     on 2026-10-14; decide after that work lands.
+     on 2026-10-14; the maintainer chose to cut after that work lands.
 
 ## Open risks, not yet scheduled
 
@@ -103,5 +91,6 @@ screen reader, hosted CI, or npm publication.
 
 ## Next action
 
-Log in to npm and publish the verified archive (PUBLISHING.md step 4 onward), then decide
-the media move and the generated-dataset cut.
+Land the uncommitted media work (upload its screenshots and film with the command in
+`media/README.md`), cut the three generated datasets, then log in to npm and publish
+the verified archive (PUBLISHING.md step 4 onward).

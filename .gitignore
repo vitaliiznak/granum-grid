@@ -8,3 +8,6 @@ playwright-report/
 *.tgz
 # Copied from the root license when building the npm package.
 granum-grid/LICENSE
+# Screenshots and the film are release assets; see media/README.md.
+media/images/
+media/*.mp4

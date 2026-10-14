@@ -2,7 +2,7 @@
 
 Create README screenshots and a marketing film by mounting the actual `demo/src/App.tsx`. The capture page uses the demo's existing CSS and controls. Screenshots crop the table or dialog directly. The film surrounds real clicks, typing, scrolling, and navigation with benefit-led headlines, a charcoal, ivory, and cobalt visual treatment, and opening and closing title cards.
 
-![The Granum Grid demo](images/hero.png)
+![The Granum Grid demo](https://github.com/vitaliiznak/granum-grid/releases/download/media/hero.png)
 
 ## Make media
 
@@ -24,7 +24,7 @@ npm run media:all           # Both
 npm run media:build         # Type-check and build the standalone studio
 ```
 
-The root README's `images/performance.png` is not produced by a scene, so these commands do not refresh it.
+The root README's `performance.png` is not produced by a scene, so these commands do not refresh it.
 
 Video also requires [FFmpeg](https://ffmpeg.org/download.html) on `PATH`. Alternatively set `FFMPEG_PATH` to an existing executable. The script checks this and the cached music checksum before opening a browser. The explicit music download requires network access once; captures then run offline. No model, API key, external dataset, font download, or paid service is needed.
 
@@ -47,8 +47,8 @@ Available scene IDs are in [src/scenes.ts](src/scenes.ts). Exports freeze a prod
 | `src/studio.css`                                     | Director sidebar and cursor only; no styles for the captured demo                                               |
 | `scripts/capture.mjs`                                | Interaction choreography, readiness checks, screenshots, and video encoding                                     |
 | `scripts/soundtrack.mjs`                             | Licensed-track metadata, verified download, trimming, and fades                                                 |
-| `images/*.png`                                       | Versioned PNGs cropped to the app, table, or comparison dialog                                                  |
-| `granum-grid-launch.mp4`, `.srt`, `-description.txt` | Committed copies of the film, captions, and description linked from the playground README                       |
+| `images/*.png`                                       | PNGs cropped to the app, table, or comparison dialog; ignored by git and published as release assets            |
+| `granum-grid-launch.mp4`, `.srt`, `-description.txt` | The film (a release asset, ignored by git), and the committed captions and description the README links         |
 | `output/granum-grid-launch.mp4`                      | The same film as generated; `output/` stays ignored, so copy a keeper into `media/`                             |
 | `output/granum-grid-launch.srt`                      | Scene-title captions with generated timing                                                                      |
 | `output/granum-grid-launch-description.txt`          | Publishing description with required music attribution                                                          |
@@ -79,7 +79,11 @@ The full cut opens with **Turn data into clarity** (7 s), plays twelve scenes in
 2. Edit the matching action in `scripts/capture.mjs` if the interaction should change.
 3. Preview with `npm run media:dev`. `?scene=genome` opens a scene; `?capture=1&scene=genome` opens the actual demo with that starting view. `?artwork=scene&scene=genome` previews its film layout; `?artwork=intro`, `?artwork=capabilities`, and `?artwork=outro` show the title cards.
 4. Run `npm run media:build` and export. Inspect every changed image and the video before sharing.
-5. Keep README links in sync if you add or rename scenes. PNGs can be committed. After a full film export, copy `granum-grid-launch.mp4`, `granum-grid-launch.srt`, and `granum-grid-launch-description.txt` from `output/` into `media/` together so the README's film, captions, and description match; the `output/` export stays ignored.
+5. Keep README links in sync if you add or rename scenes. Screenshots and the film are not committed: git ignores `media/images/` and `media/*.mp4`, and the READMEs link to the `media` release. After a full film export, copy `granum-grid-launch.mp4`, `granum-grid-launch.srt`, and `granum-grid-launch-description.txt` from `output/` into `media/` together, commit the captions and description, then publish the media. Uploading replaces files of the same name, so links keep working:
+
+   ```sh
+   gh release upload media media/images/*.png media/granum-grid-launch.mp4 --clobber -R vitaliiznak/granum-grid
+   ```
 
 The studio deliberately stays outside `granum-grid/`. It adds no runtime dependency, media assets, or capture interface to the published library surface. Playwright and Vite come from the workspace's development dependencies. `playwright` is available through the existing `@playwright/test` dependency.
 

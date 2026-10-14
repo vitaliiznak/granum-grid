@@ -2,9 +2,9 @@
 
 A React component and headless hook for reading ordered datasets too large to load: millions to billions of rows, fetched a page at a time, with a map of the whole dataset beside them. Jump to a row, a date, or a named event, then come back.
 
-[Open the playground](https://vitaliiznak.github.io/granum-grid/) · [Use it in React](#use-it-in-react) · [Watch the film](media/granum-grid-launch.mp4) · [The datasets](#the-datasets) · [Visual tour](#visual-tour) · [Run it locally](#run-it-locally) · [Scope and current limits](#scope-and-current-limits)
+[Open the playground](https://vitaliiznak.github.io/granum-grid/) · [Use it in React](#use-it-in-react) · [Watch the film](https://github.com/vitaliiznak/granum-grid/releases/download/media/granum-grid-launch.mp4) · [The datasets](#the-datasets) · [Visual tour](#visual-tour) · [Run it locally](#run-it-locally) · [Scope and current limits](#scope-and-current-limits)
 
-![Granum Grid showing a live table near row 73,500,000 and a map of 100 million synthetic readings](media/images/hero.png)
+![Granum Grid showing a live table near row 73,500,000 and a map of 100 million synthetic readings](https://github.com/vitaliiznak/granum-grid/releases/download/media/hero.png)
 
 ## Use it in React
 
@@ -51,11 +51,11 @@ You never download the full set. The page asks for the slice you are looking at,
 
 ## Film
 
-[![Watch the Granum Grid playground film](media/images/hero.png)](media/granum-grid-launch.mp4)
+[![Watch the Granum Grid playground film](https://github.com/vitaliiznak/granum-grid/releases/download/media/hero.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/granum-grid-launch.mp4)
 
 The film records an earlier version of the playground, before the reading controls were simplified: jump to a row, read the shape, compare two stretches, and come back. Generated sets label sampled summaries and partial search. Bitcoin and Hacker News are live public sources.
 
-[Play granum-grid-launch.mp4](media/granum-grid-launch.mp4) · [Captions](media/granum-grid-launch.srt) · [Description](media/granum-grid-launch-description.txt)
+[Play granum-grid-launch.mp4](https://github.com/vitaliiznak/granum-grid/releases/download/media/granum-grid-launch.mp4) · [Captions](media/granum-grid-launch.srt) · [Description](media/granum-grid-launch-description.txt)
 
 Music: 'Firefly' by Scott Buckley, released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). [scottbuckley.com.au](https://www.scottbuckley.com.au) · [track](https://www.scottbuckley.com.au/library/firefly/). The film trims, fades, and levels the recording.
 
@@ -81,29 +81,29 @@ These are screenshots of the playground. The [media scripts](media/README.md) cr
 
 Type `73,500,000`, `50%`, a loaded event name, or a query the dataset understands. A long jump passes through the overview. Back returns you to where you were.
 
-[![Exact navigation to row 73,500,000, with the dataset map showing its global position](media/images/jump.png)](media/images/jump.png)
+[![Exact navigation to row 73,500,000, with the dataset map showing its global position](https://github.com/vitaliiznak/granum-grid/releases/download/media/jump.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/jump.png)
 
 ### See the shape, then read the records
 
 Read one record per line. The map on the right always covers the whole dataset; click an event or drag to a new address, then inspect the nearby rows. Back returns to your previous position.
 
-[![Readings at Spike 3, row 61,700,000 of 100 million, chosen from the sampled whole-dataset map](media/images/overview.png)](media/images/overview.png)
+[![Readings at Spike 3, row 61,700,000 of 100 million, chosen from the sampled whole-dataset map](https://github.com/vitaliiznak/granum-grid/releases/download/media/overview.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/overview.png)
 
 On the generated sets, means and extremes are **sampled estimates**, and the cards say so.
 
 ### The same gestures, different data
 
-| Genome                                                                                                                                       | Market                                                                                                                    |
-| -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| [![Synthetic genome rows at the BRCA1 landmark, with sequence context and chromosome map](media/images/genome.png)](media/images/genome.png) | [![Generated trade records at a named event, with a price-profile map](media/images/market.png)](media/images/market.png) |
+| Genome                                                                                                                                                                                                                                                   | Market                                                                                                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![Synthetic genome rows at the BRCA1 landmark, with sequence context and chromosome map](https://github.com/vitaliiznak/granum-grid/releases/download/media/genome.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/genome.png) | [![Generated trade records at a named event, with a price-profile map](https://github.com/vitaliiznak/granum-grid/releases/download/media/market.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/market.png) |
 
-| Logs                                                                                                                                                                  | Stars                                                                                                                                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![Provider-backed search for server responses with status greater than or equal to 500, explicitly marked as partial](media/images/logs.png)](media/images/logs.png) | [![Dark-themed synthetic star catalog at Sirius, showing coordinates, magnitude, and spectral class](media/images/stars.png)](media/images/stars.png) |
+| Logs                                                                                                                                                                                                                                                                              | Stars                                                                                                                                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![Provider-backed search for server responses with status greater than or equal to 500, explicitly marked as partial](https://github.com/vitaliiznak/granum-grid/releases/download/media/logs.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/logs.png) | [![Dark-themed synthetic star catalog at Sirius, showing coordinates, magnitude, and spectral class](https://github.com/vitaliiznak/granum-grid/releases/download/media/stars.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/stars.png) |
 
 ### A browser recording
 
-[![Recorded browser events beside the recording map](media/images/performance.png)](media/images/performance.png)
+[![Recorded browser events beside the recording map](https://github.com/vitaliiznak/granum-grid/releases/download/media/performance.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/performance.png)
 
 Open **Performance** and choose **Inspect longest event**. The recording map shows where longer events occur; the rows show their duration, start time, and thread. Select rows to compare ranges or save a bookmark.
 
@@ -111,13 +111,13 @@ Open **Performance** and choose **Inspect longest event**. The recording map sho
 
 Turn on measured heights when a row wraps or expands. The playground measures what is on screen, remembers those heights, and keeps your place while the content changes.
 
-[![An expanded observation with automatically measured row height](media/images/dynamic.png)](media/images/dynamic.png)
+[![An expanded observation with automatically measured row height](https://github.com/vitaliiznak/granum-grid/releases/download/media/dynamic.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/dynamic.png)
 
 ### Two stretches, side by side
 
 **Select rows** from the screen, the map, or typed addresses. **Compare ranges** keeps the first stretch while you pick a second. **Show comparison** opens two panes that scroll in proportion to each other, not by matching timestamps.
 
-[![Two selected ranges with estimated summaries and linked virtualized comparison panes](media/images/compare.png)](media/images/compare.png)
+[![Two selected ranges with estimated summaries and linked virtualized comparison panes](https://github.com/vitaliiznak/granum-grid/releases/download/media/compare.png)](https://github.com/vitaliiznak/granum-grid/releases/download/media/compare.png)
 
 Bookmarks remember a place and a selection, and they show up on the map next to the dataset's own markers.
 
