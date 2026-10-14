@@ -365,7 +365,9 @@ Granum Grid is a family of packages. `@granum/core` is framework-free: the engin
 (`@granum/core`), providers and the data session (`/data`), native scrolling and keys
 (`/dom`), and the map's pieces (`/map`). `@granum/react` builds the hook and components on
 it and re-exports what a React app needs, so a React app imports `@granum/react` and its
-stylesheet. `@granum/parquet` and `@granum/sql` are providers that take their types from
+stylesheet. Without React, `mount` from `@granum/core/dom` renders the rows explorer into
+any element and returns the same `GranumGridApi` handle; it is built from the same
+`@granum/core/dom` pieces as the hook. The dataset map is React-only for now. `@granum/parquet` and `@granum/sql` are providers that take their types from
 `@granum/core/data`.
 
 `useGranumGrid` returns the `api` handle, the navigation `snapshot`, bounded row slots,

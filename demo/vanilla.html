@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Granum Grid · No framework</title>
+  </head>
+  <body>
+    <main class="example-page vanilla-page">
+      <header>
+        <p><a href="./">← Playground</a></p>
+        <h1>No framework</h1>
+        <p>
+          A billion readings, computed from their address, in a plain page:
+          <code>mount()</code> from <code>@granum/core/dom</code>, no React. The form and buttons
+          call the same handle React's <code>apiRef</code> exposes.
+        </p>
+      </header>
+      <form id="jump" class="vanilla-controls" aria-label="Navigate">
+        <label>Row <input id="row" inputmode="numeric" value="750,000,000" /></label>
+        <button type="submit">Go</button>
+        <button type="button" id="back">Back</button>
+        <output id="position" data-testid="position">Row 1</output>
+      </form>
+      <div id="grid"></div>
+    </main>
+    <script type="module" src="/src/vanilla-main.ts"></script>
+  </body>
+</html>

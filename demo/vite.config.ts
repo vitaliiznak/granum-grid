@@ -30,6 +30,7 @@ export default defineConfig({
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         http: fileURLToPath(new URL('./http.html', import.meta.url)),
         tutorials: fileURLToPath(new URL('./tutorials.html', import.meta.url)),
+        vanilla: fileURLToPath(new URL('./vanilla.html', import.meta.url)),
       },
     },
   },

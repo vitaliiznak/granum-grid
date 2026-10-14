@@ -68,3 +68,19 @@ body {
     padding: 12px;
   }
 }
+
+/* No framework page */
+.vanilla-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+.vanilla-page .gr-row {
+  display: grid;
+  grid-template-columns: 9rem 12rem 1fr;
+  gap: 12px;
+  padding: 0 14px;
+  font-variant-numeric: tabular-nums;
+}

@@ -21,35 +21,40 @@ Not yet on npm.
 
 ## Without a framework
 
-The engine knows where the reader is; `bindScroll` keeps a native scroller in step with it;
-the data session fetches the rows in view. You render the rows wherever the engine says.
+`mount` puts a complete explorer (rows in a native scroller, typed jumps through the
+handle, history, keys, measured heights, and announcements) into any element. It returns
+the same `GranumGridApi` handle as `@granum/react`'s `apiRef`.
 
 ```ts
-import { createEngine } from '@granum/core';
-import { DataSession, createArrayProvider } from '@granum/core/data';
-import { bindScroll } from '@granum/core/dom';
+import { mount } from '@granum/core/dom';
+import { createArrayProvider } from '@granum/core/data';
+import '@granum/core/styles.css';
 
-const provider = createArrayProvider(lines, { id: 'lines', revision: '1' });
-const engine = createEngine({ rowCount: provider.rowCount, rowHeight: 24 });
-const session = new DataSession(provider);
-session.start();
-
-// `viewport` scrolls; `layer` holds the rows and follows the scroll offset.
-engine.setViewport(viewport.clientHeight);
-const unbind = bindScroll(viewport, engine, { layer });
-function draw() {
-  const { position, height } = engine.getSnapshot();
-  const first = Math.floor(position);
-  session.setRange('visible', first, Math.ceil(height / 24) + 1);
-  // Place rows `first…` at y = (row - position) * 24 inside `layer`; session.read(row)
-  // returns each loaded row, and session.has(row) says whether it has arrived.
-}
-engine.subscribe(draw); // the reader moved
-session.subscribe(draw); // rows arrived
+const grid = mount(document.getElementById('grid')!, {
+  provider: createArrayProvider(lines, { id: 'lines', revision: '1' }),
+  ariaLabel: 'Log lines',
+  height: '70vh',
+  renderRow(line, index, element) {
+    const cell = document.createElement('span');
+    cell.setAttribute('role', 'gridcell');
+    cell.textContent = `${index + 1}  ${line}`;
+    element.append(cell);
+  },
+});
+grid.api.goTo(41_999); // the same handle React's apiRef exposes
+// grid.destroy() removes it.
 ```
 
-A complete plain-DOM binding with row measurement, keys, and announcements is planned
-(`mount()`); until then, `@granum/react`'s hook shows every step.
+`renderRow` runs when a row arrives, not on every scroll frame. The dataset map is not part
+of `mount` yet. The playground's
+[No framework page](https://vitaliiznak.github.io/granum-grid/vanilla.html) shows a
+billion computed rows this way.
+
+`mount` is assembled from pieces that `@granum/react` uses too, all in `@granum/core/dom`:
+`bindScroll` (native scrolling for an element or the window), `rowMapping` and `rowWindow`
+(the bounded rows to mount and their viewport pixels), `createRowMeasurements`,
+`createRowRequests`, `observeViewport`, `jumpAnnouncement`, and the key handlers. A binding
+for another framework composes the same pieces.
 
 ## License
 

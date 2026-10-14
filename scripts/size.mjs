@@ -13,7 +13,7 @@ const BUDGETS = {
   '@granum/react/headless': 12_100,
   '@granum/core': 3_300,
   '@granum/core/data': 4_100,
-  '@granum/core/dom': 2_350,
+  '@granum/core/dom': 10_700,
   '@granum/core/map': 2_450,
   '@granum/parquet': 3_500,
   '@granum/sql': 4_200,

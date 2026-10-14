@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from 'react';
-import { clamp } from '@granum/core/internal';
-import type { GranumGridEngine } from '@granum/core/internal';
-import type { DataSession } from '@granum/core/internal';
+import type { DataSession, GranumGridEngine } from '@granum/core/internal';
+import { createRowRequests } from '@granum/core/dom';
+import { useKeyed } from './useKeyed.js';
 
 interface RowRequestOptions {
   /** Mounted row window. */
@@ -18,26 +18,10 @@ export function useRowRequests<Row>(
   session: DataSession<Row>,
   { start, count, prefetch, velocity }: RowRequestOptions,
 ) {
-  useEffect(() => {
-    session.setRange('visible', start, count);
-  }, [session, start, count]);
-  useEffect(() => {
-    if (!prefetch) {
-      session.setRange('prefetch', 0, 0);
-      return;
-    }
-    const timer = setTimeout(() => {
-      const { position, rowCount } = engine.getSnapshot();
-      const predicted = clamp(
-        Math.round(position + (velocity.current ?? 0) * 160),
-        0,
-        Math.max(0, rowCount - 1),
-      );
-      session.setRange('prefetch', predicted, Math.max(1, count));
-    }, 70);
-    return () => {
-      clearTimeout(timer);
-      session.setRange('prefetch', 0, 0);
-    };
-  }, [engine, session, velocity, start, count, prefetch]);
+  const requests = useKeyed(
+    () => createRowRequests(engine, session, () => velocity.current ?? 0),
+    [engine, session],
+  );
+  useEffect(() => () => requests.destroy(), [requests]);
+  useEffect(() => requests.update({ start, count, prefetch }), [requests, start, count, prefetch]);
 }

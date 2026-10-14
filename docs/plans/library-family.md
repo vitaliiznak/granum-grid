@@ -352,10 +352,21 @@ Exit: published, and new features frozen until three reports arrive.
 
 ### Phase 4: framework-free controller (4–6 days, 0.3)
 
-1. `createGridController` and `mount()`. The hook becomes an adapter.
-2. Demo: the No framework page. The acceptance spec runs against React and plain DOM.
+1. Done 2026-10-14, with a change of approach: instead of one `createGridController`, the
+   hook's framework-free work moved into `@granum/core/dom` pieces (`rowMapping`,
+   `rowWindow`, `createRowMeasurements`, `createRowRequests`, `observeViewport`,
+   `jumpAnnouncement`, beside `bindScroll` and the key handlers). The React hook and the new
+   `mount()` compose the same pieces, so there is one implementation with two thin
+   bindings, and the hook kept its React lifecycle (keyed engine and session, controlled
+   selection) without a risky rewrite. `mount()` has no map yet; follow mode, row
+   activation, and search UI are React-only.
+2. Done: the playground's **No framework** page (`demo/vanilla.html`) mounts a billion
+   computed rows; `demo/tests/vanilla.spec.ts` covers jumps, Back, End/Home, native wheel
+   scrolling, and that no React module loads, in three browsers and on the production
+   build. The full acceptance spec still runs against React only.
 
-Exit: the same spec passes for both.
+Exit (adjusted): the React suite passes unchanged on the shared pieces, and the plain-DOM
+page passes its own spec.
 
 ### Phase 5: the map on its own (5–7 days, 0.3)
 

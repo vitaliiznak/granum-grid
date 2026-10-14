@@ -11,8 +11,6 @@ import {
 } from 'react';
 import {
   createEngine,
-  pixelToRow,
-  rowToPixel,
   type CoordinateMapping,
   type NavigationEvent,
   type NavigationSnapshot,
@@ -23,8 +21,15 @@ import { createGranumGridApi, type GranumGridApi } from '@granum/core/internal';
 import { readView, type SavedView } from '@granum/core/internal';
 import { INTERNAL, type GridInternals } from './internal.js';
 import { useRowMeasurements } from './useRowMeasurements.js';
-import { bindScroll } from '@granum/core/dom';
-import { isControl, ownsKeys } from '@granum/core/dom';
+import {
+  bindScroll,
+  isControl,
+  jumpAnnouncement,
+  observeViewport,
+  ownsKeys,
+  rowMapping,
+  rowWindow,
+} from '@granum/core/dom';
 import { useKeyed } from './useKeyed.js';
 import { useReducedMotion } from './useReducedMotion.js';
 import { useLatest } from './useLatest.js';
@@ -32,7 +37,7 @@ import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { useFollowOutput } from './useFollowOutput.js';
 import { useRowRequests } from './useRowRequests.js';
 import { handleViewportKey } from '@granum/core/dom';
-import { bucketAt, chapterAt } from '@granum/core/internal';
+import { chapterAt } from '@granum/core/internal';
 import { DataSession, sessionKey } from '@granum/core/internal';
 import type {
   CacheOptions,
@@ -273,7 +278,6 @@ export function useGranumGrid<Row>({
     [provider, engine, setSelection, latestOnOpenSearch, latestSelection],
   );
   const measurements = useRowMeasurements(engine);
-  const sizes = engine.rowSizes;
   const snapshot = useSyncExternalStore(engine.subscribe, engine.getSnapshot, engine.getSnapshot);
   useEffect(() => {
     if (dynamicRowHeight && snapshot.measuredRows === 0) measurements.measure();
@@ -322,66 +326,37 @@ export function useGranumGrid<Row>({
   useEffect(
     () =>
       engine.onNavigate((event) => {
-        const chapter = chapterAt(session.chapters, event.to.position);
-        // A jump below the end clamp names the requested row, not the first visible one.
-        const row = engine.getSnapshot().activeIndex ?? Math.floor(event.to.position);
-        setAnnouncement(
-          `Jumped to row ${(row + 1).toLocaleString()}${chapter ? `, ${chapter.label}` : ''}`,
-        );
+        setAnnouncement(jumpAnnouncement(engine, session.chapters, event));
         latestOnNavigate.current?.(event);
       }),
     [engine, session, latestOnNavigate],
   );
-  const mapping = useMemo(() => {
-    if (dynamicRowHeight) {
-      const origin = snapshot.position;
-      return {
-        toPixel: (row: number) => sizes.distance(origin, row),
-        toRow: (pixel: number) => sizes.advance(origin, pixel),
-      };
-    }
-    return {
-      toPixel: (row: number) => rowToPixel(row, snapshot.position, rowHeight),
-      toRow: (pixel: number) => pixelToRow(pixel, snapshot.position, rowHeight),
-    };
-    // `sizes` mutates in place; layoutVersion is the signal that its measurements changed.
+  const mapping = useMemo(
+    () => rowMapping(engine, { rowHeight, dynamic: dynamicRowHeight }),
+    // The engine's position and measurements mutate in place; these fields signal a change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    snapshot.position,
-    snapshot.height,
-    snapshot.rowCount,
-    rowHeight,
-    dynamicRowHeight,
-    sizes,
-    snapshot.layoutVersion,
-  ]);
-  const start = Math.max(0, Math.floor(mapping.toRow(0)) - overscan);
-  const count = Math.max(
-    0,
-    Math.min(
-      provider.rowCount - start,
-      Math.ceil(mapping.toRow(snapshot.height)) - start + overscan,
-    ),
+    [
+      engine,
+      snapshot.position,
+      snapshot.height,
+      snapshot.rowCount,
+      rowHeight,
+      dynamicRowHeight,
+      snapshot.layoutVersion,
+    ],
   );
-  const visibleStart = Math.max(0, Math.floor(mapping.toRow(0)));
-  const visibleEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)));
-  const visibleRange = { start: visibleStart, end: visibleEnd };
+  const { start, count, visibleRange, rows } = rowWindow(engine, session, mapping, {
+    rowHeight,
+    dynamic: dynamicRowHeight,
+    rowCount: provider.rowCount,
+    overscan,
+  });
   useClientLayoutEffect(() => {
     latestVisibleRange.current = visibleRange;
   });
   useEffect(() => {
-    if (!viewport) return;
-    let width = viewport.clientWidth;
-    const observer = new ResizeObserver(() => {
-      engine.setViewport(viewport.clientHeight);
-      if (dynamicRowHeight && viewport.clientWidth !== width) {
-        width = viewport.clientWidth;
-        engine.resetMeasurements();
-        measurements.measure();
-      }
-    });
-    observer.observe(viewport);
-    return () => observer.disconnect();
+    if (viewport)
+      return observeViewport(viewport, engine, dynamicRowHeight ? measurements : undefined);
   }, [viewport, engine, dynamicRowHeight, measurements]);
   const [layer, setLayer] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -414,20 +389,6 @@ export function useGranumGrid<Row>({
     stats.completedFetches,
     stats.measuredRows,
   ]);
-  const rows: RowSlot<Row>[] = Array.from({ length: count }, (_, offset) => {
-    const index = start + offset;
-    const common = {
-      index,
-      y: mapping.toPixel(index),
-      height: dynamicRowHeight ? sizes.size(index) : rowHeight,
-    };
-    const row = session.read(index);
-    const error = session.error(index);
-    const estimate = bucketAt(session.overview, index);
-    return session.has(index)
-      ? { ...common, status: 'ready', row: row as Row }
-      : { ...common, status: error ? 'error' : 'loading', error, estimate };
-  });
   const activateRow = (slot: RowSlot<Row>) => {
     if (!onRowActivate || slot.status !== 'ready') return;
     setRowFocus({ session, position: snapshot.position, index: slot.index });

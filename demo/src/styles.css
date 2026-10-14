@@ -2836,3 +2836,24 @@ summary::-webkit-details-marker {
 .provider-code a {
   color: var(--accent);
 }
+
+/* Links to the lessons and the No framework page */
+.header-links {
+  display: flex;
+  gap: 14px;
+  margin-right: 10px;
+  font-size: 13px;
+}
+.header-links a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.header-links a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+@media (max-width: 650px) {
+  .header-links {
+    display: none;
+  }
+}

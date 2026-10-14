@@ -467,6 +467,10 @@ function SiteHeader({
         <span className="header-location">Demo</span>
       </a>
       <div className="header-controls">
+        <nav className="header-links" aria-label="Other pages">
+          <a href={`${import.meta.env.BASE_URL}tutorials.html`}>Lessons</a>
+          <a href={`${import.meta.env.BASE_URL}vanilla.html`}>No framework</a>
+        </nav>
         <button
           className="theme-toggle"
           aria-label="Toggle color theme"
