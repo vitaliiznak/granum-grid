@@ -71,8 +71,8 @@ export interface DemoDataset<Row = any> {
   map: { chapters: string; profile: string; tracks: string; explain: string; sampling: string };
   tour: TourStep[];
 }
-/** A tour step that flies to one of a live provider's data-derived markers, once it is known. */
-export const flyToMarker =
+/** A tour step that jumps to one of a live provider's data-derived markers, once it is known. */
+export const jumpToMarker =
   (provider: { loadMarkers(signal: AbortSignal): Promise<Marker[]> }, id: string) =>
   async (api: GranumGridApi<unknown>) => {
     const markers = await provider.loadMarkers(new AbortController().signal);

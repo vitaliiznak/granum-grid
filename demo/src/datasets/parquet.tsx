@@ -158,8 +158,8 @@ const tour = (rowCount: number): DemoDataset['tour'] => [
     run: (api) => api.openSearch('75%'),
   },
   {
-    feature: 'Flight',
-    label: 'Fly to the last row',
+    feature: 'Jump',
+    label: 'Jump to the last row',
     hint: 'The last row group is as cheap to read as the first.',
     run: (api) => api.goTo(Math.max(0, rowCount - 1)),
   },

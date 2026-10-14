@@ -12,13 +12,7 @@ export type {
   ScrollToOptions,
   GoToOptions,
 } from './engine.js';
-export {
-  createZoomMapping,
-  rowToPixel,
-  pixelToRow,
-  rowToProgress,
-  progressToRow,
-} from './mappings.js';
+export { rowToPixel, pixelToRow, rowToProgress, progressToRow } from './mappings.js';
 export type { CoordinateMapping } from './mappings.js';
 export type { RowMeasurement, RowSizeReader } from './rowSizes.js';
 export { encodeView, decodeView, readView } from './exploration.js';

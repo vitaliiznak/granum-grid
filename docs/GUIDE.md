@@ -250,15 +250,13 @@ Rows retain the leading row address and pixel offset while content changes, clam
 - Arrows move one row; PageUp/PageDown move a visible span; Home/End reach the endpoints. N/P visit markers. Cmd/Ctrl+Up/Down visit chapter boundaries.
 - Alt+Left/Right and the `toolbar`'s Back/Forward restore committed jumps. Wheel motion is not a history entry. Mouse back/forward interception depends on the browser.
 - Read one record per line. The current address is the first visible row. Scrolling stops when the last row ends at the bottom of the viewport; a jump to a row below that point shows it there and keeps it current until the reader scrolls. A wheel gesture that starts by pushing past either end scrolls the page, as a native scroller does, while one that starts by moving rows keeps them to its end, resisting and springing back while elastic edges are on. Elastic edges are off by default in an embedded explorer, which stops at its ends like a plain scroller, and on with `layout="page"`; set `features={{ edgeElasticity }}` to choose. Set `overscroll-behavior: contain` on the viewport to keep every wheel gesture in the rows. Sideways wheels pass through to wide content. The dataset map always covers the whole dataset. Ctrl+wheel and pinch remain browser zoom gestures.
-- Reduced motion follows the system preference or `reducedMotion={true}`. The component retains direct navigation while suppressing flights, touch inertia, elastic edges, and the fast-fling overview.
+- Reduced motion follows the system preference or `reducedMotion={true}`. The component retains direct navigation while suppressing touch inertia, elastic edges, and animated transitions.
 
-`goTo(index)` accepts a safe integer, clamps it to the dataset, chooses an animated or
-immediate jump from the distance and reduced motion, and records history unless
-`history: 'skip'`. `onNavigate` fires after committed navigation, not on every animation
-frame; subscribe to snapshots for continuous position. Keep live position in the engine
+`goTo(index)` accepts a safe integer, clamps it to the dataset, jumps at once, and
+records history unless `history: 'skip'`. `onNavigate` fires after committed navigation,
+not on every scroll frame; subscribe to snapshots for continuous position. Keep live position in the engine
 instead of mirroring it in host state. `granum-grid/core` has no React, DOM, or network
-imports: `createEngine` takes numeric dimensions and normalized input, and the caller
-drives flights with `step(timestamp)`. Snapshots keep their identity until a value
+imports: `createEngine` takes numeric dimensions and normalized input. Snapshots keep their identity until a value
 changes, so React subscribes through `useSyncExternalStore`.
 
 ## Selection and host tools
@@ -364,7 +362,7 @@ host supplies `onStats`. These defaults are not performance guarantees.
 
 `useGranumGrid` returns the `api` handle, the navigation `snapshot`, bounded row slots,
 viewport, row, and announcement prop getters, and display state: `selection`,
-`markers`, the current `chapter`, `traveling`, `edgeOffset`, `unseenRows`, and `stats`.
+`markers`, the current `chapter`, `edgeOffset`, `unseenRows`, and `stats`.
 It fetches data and binds browser input; custom layouts choose the row content and place
 the map. Its data session and coordinate mapping are internal to the library's widgets.
 `onNavigate` reports committed jumps, and `onStats` reports cache and request counts and

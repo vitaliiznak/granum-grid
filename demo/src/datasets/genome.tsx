@@ -142,9 +142,9 @@ export const genome: DemoDataset<Locus> = {
   ),
   tour: [
     {
-      feature: 'Flight',
-      label: 'Fly to BRCA1',
-      hint: 'A jump of 2.5 billion rows. The flight passes through the overview so the distance stays legible.',
+      feature: 'Jump',
+      label: 'Jump to BRCA1',
+      hint: 'A jump of 2.5 billion rows. The map shows how far you went, and Back returns.',
       run: (api) => api.goTo(BRCA1.index),
     },
     {

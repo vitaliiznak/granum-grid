@@ -20,7 +20,7 @@ the source of truth.
   The embedded viewport never uses a dataset-height spacer; page layout maps a bounded
   native scroll range to global progress.
 - Visible rows are DOM content, for accessibility and custom rendering. Canvas draws the
-  map and travel context, and important canvas targets have keyboard equivalents.
+  map, and important canvas targets have keyboard equivalents.
 - A row count, ordered slice fetching, and a renderer are enough for useful navigation.
   Overview, chapters, markers, regional aggregates, and search are optional provider
   capabilities. The library never scans the dataset to imitate a missing capability,
@@ -72,9 +72,9 @@ magnifier, precision dragging, previews, and a visited trail.
   loop.
 - Shortcuts act only inside the focused explorer and ignore editable fields. With no
   further target, navigation stays where it is instead of wrapping.
-- Long jumps fly through a widened view with a bounded duration; new input stops a flight
-  where it is. Reduced motion keeps the same destinations without flights, inertia, or
-  elastic edges.
+- Jumps are instant. The map's viewport marker shows where the reader went, and Back
+  returns. Reduced motion keeps the same destinations without inertia, elastic edges, or
+  transitions.
 - Loading improves the screen locally: estimates first, then exact rows page by page,
   each with its own retry. An abort is not an error.
 
@@ -116,15 +116,14 @@ Choices a contributor needs before changing the library, with options decided ag
   package test pins the root and headless runtime exports. Considered and not taken:
   grouping row options into objects (more nesting, unstable inline identities),
   compound components with context (hides the data flow the widgets show), a
-  `theme: 'none'` value in place of `unstyled` (changes the CSS hooks), and dropping
-  `ViewCanvas` (a headless layout would go blank during long jumps).
+  `theme: 'none'` value in place of `unstyled` (changes the CSS hooks).
 
 - **The library ships the explorer; the application ships application features.**
   Selection summaries, bookmarks and their storage, range comparison, and first-run
   hints live in `demo/src/explorer` and use only public entries: `panel`,
   `api.getVisibleRange()`, the rail's `selecting`/`onSelectingChange`, `readView`, and
-  `checkBuckets`. The server owns sorting, filtering, and editing. Animated jumps, the
-  visited trail, marker snapping, and precision dragging stay: they are the map's
+  `checkBuckets`. The server owns sorting, filtering, and editing. The visited trail,
+  marker snapping, and precision dragging stay: they are the map's
   behavior, which no other component provides. Considered and not taken: a
   `granum-grid/explorer` entry for those tools (it would ship application decisions such
   as storage keys and copy).
@@ -132,9 +131,16 @@ Choices a contributor needs before changing the library, with options decided ag
 - **Layers a host can stop at** ([reference](granum-grid/README.md#layers)). The hook
   holds no dialog, search, bookmark, or map-mode state, so a host owns every piece of
   explorer UI it shows and a list without search never captures its shortcuts.
-  `JumpBar`, `AtlasRail`, and `ViewCanvas` are controlled widgets that take the hook's
+  `JumpBar` and `AtlasRail` are controlled widgets that take the hook's
   result as `grid`, not a hidden context, so each can be placed alone. Search runs
   through `DataSession.search`, so request statistics need no UI flag.
+
+- **Jumps are instant** (2026-10-14). A long jump used to fly through a widened view that
+  drew the overview behind the rows (`ViewCanvas`), with an engine clock (`step`) and a
+  fast-fling variant. Animated programmatic scrolling fights native scrolling, the canvas
+  repeated what the map already shows, and the engine carried timing state for it. The map's
+  viewport marker shows where the reader went; Back returns. Considered and not taken:
+  keeping flights behind an option (two navigation models to test and document).
 
 - **`features` is motion and data only.** Map layers are `AtlasRailOptions` alone, so
   there is no "feature wins over option" rule.

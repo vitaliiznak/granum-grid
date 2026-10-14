@@ -7,8 +7,6 @@ interface RowRequestOptions {
   /** Mounted row window. */
   start: number;
   count: number;
-  /** Rows per viewport while an animated jump fetches its destination. */
-  destinationCount: number;
   prefetch: boolean;
   /** Recent input velocity in rows per millisecond, used to predict the next page. */
   velocity: RefObject<number>;
@@ -18,16 +16,13 @@ interface RowRequestOptions {
 export function useRowRequests<Row>(
   engine: GranumGridEngine,
   session: DataSession<Row>,
-  moving: boolean,
-  targetIndex: number | null,
-  { start, count, destinationCount, prefetch, velocity }: RowRequestOptions,
+  { start, count, prefetch, velocity }: RowRequestOptions,
 ) {
   useEffect(() => {
-    if (moving && targetIndex !== null) session.setRange('visible', targetIndex, destinationCount);
-    else session.setRange('visible', start, count);
-  }, [session, start, count, moving, targetIndex, destinationCount]);
+    session.setRange('visible', start, count);
+  }, [session, start, count]);
   useEffect(() => {
-    if (!prefetch || moving) {
+    if (!prefetch) {
       session.setRange('prefetch', 0, 0);
       return;
     }
@@ -44,5 +39,5 @@ export function useRowRequests<Row>(
       clearTimeout(timer);
       session.setRange('prefetch', 0, 0);
     };
-  }, [engine, session, velocity, start, count, prefetch, moving]);
+  }, [engine, session, velocity, start, count, prefetch]);
 }

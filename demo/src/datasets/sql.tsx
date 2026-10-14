@@ -142,8 +142,8 @@ export function sqlDataset(provider: SqlProvider, info: SqlDetails): DemoDataset
           ]
         : []),
       {
-        feature: 'Flight',
-        label: 'Fly to the last row',
+        feature: 'Jump',
+        label: 'Jump to the last row',
         hint: 'The last row is as cheap as the first: a range scan by address.',
         run: (api) => api.goTo(Math.max(0, provider.rowCount - 1)),
       },

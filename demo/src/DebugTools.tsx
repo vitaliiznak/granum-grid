@@ -84,7 +84,6 @@ const labels: Record<keyof DemoSwitches, string> = {
   trail: 'Visited trail',
   inertia: 'Touch inertia',
   edgeElasticity: 'Elastic edges',
-  flight: 'Fly-to animation',
   transitions: 'View transitions',
   progressiveEstimates: 'Progressive estimates',
   prefetch: 'Predictive prefetch',

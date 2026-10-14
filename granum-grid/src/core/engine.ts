@@ -19,17 +19,13 @@ export interface NavigationSnapshot extends NavigationLocation {
   progress: number;
   /** The largest position: the end of the last row meets the bottom of the viewport. */
   maxPosition: number;
-  moving: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
   height: number;
   rowHeight: number;
-  flightSpan: number;
   trail: readonly number[];
   layoutVersion: number;
   measuredRows: number;
-  /** Destination exposed for fetching during an animated jump. */
-  targetIndex: number | null;
   backLocation: NavigationLocation | null;
 }
 export type ScrollAlignment = 'start' | 'center' | 'end' | 'auto';
@@ -38,9 +34,8 @@ export interface ScrollToOptions {
   history?: 'record' | 'skip';
   reason?: NavigationEvent['reason'];
 }
-export interface GoToOptions extends ScrollToOptions {
-  motion?: 'auto' | 'instant';
-}
+/** Jumps are instant: the map shows where the reader went, and Back returns. */
+export type GoToOptions = ScrollToOptions;
 export interface EngineOptions {
   rowCount: number;
   rowHeight?: number;
@@ -60,7 +55,7 @@ export interface NavigationController {
   subscribe(listener: () => void): () => void;
   /** Committed jumps (not continuous panning). */
   onNavigate(listener: (event: NavigationEvent) => void): () => void;
-  /** Jump to a row, animating long distances unless `motion: 'instant'`. */
+  /** Jump to a row. */
   goTo(index: number, config?: GoToOptions): void;
   /** Align a row in the viewport; new measurements keep the target aligned until input. */
   scrollToIndex(index: number, config?: ScrollToOptions): void;
@@ -73,7 +68,7 @@ export interface NavigationController {
   back(): void;
   /** Revisit the location left by `back`. */
   forward(): void;
-  /** Stop a flight or cancel a scrub in progress. */
+  /** Cancel a scrub in progress, returning to where it started. */
   cancel(): void;
   /** Discard measured heights, for example after offscreen content or typography changes. */
   resetMeasurements(): void;
@@ -94,16 +89,12 @@ export interface GranumGridEngine extends NavigationController {
   setViewport(height: number): void;
   /** Adapter: change the row height or measuring mode; the current row and history stay. */
   setRowLayout(rowHeight: number, dynamicRowHeight: boolean): void;
-  /** Adapter: enable animated flights (disabled for reduced motion). */
-  setMotion(enabled: boolean): void;
   /** Adapter: markers and chapters used by marker and chapter navigation. */
   setMetadata(markers: Marker[], chapters: Chapter[]): void;
   /** Adapter: report rendered row heights; `retained` rows survive measurement eviction. */
   measureRows(rows: readonly RowMeasurement[], retained?: readonly number[]): void;
   /** Adapter: record the settled position in the visited trail. */
   visit(): void;
-  /** Adapter: advance a flight to `time`; returns whether it is still moving. */
-  step(time: number): boolean;
   destroy(): void;
 }
 /** Whether the end of the last row is in view, within one pixel. Internal to the library. */
@@ -146,33 +137,20 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     forwardStack: NavigationLocation[] = [];
   let markers: Marker[] = [],
     chapters: Chapter[] = [];
-  let animate = false;
   let scrubOrigin: NavigationLocation | undefined;
-  let flight:
-    | {
-        from: NavigationLocation;
-        to: NavigationLocation;
-        reason: NavigationEvent['reason'];
-        start?: number;
-        duration: number;
-      }
-    | undefined;
   let snapshot: NavigationSnapshot = {
     position: 0,
     rowCount: options.rowCount,
     activeIndex: options.rowCount ? 0 : null,
     progress: 0,
     maxPosition: endPosition(options.rowCount, 480),
-    moving: false,
     canGoBack: false,
     canGoForward: false,
     height: 480,
     rowHeight,
-    flightSpan: 0,
     trail: [],
     layoutVersion: 0,
     measuredRows: 0,
-    targetIndex: null,
     backLocation: null,
   };
   const location = (): NavigationLocation => ({
@@ -207,10 +185,6 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     addToTrail([from.position, to.position]);
     navigationListeners.forEach((listener) => listener({ from, to, reason }));
   }
-  function interrupt() {
-    flight = undefined;
-    update({ moving: false, flightSpan: 0, targetIndex: null });
-  }
   /** Settle at a jump's destination; a row below the end clamp stays the active row. */
   function arrive(patch: Partial<NavigationSnapshot> & NavigationLocation, row?: number) {
     activeRow =
@@ -227,9 +201,8 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       if (!trail.some((p) => Math.abs(p - position) < near)) trail.push(position);
     if (trail.length !== snapshot.trail.length) update({ trail: trail.slice(-100) });
   }
-  /** New input replaces any flight and pending alignment. */
+  /** New input replaces any pending alignment. */
   function takeOver() {
-    interrupt();
     alignment = undefined;
   }
   function alignedPosition(index: number, align: Exclude<ScrollAlignment, 'auto'>) {
@@ -258,24 +231,11 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
       measuredRows: rowSizes.measuredCount,
     });
   }
-  function travel(to: NavigationLocation, reason: NavigationEvent['reason'], motion = true) {
-    interrupt();
+  function travel(to: NavigationLocation, reason: NavigationEvent['reason']) {
     activeRow = undefined;
     const from = location();
-    if (
-      animate &&
-      motion &&
-      Math.abs(to.position - from.position) > (2 * snapshot.height) / rowHeight
-    ) {
-      flight = { from, to, reason, duration: 420 };
-      update({
-        moving: true,
-        targetIndex: Math.floor(Math.min(to.position, snapshot.maxPosition)),
-      });
-    } else {
-      arrive(to);
-      notify(from, reason);
-    }
+    arrive(to);
+    notify(from, reason);
   }
   function record(from: NavigationLocation) {
     backStack.push(from);
@@ -298,7 +258,7 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     if (Math.min(index, snapshot.maxPosition) === snapshot.position)
       return arrive({ position: index });
     if (config.history !== 'skip') record(location());
-    travel({ position: index }, config.reason ?? 'jump', config.motion !== 'instant');
+    travel({ position: index }, config.reason ?? 'jump');
   }
   const engine: GranumGridEngine = {
     rowSizes,
@@ -350,15 +310,6 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
         { rowHeight },
       );
     },
-    setMotion: (enabled: boolean) => {
-      animate = enabled;
-      if (!enabled && flight) {
-        const pending = flight;
-        flight = undefined;
-        arrive({ ...pending.to, moving: false, flightSpan: 0, targetIndex: null });
-        notify(pending.from, pending.reason);
-      }
-    },
     setMetadata: (nextMarkers: Marker[], nextChapters: Chapter[]) => {
       markers = nextMarkers;
       chapters = nextChapters;
@@ -374,13 +325,12 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
           return;
         align = top < 0 || rowSizes.size(index) > snapshot.height ? 'start' : 'end';
       }
-      interrupt();
       activeRow = undefined;
       const from = location();
       alignment = { index, align };
       const position = alignedPosition(index, align);
       if (config.history !== 'skip' && position !== from.position) record(from);
-      // Measurements can change the target during travel, so aligned navigation is immediate.
+      // Later measurements keep the target aligned until new input (see `alignment`).
       arrive({ position }, index);
       notify(from, config.reason ?? 'jump');
     },
@@ -451,31 +401,12 @@ export function createEngine(options: EngineOptions): GranumGridEngine {
     back: () => revisit(backStack, forwardStack),
     forward: () => revisit(forwardStack, backStack),
     cancel: () => {
-      interrupt();
       if (scrubOrigin) engine.endScrub(true);
     },
     visit: () => {
       if (snapshot.rowCount) addToTrail([snapshot.position]);
     },
-    step: (time: number) => {
-      if (!flight) return false;
-      flight.start ??= time;
-      const current = flight,
-        t = clamp((time - current.start!) / current.duration, 0, 1),
-        ease = t * t * (3 - 2 * t);
-      update({
-        position: current.from.position + (current.to.position - current.from.position) * ease,
-        flightSpan: Math.abs(current.to.position - current.from.position) * Math.sin(Math.PI * t),
-      });
-      if (t === 1) {
-        flight = undefined;
-        arrive({ ...current.to, moving: false, flightSpan: 0, targetIndex: null });
-        notify(current.from, current.reason);
-      }
-      return !!flight;
-    },
     destroy: () => {
-      interrupt();
       listeners.clear();
       navigationListeners.clear();
     },

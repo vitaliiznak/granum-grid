@@ -88,9 +88,9 @@ export const market: DemoDataset<Trade> = {
   ),
   tour: [
     {
-      feature: 'Flight',
-      label: 'Fly to flash crash',
-      hint: 'Markers are addresses: one click flies 160 million trades and lands on the exact row.',
+      feature: 'Jump',
+      label: 'Jump to flash crash',
+      hint: 'Markers are addresses: one click moves 160 million trades and lands on the exact row.',
       run: (api) => api.goTo(tradeIndex(MARKET_EVENTS[0].x)),
     },
     {

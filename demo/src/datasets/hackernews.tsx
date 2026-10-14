@@ -8,7 +8,7 @@ import {
 } from '../data/hackernews';
 import { secondLabel } from '../data/remote';
 import { NewsIcon } from './icons';
-import { compact, flyToMarker, formatCount, inspectLatest, type DemoDataset } from './types';
+import { compact, jumpToMarker, formatCount, inspectLatest, type DemoDataset } from './types';
 
 const provider = hackerNewsProvider(estimatedRowCount());
 const itemUrl = (id: number) => `https://news.ycombinator.com/item?id=${id}`;
@@ -250,10 +250,10 @@ export const hackernews: DemoDataset<HackerNewsItem> = {
   ),
   tour: [
     {
-      feature: 'Flight',
-      label: 'Fly to the top story',
+      feature: 'Jump',
+      label: 'Jump to the top story',
       hint: 'Found from the data: Algolia ranks every story by points; the most upvoted is a marker.',
-      run: flyToMarker(provider, 'top'),
+      run: jumpToMarker(provider, 'top'),
     },
     {
       feature: 'Search',

@@ -7,16 +7,16 @@ test('the gallery switches datasets and a tour step flies to a gene', async ({ p
   await expect(page).toHaveURL(/dataset=genome/);
   const grid = page.getByRole('grid', { name: 'Synthetic genome bases' });
   await expect(grid.locator('[aria-rowindex="10001"]')).toHaveAttribute('data-status', 'ready');
-  await page.getByRole('button', { name: /Fly to BRCA1/ }).click();
+  await page.getByRole('button', { name: /Jump to BRCA1/ }).click();
   await expect(grid.locator(`[aria-rowindex="${BRCA1.index + 1}"]`)).toContainText('BRCA1 exon 1', {
     timeout: 8000,
   });
-  await expect(page.locator('.tour-hint')).toContainText('Flight');
+  await expect(page.locator('.tour-hint')).toContainText('Jump');
 });
 
 test('each dataset keeps its place while you visit another', async ({ page }) => {
   await page.goto('/?dataset=genome');
-  await page.getByRole('button', { name: /Fly to BRCA1/ }).click();
+  await page.getByRole('button', { name: /Jump to BRCA1/ }).click();
   const target = page.locator(`[role=row][aria-rowindex="${BRCA1.index + 1}"]`);
   await expect(target).toHaveAttribute('data-status', 'ready', { timeout: 8000 });
   await page.getByRole('button', { name: /^Server logs/ }).click();

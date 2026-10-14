@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createEngine, createZoomMapping } from 'granum-grid/core';
+import { createEngine } from 'granum-grid/core';
 import { PageCache, createArrayProvider as arrayFromData } from 'granum-grid/data';
 import { GranumGrid, useGranumGrid, AtlasRail, createArrayProvider } from 'granum-grid';
 import { useGranumGrid as useHeadlessGrid } from 'granum-grid/headless';
@@ -26,7 +26,6 @@ assert.deepEqual(await entryValues('granum-grid'), [
   'AtlasRail',
   'GranumGrid',
   'JumpBar',
-  'ViewCanvas',
   'createArrayProvider',
   'createCursorProvider',
   'decodeView',
@@ -40,9 +39,7 @@ engine.goTo(73_499_999);
 assert.equal(engine.getSnapshot().activeIndex, 73_499_999);
 assert.equal(engine.getSnapshot().rowCount, 100_000_000);
 assert.ok(
-  [GranumGrid, useGranumGrid, AtlasRail, PageCache, createZoomMapping].every(
-    (value) => typeof value === 'function',
-  ),
+  [GranumGrid, useGranumGrid, AtlasRail, PageCache].every((value) => typeof value === 'function'),
 );
 engine.destroy();
 assert.equal(createArrayProvider, arrayFromData);

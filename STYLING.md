@@ -37,7 +37,7 @@ import './explorer.css';
 }
 ```
 
-Define the host variables used above, or replace them with colors. Typography inherits from the host. The component's `theme` accepts `light`, `dark`, and `system`; the default is `system`. Your overrides take precedence over the built-in light/dark palette. The travel overview uses `--ds-accent` and `--ds-muted`, falling back to inherited text color without the skin.
+Define the host variables used above, or replace them with colors. Typography inherits from the host. The component's `theme` accepts `light`, `dark`, and `system`; the default is `system`. Your overrides take precedence over the built-in light/dark palette.
 
 Both stylesheets use the `granum-grid` cascade layer and zero-specificity `:where()` selectors. Normal unlayered application CSS overrides them regardless of import order. For a framework that also uses cascade layers, declare the order before either stylesheet so its utilities come last; for example:
 
@@ -194,8 +194,6 @@ function ReadingList({ provider }: { provider: DataProvider<{ value: number }> }
   const grid = useGranumGrid({
     provider,
     rowHeight: 48,
-    // Rows only: no animated flights.
-    features: { flight: false },
   });
 
   return (
@@ -234,7 +232,7 @@ No stylesheet is required for positioning, clipping, touch navigation, or visual
 
 `grid.rows` holds only the bounded visible slots. Each slot is `ready` with a `row`, or `loading`/`error` with an optional aggregate `estimate`; error slots carry an `error` message. Placeholder estimates are never presented as `Row` values.
 
-Headless mode gives you the navigation state; render empty/error/retry UI (`grid.api.retry()` requests failed pages again), focus styles, and any navigation controls you need. `granum-grid/headless` loads no explorer components. `AtlasRail`, `JumpBar`, and `ViewCanvas` are exported from `granum-grid` for composition. Each takes the hook's result as `grid`, and you hold the state they share:
+Headless mode gives you the navigation state; render empty/error/retry UI (`grid.api.retry()` requests failed pages again), focus styles, and any navigation controls you need. `granum-grid/headless` loads no explorer components. `AtlasRail` and `JumpBar` are exported from `granum-grid` for composition. Each takes the hook's result as `grid`, and you hold the state they share:
 
 ```tsx
 import { useState } from 'react';
@@ -247,7 +245,7 @@ function Explorer({ provider }: { provider: DataProvider<{ value: number }> }) {
   const grid = useGranumGrid({ provider, onOpenSearch: () => setSearchOpen(true) });
   return (
     <>
-      {/* viewport and rows as above, with <ViewCanvas grid={grid} /> inside the viewport */}
+      {/* viewport and rows as above */}
       <AtlasRail
         grid={grid}
         highlights={highlights}
@@ -265,4 +263,4 @@ function Explorer({ provider }: { provider: DataProvider<{ value: number }> }) {
 }
 ```
 
-`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](granum-grid/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Render `ViewCanvas` alongside rows to show overview context while `grid.traveling`. Translate your own row wrapper by `grid.edgeOffset` if you want elastic edge feedback. When a dataset is shorter than the viewport, the built-in viewport marks the space below its last row as the end of the dataset.
+`onOpenSearch` receives the query from `api.openSearch(query)`; pass `query` and `onQueryChange` to `JumpBar` to prefill it. The [layer table](granum-grid/README.md#layers) says what happens without the handler. Add your own places, such as saved bookmarks, with the hook's `markers` option: they join N/P navigation, marker snapping, and named search. Keep that array stable between renders. These visual primitives require `base.css` plus your styling, or a `.ds-root` wrapper and `styles.css` for the default skin. `AtlasRail` reuses the hook's engine and cache rather than creating its own; its hover preview shows up to three scalar fields per row unless you pass `renderPreviewRow(row, index)`. Translate your own row wrapper by `grid.edgeOffset` if you want elastic edge feedback. When a dataset is shorter than the viewport, the built-in viewport marks the space below its last row as the end of the dataset.

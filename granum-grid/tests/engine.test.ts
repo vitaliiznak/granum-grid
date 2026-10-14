@@ -36,7 +36,6 @@ describe('marker, chapter, and history navigation', () => {
   const setup = () => {
     const engine = createEngine({ rowCount: 1000, rowHeight: 20 });
     engine.setViewport(200);
-    engine.setMotion(false);
     engine.setMetadata(
       [
         { id: 'a', index: 100, label: 'A', kind: 'event' },
@@ -92,25 +91,9 @@ describe('marker, chapter, and history navigation', () => {
     engine.goTo(5);
     expect(engine.getSnapshot().canGoForward).toBe(false);
   });
-  it('cancels an animated flight in place', () => {
-    const engine = setup();
-    engine.goTo(300);
-    engine.setMotion(true);
-    engine.goTo(900);
-    expect(engine.getSnapshot().moving).toBe(true);
-    // The first frame starts the flight clock; the second is partway through.
-    engine.step(1000);
-    engine.step(1100);
-    engine.cancel();
-    const stopped = engine.getSnapshot();
-    expect(stopped.moving).toBe(false);
-    expect(stopped.position).toBeGreaterThan(300);
-    expect(stopped.position).toBeLessThan(900);
-  });
   it('keeps a bounded visited trail without near-duplicates', () => {
     const engine = createEngine({ rowCount: 1_000_000, rowHeight: 20 });
     engine.setViewport(200);
-    engine.setMotion(false);
     engine.visit();
     engine.scrub(500);
     engine.visit();
@@ -130,7 +113,6 @@ describe('the end of the dataset', () => {
   const setup = () => {
     const engine = createEngine({ rowCount: 100, rowHeight: 20 });
     engine.setViewport(200);
-    engine.setMotion(false);
     return engine;
   };
   it('stops when the last row ends at the bottom of the viewport', () => {
@@ -170,7 +152,6 @@ describe('the end of the dataset', () => {
     expect(engine.getSnapshot()).toMatchObject({ position: 90, activeIndex: 99 });
     const dynamic = createEngine({ rowCount: 100, rowHeight: 20, dynamicRowHeight: true });
     dynamic.setViewport(200);
-    dynamic.setMotion(false);
     dynamic.goTo(99);
     dynamic.measureRows([{ index: 99, height: 60 }]);
     expect(dynamic.getSnapshot()).toMatchObject({ position: 92, maxPosition: 92, activeIndex: 99 });
@@ -187,7 +168,6 @@ describe('row layout changes', () => {
   it('keep the current row, its offset, and history', () => {
     const engine = createEngine({ rowCount: 1_000_000, rowHeight: 32 });
     engine.setViewport(320);
-    engine.setMotion(false);
     engine.goTo(500_000);
     engine.pan(16);
     engine.setRowLayout(24, false);

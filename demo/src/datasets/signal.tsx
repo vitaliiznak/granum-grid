@@ -83,8 +83,8 @@ export const signal: DemoDataset<Reading> = {
   ),
   tour: [
     {
-      feature: 'Flight',
-      label: 'Fly to spike 3',
+      feature: 'Jump',
+      label: 'Jump to spike 3',
       hint: 'Long jumps animate through the overview, so you can see how far you traveled.',
       run: (api) => api.goTo(SPIKE_ROWS[2]),
     },

@@ -140,7 +140,7 @@ it('is the one handle: navigation, detached selection, search, and retry without
     engine.setViewport(320);
     const seen: number[] = [];
     const off = api.onNavigate((event) => seen.push(event.to.position));
-    api.goTo(500, { motion: 'instant' });
+    api.goTo(500);
     expect(api.getSnapshot().position).toBe(500);
     api.back();
     expect(api.getSnapshot().position).toBe(0);

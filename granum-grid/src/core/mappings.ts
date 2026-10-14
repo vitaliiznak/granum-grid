@@ -14,13 +14,3 @@ export interface CoordinateMapping {
   toPixel(row: number): number;
   toRow(pixel: number): number;
 }
-export function createZoomMapping(
-  position: number,
-  height: number,
-  rowsPerPixel: number,
-): CoordinateMapping {
-  return {
-    toPixel: (row) => height / 2 + (row - position) / rowsPerPixel,
-    toRow: (pixel) => position + (pixel - height / 2) * rowsPerPixel,
-  };
-}

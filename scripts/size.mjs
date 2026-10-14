@@ -9,14 +9,14 @@ import { fileURLToPath } from 'node:url';
 // Budgets ratchet down as the plan in docs/plans/library-family.md removes code; raise one
 // only on purpose, with the reason in the commit.
 const BUDGETS = {
-  'granum-grid': 27_400,
-  'granum-grid/headless': 13_200,
-  'granum-grid/core': 3_700,
+  'granum-grid': 26_200,
+  'granum-grid/headless': 12_700,
+  'granum-grid/core': 3_300,
   'granum-grid/data': 4_100,
   '@granum/parquet': 3_500,
   '@granum/sql': 4_200,
-  'base.css': 16_100,
-  'styles.css': 19_500,
+  'base.css': 15_900,
+  'styles.css': 19_200,
 };
 const dist = fileURLToPath(new URL('../granum-grid/dist/', import.meta.url));
 const workspace = fileURLToPath(new URL('../', import.meta.url));

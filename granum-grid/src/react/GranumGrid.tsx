@@ -13,7 +13,6 @@ import {
 import type { GranumGridApi } from '../core/api.js';
 import { useGranumGrid, type UseGranumGridOptions, type GranumGridState } from './useGranumGrid.js';
 import { partProps, type GranumGridAppearance } from './styling.js';
-import { ViewCanvas } from './ViewCanvas.js';
 import { JumpBar } from './JumpBar.js';
 import { AtlasRail, type AtlasRailOptions, type AtlasRailProps } from './AtlasRail.js';
 import { Footer, RowPlaceholder, Toolbar, type ToolbarOptions } from './ExplorerChrome.js';
@@ -163,8 +162,7 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
     className: props.classNames?.rail,
     style: props.styles?.rail,
   };
-  const contentEnd =
-    !grid.traveling && snapshot.rowCount > 0 ? mapping.toPixel(snapshot.rowCount) : snapshot.height;
+  const contentEnd = snapshot.rowCount > 0 ? mapping.toPixel(snapshot.rowCount) : snapshot.height;
   const endGap = snapshot.height - contentEnd;
   return (
     <section
@@ -242,13 +240,6 @@ export function GranumGrid<Row>(props: GranumGridProps<Row>) {
         >
           <div className="ds-pan-layer" style={{ transform: `translateY(${grid.edgeOffset}px)` }}>
             <div className="ds-view-layer" role="rowgroup">
-              <ViewCanvas grid={grid} />
-              {grid.traveling && (
-                <div className="ds-aggregate-label">
-                  Overview during travel
-                  <span>Focus: row {((grid.focusedIndex ?? 0) + 1).toLocaleString()}</span>
-                </div>
-              )}
               {endGap > 0.5 && (
                 <div
                   className="ds-dataset-end"

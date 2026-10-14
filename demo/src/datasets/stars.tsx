@@ -142,8 +142,8 @@ export const stars: DemoDataset<Star> = {
   ),
   tour: [
     {
-      feature: 'Flight',
-      label: 'Fly to Sirius',
+      feature: 'Jump',
+      label: 'Jump to Sirius',
       hint: 'The brightest star in the night sky, 380 million rows in. Hover the map to preview stars first.',
       run: (api) => api.goTo(SIRIUS.index),
     },

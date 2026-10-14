@@ -1,7 +1,7 @@
 import { bitcoinProvider, liveRowCount, timeAt, type BitcoinSecond } from '../data/binance';
 import { secondLabel } from '../data/remote';
 import { BitcoinIcon } from './icons';
-import { compact, flyToMarker, formatCount, inspectLatest, type DemoDataset } from './types';
+import { compact, jumpToMarker, formatCount, inspectLatest, type DemoDataset } from './types';
 
 const provider = bitcoinProvider(liveRowCount());
 const price = (value: number) =>
@@ -96,10 +96,10 @@ export const bitcoin: DemoDataset<BitcoinSecond> = {
   ),
   tour: [
     {
-      feature: 'Flight',
-      label: 'Fly to the highest trade',
+      feature: 'Jump',
+      label: 'Jump to the highest trade',
       hint: 'Found from the data: weekly, daily, hourly, and minute candles narrow it to one second.',
-      run: flyToMarker(provider, 'highest'),
+      run: jumpToMarker(provider, 'highest'),
     },
     {
       feature: 'Search',

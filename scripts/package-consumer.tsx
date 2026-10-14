@@ -2,7 +2,6 @@ import {
   AtlasRail,
   GranumGrid,
   JumpBar,
-  ViewCanvas,
   createArrayProvider,
   createCursorProvider,
   encodeView,
@@ -161,10 +160,9 @@ export function HeadlessConsumer() {
         selecting={selecting}
         onSelectingChange={setSelecting}
         variant="markers"
-        actions={<span>{scroll.traveling ? 'Travelling' : scroll.chapter?.label}</span>}
+        actions={<span>{scroll.chapter?.label}</span>}
       />
       <div {...scroll.getViewportProps({ style: { height: 320 }, 'aria-label': 'Headless rows' })}>
-        <ViewCanvas grid={scroll} />
         {scroll.rows.map((slot) => (
           <div
             key={slot.index}

@@ -11,7 +11,6 @@ import {
 } from 'react';
 import {
   createEngine,
-  createZoomMapping,
   pixelToRow,
   rowToPixel,
   type CoordinateMapping,
@@ -145,8 +144,6 @@ export interface GranumGridState<Row> {
   markers: Marker[];
   /** The provider chapter containing the current row, for a breadcrumb. */
   chapter: Chapter | null;
-  /** A long jump is showing the overview instead of rows. */
-  traveling: boolean;
   /** Elastic edge offset in pixels; translate the rows by it. */
   edgeOffset: number;
   stats: ScrollStats;
@@ -206,7 +203,6 @@ export function useGranumGrid<Row>({
   const [announcement, setAnnouncement] = useState('');
   const reduceMotion = useReducedMotion(reducedMotion);
   // Reduced motion turns off every animated or momentum behavior; resolve it once here.
-  const flight = !reduceMotion && features.flight;
   const inertia = !reduceMotion && features.inertia;
   const elasticity = !reduceMotion && features.edgeElasticity;
   const engine = useKeyed(
@@ -319,9 +315,6 @@ export function useGranumGrid<Row>({
   useEffect(() => {
     engine.setMetadata(markers, session.chapters);
   }, [engine, markers, session.chapters]);
-  useEffect(() => {
-    engine.setMotion(flight);
-  }, [engine, flight]);
   useEffect(
     () =>
       engine.onNavigate((event) => {
@@ -335,23 +328,7 @@ export function useGranumGrid<Row>({
       }),
     [engine, session, latestOnNavigate],
   );
-  useEffect(() => {
-    if (!snapshot.moving) return;
-    let frame = requestAnimationFrame(function animate(time) {
-      if (engine.step(time)) frame = requestAnimationFrame(animate);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [engine, snapshot.moving]);
-  const temporarySpan = snapshot.flightSpan;
-  // Long flights show the overview instead of rows they would skip past.
-  const traveling = temporarySpan > (snapshot.height / rowHeight) * 3;
   const mapping = useMemo(() => {
-    if (traveling)
-      return createZoomMapping(
-        snapshot.position,
-        snapshot.height,
-        Math.max(1 / rowHeight, temporarySpan / snapshot.height),
-      );
     if (dynamicRowHeight) {
       const origin = snapshot.position;
       return {
@@ -368,26 +345,20 @@ export function useGranumGrid<Row>({
   }, [
     snapshot.position,
     snapshot.height,
-    temporarySpan,
-    traveling,
     snapshot.rowCount,
     rowHeight,
     dynamicRowHeight,
     sizes,
     snapshot.layoutVersion,
   ]);
-  const start = traveling
-    ? Math.floor(snapshot.position)
-    : Math.max(0, Math.floor(mapping.toRow(0)) - overscan);
-  const count = traveling
-    ? 0
-    : Math.max(
-        0,
-        Math.min(
-          provider.rowCount - start,
-          Math.ceil(mapping.toRow(snapshot.height)) - start + overscan,
-        ),
-      );
+  const start = Math.max(0, Math.floor(mapping.toRow(0)) - overscan);
+  const count = Math.max(
+    0,
+    Math.min(
+      provider.rowCount - start,
+      Math.ceil(mapping.toRow(snapshot.height)) - start + overscan,
+    ),
+  );
   const visibleStart = Math.max(0, Math.floor(mapping.toRow(0)));
   const visibleEnd = Math.min(provider.rowCount, Math.ceil(mapping.toRow(snapshot.height)));
   const visibleRange = { start: visibleStart, end: visibleEnd };
@@ -420,13 +391,7 @@ export function useGranumGrid<Row>({
       },
     });
   }, [viewport, windowScroll, engine, inertia, elasticity]);
-  useRowRequests(engine, session, snapshot.moving, snapshot.targetIndex, {
-    start,
-    count,
-    destinationCount: Math.ceil(snapshot.height / rowHeight) + overscan,
-    prefetch: features.prefetch,
-    velocity,
-  });
+  useRowRequests(engine, session, { start, count, prefetch: features.prefetch, velocity });
   // Session statistics include searches started through `session.search`.
   const stats: ScrollStats = {
     ...session.getStats(),
@@ -493,16 +458,7 @@ export function useGranumGrid<Row>({
     onClick: (event: React.MouseEvent<HTMLDivElement>) => {
       props.onClick?.(event);
       if (event.defaultPrevented || isControl(event.target)) return;
-      if (traveling) {
-        const index = Math.round(
-          clamp(
-            mapping.toRow(event.clientY - event.currentTarget.getBoundingClientRect().top),
-            0,
-            Math.max(0, provider.rowCount - 1),
-          ),
-        );
-        engine.goTo(index, { reason: 'jump' });
-      } else if (
+      if (
         onRowActivate &&
         event.target === event.currentTarget &&
         event.button === 0 &&
@@ -523,14 +479,7 @@ export function useGranumGrid<Row>({
     onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
       props.onKeyDown?.(event);
       if (event.defaultPrevented || ownsKeys(event.target)) return;
-      if (
-        onRowActivate &&
-        !traveling &&
-        !event.altKey &&
-        !event.metaKey &&
-        !event.ctrlKey &&
-        !event.shiftKey
-      ) {
+      if (onRowActivate && !event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
         if (event.key === 'Enter') {
           const slot = rows.find((row) => row.index === focusedIndex);
           if (slot?.status === 'ready') {
@@ -569,7 +518,6 @@ export function useGranumGrid<Row>({
     selection,
     markers,
     chapter: chapterAt(session.chapters, snapshot.position) ?? null,
-    traveling,
     edgeOffset,
     stats,
     unseenRows,
@@ -603,12 +551,11 @@ export function useGranumGrid<Row>({
         'aria-selected': selected,
         'data-selected': selected || undefined,
         'data-focused': slot.index === focusedIndex || undefined,
-        'data-activatable': (!!onRowActivate && slot.status === 'ready' && !traveling) || undefined,
+        'data-activatable': (!!onRowActivate && slot.status === 'ready') || undefined,
         onClick: (event: React.MouseEvent<HTMLDivElement>) => {
           props.onClick?.(event);
           if (
             !onRowActivate ||
-            traveling ||
             slot.status !== 'ready' ||
             event.defaultPrevented ||
             ownsKeys(event.target) ||

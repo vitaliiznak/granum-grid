@@ -22,7 +22,6 @@ const key = (
 const setup = (rowCount = 1000, { search = true } = {}) => {
   const engine = createEngine({ rowCount, rowHeight: 20 });
   engine.setViewport(200);
-  engine.setMotion(false);
   const calls = { jump: 0, announcements: [] as string[] };
   const options = {
     engine,

@@ -22,27 +22,17 @@ it('records a whole scrub once and restores pre-jump fractional state', () => {
   e.goTo(100);
   expect(e.getSnapshot().canGoForward).toBe(false);
 });
-it('finishes flights exactly and preserves history when interrupted', () => {
+it('arrives at once, and Back and Forward keep a pan made after a jump', () => {
   const e = createEngine({ rowCount: 100_000_000 });
-  e.setMotion(true);
   e.goTo(73_499_999);
-  e.step(0);
-  e.step(210);
-  expect(e.getSnapshot().position).toBeCloseTo(73_499_999 / 2);
-  e.step(420);
   expect(e.getSnapshot().position).toBe(73_499_999);
-  expect(e.getSnapshot().moving).toBe(false);
   e.goTo(3);
-  e.step(500);
-  e.step(650);
   e.pan(32);
-  const interrupted = e.getSnapshot().position;
-  expect(e.getSnapshot().moving).toBe(false);
-  e.setMotion(false);
+  const panned = e.getSnapshot().position;
   e.back();
   expect(e.getSnapshot().position).toBe(73_499_999);
   e.forward();
-  expect(e.getSnapshot().position).toBe(interrupted);
+  expect(e.getSnapshot().position).toBe(panned);
 });
 it('parses exact addresses and rejects invalid dates and out-of-range values', () => {
   expect(parseJump('73,500,000', 100_000_000, 0, [])).toMatchObject({

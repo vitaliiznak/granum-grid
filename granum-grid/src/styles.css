@@ -328,18 +328,6 @@
   :where(.ds-root:not([data-unstyled]) .ds-jump-examples .ds-button) {
     font-size: 11px;
   }
-  :where(.ds-root:not([data-unstyled]) .ds-aggregate-label) {
-    padding: 8px 12px;
-    background: var(--ds-panel);
-    border: 1px solid var(--ds-line);
-    border-radius: 5px;
-    color: var(--ds-muted);
-    font-size: 11px;
-  }
-  :where(.ds-root:not([data-unstyled]) .ds-aggregate-label span) {
-    color: var(--ds-text);
-    margin-top: 3px;
-  }
   :where(.ds-root:not([data-unstyled]) .ds-meta-error) {
     border: 1px solid var(--ds-line);
     background: var(--ds-panel);

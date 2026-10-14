@@ -119,8 +119,8 @@ export const logs: DemoDataset<LogLine> = {
   ),
   tour: [
     {
-      feature: 'Flight',
-      label: 'Fly to INC-2057',
+      feature: 'Jump',
+      label: 'Jump to INC-2057',
       hint: `The cache stampede, near row ${formatCount(logIndex(stampede.x) + 1)}. Notice the deploy marker just before it.`,
       run: (api) => api.goTo(logIndex(stampede.x)),
     },
