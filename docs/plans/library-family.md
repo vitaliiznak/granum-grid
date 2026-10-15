@@ -5,9 +5,10 @@ Phase 3, Phase 4, and Phase 5, pushed to `main` on 2026-10-15. Everything left w
 maintainer or other people: creating the `@granum` npm org and publishing, the screen
 recording at release, finding integrators, and the screen-reader and device checks. The
 last code follow-up, serving DuckDB's extensions from the playground instead of
-extensions.duckdb.org, was done on 2026-10-15 (see Risks). It extends [next-steps.md](next-steps.md); that plan's
-remaining work (publish to npm, cut three generated datasets) folded into Phase 0 and
-Phase 3 below.
+extensions.duckdb.org, was done on 2026-10-15 (see Risks). The remaining human steps, in
+order, are in [launch.md](launch.md). This plan extends [next-steps.md](next-steps.md);
+that plan's remaining work (publish to npm, cut three generated datasets) folded into
+Phase 0 and Phase 3 below.
 
 ## Outcome and acceptance
 
