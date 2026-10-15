@@ -90,6 +90,42 @@ test('keyboard, reduced motion, and light mobile layout remain usable', async ({
   await page.getByRole('textbox').press('Enter');
   await expect(page.getByTestId('position')).toHaveText('Row 50,000,001 of 100,000,000');
 });
+test('Left and Right move through cells, and the active descendant follows the cell', async ({
+  page,
+}) => {
+  const grid = page.getByRole('grid');
+  // Which row and cell `aria-activedescendant` names, and how many cells that row has.
+  const active = () =>
+    grid.evaluate((element) => {
+      const cell = document.getElementById(element.getAttribute('aria-activedescendant') ?? '');
+      const row = cell?.closest('[role="row"]');
+      const cells = Array.from(row?.querySelectorAll('[role="gridcell"]') ?? []);
+      return {
+        role: cell?.getAttribute('role'),
+        row: row?.getAttribute('aria-rowindex'),
+        column: cells.indexOf(cell!),
+        last: cells.length - 1,
+        marked: !!cell?.hasAttribute('data-gr-active-cell'),
+      };
+    });
+  await grid.focus();
+  await expect.poll(active).toMatchObject({ role: 'gridcell', row: '1', column: 0, marked: true });
+  await grid.press('ArrowRight');
+  await grid.press('ArrowRight');
+  await expect.poll(active).toMatchObject({ row: '1', column: 2 });
+  // Down keeps the column; Left and Right never move rows or history.
+  await grid.press('ArrowDown');
+  await expect.poll(active).toMatchObject({ row: '2', column: 2 });
+  for (let i = 0; i < 10; i++) await grid.press('ArrowRight');
+  const end = await active();
+  expect(end.column).toBe(end.last);
+  for (let i = 0; i < 10; i++) await grid.press('ArrowLeft');
+  await expect.poll(active).toMatchObject({ row: '2', column: 0, marked: true });
+  await expect(page.getByTestId('position')).toHaveText('Row 2 of 100,000,000');
+  await expect(
+    page.getByRole('button', { name: 'Back to previous location', exact: true }),
+  ).toBeDisabled();
+});
 test('no runtime or console errors on a fresh load and row navigation', async ({
   page,
   pageErrors,

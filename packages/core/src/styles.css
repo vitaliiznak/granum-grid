@@ -138,6 +138,11 @@
     background: color-mix(in srgb, var(--gr-accent) 5%, var(--gr-bg));
     box-shadow: inset 2px 0 var(--gr-accent);
   }
+  :where(.gr-root:not([data-unstyled]) .gr-viewport:focus-visible [data-gr-active-cell]) {
+    outline: 1px solid var(--gr-accent);
+    outline-offset: -1px;
+    border-radius: 3px;
+  }
   :where(.gr-root:not([data-unstyled]) .gr-row-id) {
     font: inherit;
     font-size: 12px;

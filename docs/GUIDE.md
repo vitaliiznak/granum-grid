@@ -247,7 +247,7 @@ Rows retain the leading row address and pixel offset while content changes, clam
 
 - Drag the right-hand dataset map to travel across the dataset. Move horizontally away while dragging for half, quarter, or fine precision. Shift bypasses magnetic markers. Escape cancels a scrub.
 - Use Cmd/Ctrl+K inside the component, `/` in the viewport, or **Go to…** in the `toolbar`. See [search](#search) for the accepted input.
-- Arrows move one row; PageUp/PageDown move a visible span; Home/End reach the endpoints. N/P visit markers. Cmd/Ctrl+Up/Down visit chapter boundaries.
+- Up/Down move one row; Left/Right move between the focused row's cells (its `role="gridcell"` elements) and keep that column on other rows; PageUp/PageDown move a visible span; Home/End reach the endpoints. N/P visit markers. Cmd/Ctrl+Up/Down visit chapter boundaries.
 - Alt+Left/Right and the `toolbar`'s Back/Forward restore committed jumps. Wheel motion is not a history entry. Mouse back/forward interception depends on the browser.
 - Read one record per line. The current address is the first visible row. Scrolling stops when the last row ends at the bottom of the viewport; a jump to a row below that point shows it there and keeps it current until the reader scrolls. The viewport is a native scroller: wheel, trackpad, touch, momentum, and the scrollbar are the browser's own. Small scroll steps move the rows by exactly the pixels scrolled; a scrollbar drag goes to the address its offset maps to. At either end of the dataset a wheel or swipe continues into the page, as with any scroller; set `overscroll-behavior: contain` on the viewport to keep it in the rows (Chromium and Safari honor it for the wheel; Firefox still hands a wheel at the boundary to the page, as it does for any scroller). The dataset map always covers the whole dataset. Ctrl+wheel and pinch remain browser zoom gestures.
 - Reduced motion follows the system preference or `reducedMotion={true}`. The component keeps the same navigation and turns off its animated transitions; native scrolling follows the browser's own reduced-motion behavior.
@@ -406,8 +406,11 @@ scroll anchor, navigation history, and range selection. Controls inside a row,
 modified clicks/keys, text selection, loading/error placeholders, and touch pans
 do not activate records. Without the callback, existing navigation is unchanged.
 
-The hook's `focusedIndex`, `getRowProps`, and `getViewportProps` keep the highlight
-and `aria-activedescendant` in sync. Scrolling or replacing the data session resets
+The hook's `focusedIndex`, `getRowProps`, and `getViewportProps` keep the highlight in
+sync, and the hook points the viewport's `aria-activedescendant` at the active cell of the
+focused row, or at the row if it has no cells. A cell without an id gets one, and the
+active cell carries `data-gr-active-cell`. Without React, `createActiveCell` from
+`@granum-grid/core/dom` does the same. Scrolling or replacing the data session resets
 pointer focus to the scroll anchor. The host owns the panel, Escape handling,
 restoring DOM focus, and discarding inspected data when the provider changes.
 The Parquet and SQL datasets show this pattern, including copying the loaded row as JSON.

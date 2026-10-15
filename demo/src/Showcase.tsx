@@ -304,6 +304,7 @@ export function FeatureTour({
 
 const shortcuts = [
   ['↑ ↓', 'row'],
+  ['← →', 'cell'],
   ['PgUp PgDn', 'page'],
   ['⌘/Ctrl ↑ ↓', 'chapter'],
   ['N P', 'marker'],

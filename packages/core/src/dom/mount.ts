@@ -4,6 +4,7 @@ import { validRange } from '../data/bounds.js';
 import { DataSession } from '../data/session.js';
 import type { CacheOptions, DataProvider, PendingRowSlot, RowRange } from '../data/types.js';
 import { jumpAnnouncement } from './announce.js';
+import { createActiveCell } from './cells.js';
 import { handleViewportKey } from './keyboard.js';
 import { createRowMeasurements } from './measure.js';
 import { createRowRequests } from './requests.js';
@@ -46,6 +47,9 @@ export interface MountedGrid<Row> {
   destroy(): void;
 }
 
+/** Numbers each mounted explorer, so element ids stay unique on a page with several. */
+let mounts = 0;
+
 const HIDDEN =
   'position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0';
 
@@ -87,6 +91,7 @@ export function mount<Row>(element: HTMLElement, options: MountOptions<Row>): Mo
     initialIndex = 0,
   } = options;
   const document = element.ownerDocument;
+  const id = `gr-mount-${++mounts}`;
   const create = (className: string, part?: string) => {
     const node = document.createElement('div');
     node.className = className;
@@ -149,6 +154,8 @@ export function mount<Row>(element: HTMLElement, options: MountOptions<Row>): Mo
 
   /** Row elements by address, and the status each was last filled for. */
   const mounted = new Map<number, { element: HTMLElement; filled: string }>();
+  const activeCell = createActiveCell();
+  const activeRow = () => mounted.get(engine.getSnapshot().activeIndex ?? -1)?.element ?? null;
   let markers = session.markers,
     chapters = session.chapters;
   function render() {
@@ -172,6 +179,7 @@ export function mount<Row>(element: HTMLElement, options: MountOptions<Row>): Mo
         const row = create('gr-row', 'row');
         row.setAttribute('role', 'row');
         row.setAttribute('aria-rowindex', String(slot.index + 1));
+        row.id = `${id}-row-${slot.index}`;
         row.style.cssText = 'position:absolute;box-sizing:border-box;top:0;left:0;right:0';
         if (dynamicRowHeight) row.classList.add('gr-row-dynamic');
         layer.append(row);
@@ -200,6 +208,7 @@ export function mount<Row>(element: HTMLElement, options: MountOptions<Row>): Mo
       entry.element.remove();
       mounted.delete(index);
     }
+    activeCell.sync(viewport, activeRow());
     requests.update({ start: view.start, count: view.count, prefetch });
     // New rows are measured before paint, so none shows at an estimated position.
     measurements?.flush();
@@ -228,6 +237,7 @@ export function mount<Row>(element: HTMLElement, options: MountOptions<Row>): Mo
   ];
   const keydown = (event: KeyboardEvent) => {
     if (event.defaultPrevented || ownsKeys(event.target)) return;
+    if (activeCell.handleKey(event, viewport, activeRow())) return;
     handleViewportKey(event, { engine, announce });
   };
   viewport.addEventListener('keydown', keydown);

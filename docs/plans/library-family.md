@@ -334,8 +334,11 @@ search reports complete results, and browser tests pass in all three engines.
    physics: synthetic `WheelEvent`s (which never scroll natively) became real
    `page.mouse.wheel` input; the acceptance spec now asserts a bounded spacer instead of
    none; the page-layout progress check allows the 0.0001 the exact end zones cost.
-4. Waiting on a person: the ARIA pattern from a screen-reader session, and the device
-   checks below.
+4. ARIA pattern, decided 2026-10-15 without a session: `grid` with cell navigation, so
+   integrators' `role="gridcell"` markup stays. `aria-activedescendant` names a cell of
+   the focused row, and Left and Right move between cells (`createActiveCell`). Waiting
+   on a person: a VoiceOver session to confirm it ([launch.md](launch.md), step 2), and
+   the device checks below.
 
 Exit: three-browser suite green, touch hands off to the page at both ends, and device
 and screen-reader notes recorded here. People check a macOS trackpad, a Windows precision

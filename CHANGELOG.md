@@ -38,3 +38,7 @@ For anyone who installed the earlier archive from the repository:
   `granum`.
 - The navigation handle (`apiRef`, `api`) gained `beginScrub`, `scrub`, and `endScrub`, so
   an external scrollbar's drag becomes one history entry.
+- Left and Right move between the focused row's cells, and `aria-activedescendant` names
+  the active cell instead of the row, so `role="grid"` behaves as screen readers expect.
+  A cell without an id gets one; the active cell carries `data-gr-active-cell`.
+  `createActiveCell` in `@granum-grid/core/dom` does the same for other markup.

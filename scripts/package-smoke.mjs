@@ -41,6 +41,7 @@ assert.deepEqual(await entryValues('@granum-grid/core/dom'), [
   'MAX_SCROLL',
   'NATIVE_SCROLL',
   'bindScroll',
+  'createActiveCell',
   'createRowMeasurements',
   'createRowRequests',
   'handleMovementKey',

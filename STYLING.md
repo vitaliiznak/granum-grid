@@ -70,7 +70,7 @@ Use CSS Modules, utility class strings, ordinary classes, or inline styles:
 />
 ```
 
-`classNames` and `styles` accept `toolbar`, `header`, `body`, `viewport`, `row`, `rail`, `footer`, and `jump`. Types are exported as `GranumGridPart` and `GranumGridAppearance`. The corresponding elements have stable `data-gr-part` attributes. Rows expose `data-focused` and `data-status="ready|loading|error"`. The root exposes `data-theme`, `data-motion`, and `data-unstyled`.
+`classNames` and `styles` accept `toolbar`, `header`, `body`, `viewport`, `row`, `rail`, `footer`, and `jump`. Types are exported as `GranumGridPart` and `GranumGridAppearance`. The corresponding elements have stable `data-gr-part` attributes. Rows expose `data-focused` and `data-status="ready|loading|error"`, and the focused row's active cell carries `data-gr-active-cell`. The root exposes `data-theme`, `data-motion`, and `data-unstyled`.
 
 The virtualizer owns row position, transform, height, minimum height, and border-box sizing. These are inline geometry styles; style the row's content instead of overriding them. Enable `dynamicRowHeight` for content-driven heights and put padding inside rows. Always give the explorer or headless viewport a bounded height.
 

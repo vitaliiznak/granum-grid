@@ -46,7 +46,11 @@ test('click inspects exact loaded values, copies JSON, and preserves scroll and 
   await expect(panel).toContainText('20.3');
   await expect(panel).toContainText('2026-01-01T00:03:00.000Z');
   await expect(row).toHaveAttribute('data-focused', 'true');
-  await expect(grid).toHaveAttribute('aria-activedescendant', (await row.getAttribute('id'))!);
+  // A screen reader is on the inspected row's first cell.
+  await expect(grid).toHaveAttribute(
+    'aria-activedescendant',
+    `${await row.getAttribute('id')}-cell-0`,
+  );
   await expect(page.getByTestId('position')).toHaveText(position!);
   expect((await row.boundingBox())!.y).toBe(top);
   await expect(

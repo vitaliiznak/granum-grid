@@ -36,7 +36,7 @@ import { useLatest } from './useLatest.js';
 import { useClientLayoutEffect } from './useClientLayoutEffect.js';
 import { useFollowOutput } from './useFollowOutput.js';
 import { useRowRequests } from './useRowRequests.js';
-import { handleViewportKey } from '@granum-grid/core/dom';
+import { createActiveCell, handleViewportKey } from '@granum-grid/core/dom';
 import { chapterAt } from '@granum-grid/core/internal';
 import { DataSession, sessionKey } from '@granum-grid/core/internal';
 import type {
@@ -303,6 +303,15 @@ export function useGranumGrid<Row>({
   // A scroll or provider replacement discards pointer focus, even if the reader later returns.
   if (rowFocus && !currentFocus) setRowFocus(null);
   const focusedIndex = onRowActivate && currentFocus ? rowFocus.index : snapshot.activeIndex;
+  const [activeCell] = useState(createActiveCell);
+  const focusedRow = (grid: Element) =>
+    rows.some((row) => row.index === focusedIndex)
+      ? grid.ownerDocument.getElementById(`${id}-row-${focusedIndex}`)
+      : null;
+  // Cells are the host's elements, so the active one is found after every render.
+  useClientLayoutEffect(() => {
+    if (viewport) activeCell.sync(viewport, focusedRow(viewport));
+  });
   const unseenRows = useFollowOutput(engine, session, provider, followOutput, snapshot);
   // A provider object rebuilt during render with the same key keeps the session and its cache.
   useEffect(() => {
@@ -402,9 +411,6 @@ export function useGranumGrid<Row>({
     role: 'grid',
     tabIndex: 0,
     'aria-rowcount': provider.rowCount,
-    'aria-activedescendant': rows.some((row) => row.index === focusedIndex)
-      ? `${id}-row-${focusedIndex}`
-      : undefined,
     'aria-description':
       props['aria-description'] ??
       (onRowActivate ? 'Press Enter to inspect the focused row.' : undefined),
@@ -445,6 +451,8 @@ export function useGranumGrid<Row>({
     onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
       props.onKeyDown?.(event);
       if (event.defaultPrevented || ownsKeys(event.target)) return;
+      const grid = event.currentTarget;
+      if (activeCell.handleKey(event, grid, focusedRow(grid))) return;
       if (onRowActivate && !event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
         if (event.key === 'Enter') {
           const slot = rows.find((row) => row.index === focusedIndex);

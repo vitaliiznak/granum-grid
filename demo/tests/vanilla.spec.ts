@@ -24,6 +24,18 @@ test('mount() runs the explorer without a framework: jumps, history, keys, and n
   await expect(grid.locator('[aria-rowindex="1000000000"]')).toBeVisible();
   await page.keyboard.press('Home');
   await expect(position).toHaveText('Row 1 of 1,000,000,000');
+  // The active descendant is a cell; Right moves to the row's time.
+  const activeText = () =>
+    grid.evaluate(
+      (element) =>
+        document.getElementById(element.getAttribute('aria-activedescendant') ?? '')?.textContent,
+    );
+  await expect.poll(activeText).toBe('1');
+  await page.keyboard.press('ArrowRight');
+  await expect
+    .poll(activeText)
+    .toBe(await grid.locator('[aria-rowindex="1"] [role=gridcell]').nth(1).textContent());
+  await expect(position).toHaveText('Row 1 of 1,000,000,000');
   await grid.evaluate((element) => element.scrollIntoView({ block: 'center' }));
   const box = (await grid.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

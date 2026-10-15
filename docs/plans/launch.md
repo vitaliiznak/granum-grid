@@ -8,11 +8,10 @@ what to send.
 ## Order
 
 1. Settle the npm scope (done: `@granum-grid`).
-2. Run the screen-reader session and pick the ARIA pattern. This now comes **before**
-   publishing, because the pattern is public API: integrators write `role="gridcell"` in
-   `renderRow` (README, GUIDE, every lesson). Changing it after 0.1.0 means asking each of
-   them to change their markup.
-3. Check the devices (can run alongside step 2).
+2. Settle the ARIA pattern before publishing, because it is public API: integrators write
+   `role="gridcell"` in `renderRow` (README, GUIDE, every lesson). Decided and built
+   2026-10-15: `grid` with cell navigation. A VoiceOver session still has to confirm it.
+3. Check the devices (can run alongside the VoiceOver session).
 4. Publish ([PUBLISHING.md](../PUBLISHING.md)).
 5. Record the 60-second video.
 6. Post, then wait for three integration reports. The kill clock in library-family.md
@@ -28,41 +27,45 @@ organization to create is `granum-grid`.
 
 ## 2. Screen-reader session (VoiceOver, about 30 minutes)
 
-Today the rows container is `role="grid"` with `tabIndex=0`. `aria-activedescendant`
-points at the focused **row**, rows carry `aria-rowindex` and `aria-selected`, and the
-keys move by row only. That matches neither `grid` (focus belongs on cells, with Left and
-Right) nor `table` (no focus or selection semantics).
+Before 2026-10-15 the rows container was `role="grid"`, but `aria-activedescendant` named
+the focused **row** and the keys moved by row only. That fit neither a real `grid`, where
+focus belongs on cells and Left and Right move between them, nor `table`, which has no
+focus or selection semantics. `listbox` would have renamed every role in integrators'
+markup.
 
-What Chromium's accessibility tree showed on 2026-10-15 (Signal archive, before any
-session): the grid has its label and `aria-rowcount` 100,000,000 and keeps focus while
-`aria-activedescendant` moves row by row. Each row is named by its joined text ("1
-2010-01-01 00:00:00 North 37.0 mV 37 millivolts") and holds six `gridcell`s, the last two
-empty, so a screen reader moving by cell meets two blanks. A tree is not a session: it does
-not show what VoiceOver says.
+Decided 2026-10-15 without a session, because it keeps integrators' markup: stay `grid`
+and make it honest. The viewport keeps focus. `aria-activedescendant` names a cell of the
+focused row: Up and Down keep the column, and Left and Right move between the row's
+`role="gridcell"` elements (`createActiveCell` in `@granum-grid/core/dom`, used by the React
+hook and by `mount()`). A cell without an id gets one, and the active cell is outlined
+while the grid has keyboard focus. Home and End still go to the first and last rows, not
+along the row.
+
+What Chromium's accessibility tree showed before the change (Signal archive): the grid has
+its label and `aria-rowcount` 100,000,000, and each row is named by its joined text ("1
+2010-01-01 00:00:00 North 37.0 mV 37 millivolts"). Its six cells are the row number, time,
+channel, value, a bar labeled with the value in words, and a status that is empty unless
+the reading is an event. A tree is not a session: it does not show what VoiceOver says.
 
 Use Safari with VoiceOver (Cmd+F5) on the
 [playground](https://vitaliiznak.github.io/granum-grid/?dataset=signal). Write down what
 VoiceOver says at each step:
 
 1. Tab into the rows. Does it give a role, the label, and a position ("row 1 of
-   100,000,000")?
-2. Press Down three times. Does it read each new row's content and number?
-3. Press Page Down, End, then Home. Is the new position announced?
-4. Select a row. Is "selected" announced?
-5. Use VO+Right inside a row. Does it reach the cells, and what does it call them?
+   100,000,000")? Does it read the first cell?
+2. Press Down three times. Does it read the row number and the cell once each, without
+   talking over itself?
+3. Press Right twice, then Down. Does it read the time, then the channel, then the
+   channel one row down?
+4. Press Page Down, End, then Home. Is the new position announced?
+5. Use VO+Right inside a row. Does it reach the same cells?
 6. Go to… row 61,700,000. Is the jump announced once and clearly?
 7. Move the map slider with the arrows. Is its value text useful?
 
-Then choose, with these candidates in mind:
-
-| Pattern                                                            | Fits today's keys and selection                    | Cost                                                                         |
-| ------------------------------------------------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `grid` with one cell per row, `aria-activedescendant` on that cell | Yes: Up and Down are full navigation in one column | Rows have up to six cells today (two empty); keep one, or add Left and Right |
-| `listbox` of `option`s, with `aria-setsize` and `aria-posinset`    | Yes, including selection                           | The row is read as one string; no row or column semantics; renames all roles |
-| `table`                                                            | No: no focus target or selection state             | Selection needs another control; the plan's "table if undecided" is not free |
-
-Record the result in library-family.md (Phase 2, step 4). NVDA on Windows waits for a
-volunteer, but do it before 1.0.
+Up and Down already announce "Row N" in a live region, and VoiceOver also reads the new
+active cell. If the two talk over each other, drop the live announcement for Up and Down.
+Record what VoiceOver said in library-family.md (Phase 2, step 4). NVDA on Windows waits
+for a volunteer, but do it before 1.0.
 
 ## 3. Devices (about 5 minutes each)
 
