@@ -21,10 +21,12 @@ what to send.
 ## 1. The npm scope
 
 On 2026-10-15 the registry answered 200 for the `granum` scope with no public packages,
-and "Scope not found" for names nobody has. So someone holds `@granum`. `@granum-grid` was
+and "Scope not found" for names nobody has. npmjs.com shows a **user** named `granum` with
+no packages. User names and organization names share one namespace, so no `granum`
+organization can be created, and `@granum` belongs to that account. `@granum-grid` was
 free.
 
-- If the maintainer's account owns `granum`: `npm login`, then step 4 works as written.
+- If `granum` is the maintainer's own npm user: `npm login` as it, and step 4 works as written.
 - If not: rename to `@granum-grid/*` across packages, demo, docs, and consumer fixtures
   (PUBLISHING.md step 1), then run `npm run release:check`. An agent can do the rename.
 
@@ -34,6 +36,13 @@ Today the rows container is `role="grid"` with `tabIndex=0`. `aria-activedescend
 points at the focused **row**, rows carry `aria-rowindex` and `aria-selected`, and the
 keys move by row only. That matches neither `grid` (focus belongs on cells, with Left and
 Right) nor `table` (no focus or selection semantics).
+
+What Chromium's accessibility tree showed on 2026-10-15 (Signal archive, before any
+session): the grid has its label and `aria-rowcount` 100,000,000 and keeps focus while
+`aria-activedescendant` moves row by row. Each row is named by its joined text ("1
+2010-01-01 00:00:00 North 37.0 mV 37 millivolts") and holds six `gridcell`s, the last two
+empty, so a screen reader moving by cell meets two blanks. A tree is not a session: it does
+not show what VoiceOver says.
 
 Use Safari with VoiceOver (Cmd+F5) on the
 [playground](https://vitaliiznak.github.io/granum-grid/?dataset=signal). Write down what
@@ -50,11 +59,11 @@ VoiceOver says at each step:
 
 Then choose, with these candidates in mind:
 
-| Pattern                                                            | Fits today's keys and selection                    | Cost                                                                                |
-| ------------------------------------------------------------------ | -------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `grid` with one cell per row, `aria-activedescendant` on that cell | Yes: Up and Down are full navigation in one column | Placeholder and demo rows have several cells today; keep one, or add Left and Right |
-| `listbox` of `option`s, with `aria-setsize` and `aria-posinset`    | Yes, including selection                           | The row is read as one string; no row or column semantics; renames all roles        |
-| `table`                                                            | No: no focus target or selection state             | Selection needs another control; the plan's "table if undecided" is not free        |
+| Pattern                                                            | Fits today's keys and selection                    | Cost                                                                         |
+| ------------------------------------------------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `grid` with one cell per row, `aria-activedescendant` on that cell | Yes: Up and Down are full navigation in one column | Rows have up to six cells today (two empty); keep one, or add Left and Right |
+| `listbox` of `option`s, with `aria-setsize` and `aria-posinset`    | Yes, including selection                           | The row is read as one string; no row or column semantics; renames all roles |
+| `table`                                                            | No: no focus target or selection state             | Selection needs another control; the plan's "table if undecided" is not free |
 
 Record the result in library-family.md (Phase 2, step 4). NVDA on Windows waits for a
 volunteer, but do it before 1.0.
