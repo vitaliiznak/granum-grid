@@ -6,15 +6,15 @@ All four packages are released together with the same version.
 
 The first release on npm.
 
-- `@granum/core`: the navigation engine (a float row address over billions of rows, history,
+- `@granum-grid/core`: the navigation engine (a float row address over billions of rows, history,
   alignment, measured heights, saved views), the data session and providers (`/data`),
   native scrolling and `mount()` for the rows explorer without a framework (`/dom`), and
   `mountMap()` for the dataset map beside any scroller (`/map`). No dependencies.
-- `@granum/react`: `GranumGrid`, `AtlasRail`, `JumpBar`, and `useGranumGrid`, plus the
+- `@granum-grid/react`: `GranumGrid`, `AtlasRail`, `JumpBar`, and `useGranumGrid`, plus the
   headless hook (`/headless`).
-- `@granum/parquet`: a Parquet file on any server that answers byte ranges, read one row
+- `@granum-grid/parquet`: a Parquet file on any server that answers byte ranges, read one row
   group per jump. hyparquet is a peer dependency.
-- `@granum/sql`: any table DuckDB can read, with filters and sorts as revisions. Bring your
+- `@granum-grid/sql`: any table DuckDB can read, with filters and sorts as revisions. Bring your
   own DuckDB.
 
 ### Changes from the GitHub-only `granum-grid` 0.1.0
@@ -22,8 +22,8 @@ The first release on npm.
 For anyone who installed the earlier archive from the repository:
 
 - The package split in two. `granum-grid` and `granum-grid/headless` are now
-  `@granum/react` and `@granum/react/headless`; `granum-grid/core` is `@granum/core`, and
-  `granum-grid/data` is `@granum/core/data`.
+  `@granum-grid/react` and `@granum-grid/react/headless`; `granum-grid/core` is `@granum-grid/core`, and
+  `granum-grid/data` is `@granum-grid/core/data`.
 - Rows scroll in a native scroller (the element or the window), so wheel, touch, keys, and
   the scrollbar behave as the browser's do. The hand-built inertia, elastic edges, and
   touch panning are gone, with the hook's `edgeOffset` and `traveling`.

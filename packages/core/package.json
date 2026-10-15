@@ -1,5 +1,5 @@
 {
-  "name": "@granum/core",
+  "name": "@granum-grid/core",
   "version": "0.1.0",
   "description": "Framework-free navigation, data sessions, native scrolling, and map primitives for exploring enormous indexed datasets",
   "license": "Apache-2.0",

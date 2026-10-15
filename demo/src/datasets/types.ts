@@ -6,7 +6,7 @@ import type {
   Marker,
   RowRenderContext,
   RowRange,
-} from '@granum/react';
+} from '@granum-grid/react';
 import type { ReactNode } from 'react';
 
 /** Signal-only row state owned by the page. */

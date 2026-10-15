@@ -8,8 +8,8 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { clamp, rowToProgress } from '@granum/core/internal';
-import { bucketAt, chapterAt } from '@granum/core/internal';
+import { clamp, rowToProgress } from '@granum-grid/core/internal';
+import { bucketAt, chapterAt } from '@granum-grid/core/internal';
 import {
   atlasDomain,
   atlasTicks,
@@ -17,8 +17,8 @@ import {
   observeCanvas,
   overviewAccuracy,
   profileValue,
-} from '@granum/core/map';
-import { formatCompact, formatMetric } from '@granum/core/map';
+} from '@granum-grid/core/map';
+import { formatCompact, formatMetric } from '@granum-grid/core/map';
 import {
   FULL_SPEED,
   atlasPeaks,
@@ -26,9 +26,9 @@ import {
   moveScrub,
   rowAtPointer,
   type Scrub,
-} from '@granum/core/map';
+} from '@granum-grid/core/map';
 import { MarkerLayer } from './MarkerLayer.js';
-import type { Marker, RowRange } from '@granum/core/data';
+import type { Marker, RowRange } from '@granum-grid/core/data';
 import type { GranumGridState } from './useGranumGrid.js';
 import { INTERNAL } from './internal.js';
 export interface AtlasRailOptions {
@@ -300,7 +300,7 @@ export function AtlasRail<Row>({
       }));
     drawAtlas(magnifier.current, buckets, end - start, domain, kind, showRange, 'lens');
   }, [hoverIndex, overview, showMagnifier, helpOpen, showRange, domain, kind, total]);
-  /** The track's place on screen, for the shared pointer math in `@granum/core/map`. */
+  /** The track's place on screen, for the shared pointer math in `@granum-grid/core/map`. */
   const geometry = () => {
     const rect = track.current!.getBoundingClientRect();
     return { top: rect.top, height: rect.height, rowCount: total };

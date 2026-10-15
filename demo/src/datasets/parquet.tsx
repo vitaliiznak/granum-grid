@@ -1,4 +1,4 @@
-import type { DataProvider } from '@granum/react';
+import type { DataProvider } from '@granum-grid/react';
 import {
   createParquetProvider,
   estimateParquetRowBytes,
@@ -8,7 +8,7 @@ import {
   type ParquetRow,
   type ParquetTransfer,
   type ParquetValue,
-} from '@granum/parquet';
+} from '@granum-grid/parquet';
 import { ParquetIcon } from './icons';
 import { compact, formatCount, type DemoDataset } from './types';
 

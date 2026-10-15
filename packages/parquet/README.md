@@ -1,4 +1,4 @@
-# @granum/parquet
+# @granum-grid/parquet
 
 A Parquet file read in place over HTTP range requests, as a
 [Granum Grid](https://github.com/vitaliiznak/granum-grid) data provider. There is no
@@ -12,15 +12,15 @@ this way and downloads about 2 MB per jump.
 
 ## Install
 
-Not yet on npm. `@granum/core` and [hyparquet](https://github.com/hyparam/hyparquet) 1.31.2
+Not yet on npm. `@granum-grid/core` and [hyparquet](https://github.com/hyparam/hyparquet) 1.31.2
 or later are peer dependencies. hyparquet decodes uncompressed and Snappy pages; for zstd,
 gzip, Brotli, or LZ4, also install `hyparquet-compressors`.
 
 ## Use
 
 ```tsx
-import { GranumGrid } from '@granum/react';
-import { createParquetProvider, openParquetFile, type ParquetRow } from '@granum/parquet';
+import { GranumGrid } from '@granum-grid/react';
+import { createParquetProvider, openParquetFile, type ParquetRow } from '@granum-grid/parquet';
 
 // Reads only the footer: row count, row groups, and columns.
 const { file } = await openParquetFile(url, new AbortController().signal);

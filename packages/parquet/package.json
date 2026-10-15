@@ -1,5 +1,5 @@
 {
-  "name": "@granum/parquet",
+  "name": "@granum-grid/parquet",
   "version": "0.1.0",
   "description": "A Parquet file read in place over HTTP range requests, as a Granum Grid data provider",
   "license": "Apache-2.0",
@@ -42,7 +42,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "peerDependencies": {
-    "@granum/core": "^0.1.0",
+    "@granum-grid/core": "^0.1.0",
     "hyparquet": "^1.31.2"
   },
   "devDependencies": {

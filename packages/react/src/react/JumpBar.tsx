@@ -7,12 +7,12 @@ import {
   useState,
   type CSSProperties,
 } from 'react';
-import type { GranumGridEngine } from '@granum/core/internal';
-import { clamp } from '@granum/core/internal';
-import { parseJump, type JumpTarget } from '@granum/core/internal';
-import { MARKERS_ONLY_SEARCH, searchIssue } from '@granum/core/internal';
-import type { DataSession } from '@granum/core/internal';
-import type { DataProvider, Marker } from '@granum/core/data';
+import type { GranumGridEngine } from '@granum-grid/core/internal';
+import { clamp } from '@granum-grid/core/internal';
+import { parseJump, type JumpTarget } from '@granum-grid/core/internal';
+import { MARKERS_ONLY_SEARCH, searchIssue } from '@granum-grid/core/internal';
+import type { DataSession } from '@granum-grid/core/internal';
+import type { DataProvider, Marker } from '@granum-grid/core/data';
 import type { GranumGridState } from './useGranumGrid.js';
 import { INTERNAL } from './internal.js';
 import { useLatest } from './useLatest.js';

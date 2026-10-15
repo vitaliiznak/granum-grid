@@ -3,7 +3,7 @@ import {
   type AggregateRequest,
   type Bucket,
   type DataProvider,
-} from '@granum/react';
+} from '@granum-grid/react';
 
 export type Reading = { minute: number; celsius: number };
 

@@ -4,10 +4,10 @@ import {
   observeElementOffset,
   observeElementRect,
 } from '@tanstack/virtual-core';
-import type { Bucket, DataProvider, Marker } from '@granum/core/data';
-import { mount } from '@granum/core/dom';
-import { gridTarget, mountMap, scrollerTarget, type MapTarget } from '@granum/core/map';
-import '@granum/core/styles.css';
+import type { Bucket, DataProvider, Marker } from '@granum-grid/core/data';
+import { mount } from '@granum-grid/core/dom';
+import { gridTarget, mountMap, scrollerTarget, type MapTarget } from '@granum-grid/core/map';
+import '@granum-grid/core/styles.css';
 import './example-page.css';
 
 /** A smooth signal with three bursts, computed from a row's share of its dataset. */

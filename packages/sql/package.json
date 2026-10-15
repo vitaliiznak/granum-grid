@@ -1,5 +1,5 @@
 {
-  "name": "@granum/sql",
+  "name": "@granum-grid/sql",
   "version": "0.1.0",
   "description": "Rows, exact maps, and complete search from SQL (DuckDB's dialect) as a Granum Grid data provider",
   "license": "Apache-2.0",
@@ -42,7 +42,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "peerDependencies": {
-    "@granum/core": "^0.1.0"
+    "@granum-grid/core": "^0.1.0"
   },
   "devDependencies": {
     "@duckdb/node-api": "1.5.6-r.1"

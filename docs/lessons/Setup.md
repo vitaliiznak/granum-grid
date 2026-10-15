@@ -37,7 +37,7 @@ component as `src/App.tsx`; its default export can keep the name in the lesson.
 Your existing React entry point should mount that default export. The compose lesson
 adds one component and reuses the inventory provider.
 
-Each component imports `@granum/react/styles.css` and supplies an explicit viewport
+Each component imports `@granum-grid/react/styles.css` and supplies an explicit viewport
 height. For a fresh Vite app, replace the starter `index.css` as in
 [step 2 of the quick start](../QUICK_START.md#2-render-your-first-explorer).
 In an existing application, retain your global layout and styles. Start the app

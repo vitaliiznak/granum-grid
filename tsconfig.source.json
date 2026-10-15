@@ -4,15 +4,15 @@
     "noEmit": true,
     "types": ["vite/client"],
     "paths": {
-      "@granum/core": ["./packages/core/src/index.ts"],
-      "@granum/core/data": ["./packages/core/src/data/index.ts"],
-      "@granum/core/dom": ["./packages/core/src/dom/index.ts"],
-      "@granum/core/map": ["./packages/core/src/map/index.ts"],
-      "@granum/core/internal": ["./packages/core/src/internal.ts"],
-      "@granum/react": ["./packages/react/src/index.ts"],
-      "@granum/react/headless": ["./packages/react/src/headless.ts"],
-      "@granum/parquet": ["./packages/parquet/src/index.ts"],
-      "@granum/sql": ["./packages/sql/src/index.ts"]
+      "@granum-grid/core": ["./packages/core/src/index.ts"],
+      "@granum-grid/core/data": ["./packages/core/src/data/index.ts"],
+      "@granum-grid/core/dom": ["./packages/core/src/dom/index.ts"],
+      "@granum-grid/core/map": ["./packages/core/src/map/index.ts"],
+      "@granum-grid/core/internal": ["./packages/core/src/internal.ts"],
+      "@granum-grid/react": ["./packages/react/src/index.ts"],
+      "@granum-grid/react/headless": ["./packages/react/src/headless.ts"],
+      "@granum-grid/parquet": ["./packages/parquet/src/index.ts"],
+      "@granum-grid/sql": ["./packages/sql/src/index.ts"]
     }
   }
 }

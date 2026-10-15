@@ -1,4 +1,4 @@
-import type { GranumGridApi, ScrollStats } from '@granum/react';
+import type { GranumGridApi, ScrollStats } from '@granum-grid/react';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { datasetGroups, type DemoDataset } from './datasets';
 import { compact, formatCount } from './datasets/types';

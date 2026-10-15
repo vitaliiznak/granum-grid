@@ -12,7 +12,7 @@ execFileSync(
   [fileURLToPath(new URL('node_modules/typescript/bin/tsc', root)), '-p', 'tsconfig.json'],
   { cwd: fileURLToPath(pkg), stdio: 'inherit' },
 );
-// Stylesheets come from the package's own src/, or, for @granum/react, from the directory its
+// Stylesheets come from the package's own src/, or, for @granum-grid/react, from the directory its
 // `granumBuild.css` names (core's), so React users install one package.
 const manifest = JSON.parse(readFileSync(new URL('package.json', pkg), 'utf8'));
 const css = new URL(`${manifest.granumBuild?.css ?? 'src'}/`, pkg);

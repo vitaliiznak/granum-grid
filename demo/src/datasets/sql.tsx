@@ -1,5 +1,5 @@
-import type { DataProvider, GranumGridApi } from '@granum/react';
-import type { SqlColumn, SqlProvider, SqlRow, SqlSource, SqlView } from '@granum/sql';
+import type { DataProvider, GranumGridApi } from '@granum-grid/react';
+import type { SqlColumn, SqlProvider, SqlRow, SqlSource, SqlView } from '@granum-grid/sql';
 import { DatabaseIcon } from './icons';
 import { columnRows } from './parquet';
 import { compact, formatCount, type DemoDataset } from './types';

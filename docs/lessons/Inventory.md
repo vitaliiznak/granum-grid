@@ -22,7 +22,7 @@ stable when React renders again.
 
 <!-- source: demo/src/tutorials/inventory.ts -->
 ```ts
-import { createArrayProvider } from '@granum/react';
+import { createArrayProvider } from '@granum-grid/react';
 
 export type Product = { sku: string; name: string; stock: number };
 
@@ -51,9 +51,9 @@ application button navigate without finding DOM nodes or simulating keyboard inp
 <!-- source: demo/src/tutorials/InventoryLesson.tsx -->
 ```tsx
 import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi } from '@granum/react';
+import { GranumGrid, type GranumGridApi } from '@granum-grid/react';
 import { inventory, type Product } from './inventory';
-import '@granum/react/styles.css';
+import '@granum-grid/react/styles.css';
 
 export default function Inventory() {
   const api = useRef<GranumGridApi<Product>>(null);

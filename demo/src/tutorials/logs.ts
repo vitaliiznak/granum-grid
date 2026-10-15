@@ -3,7 +3,7 @@ import {
   type DataProvider,
   type Marker,
   type ProviderQuery,
-} from '@granum/react';
+} from '@granum-grid/react';
 
 export type Log = { service: string; status: number; message: string };
 const rows: Log[] = Array.from({ length: 600 }, (_, index) => ({

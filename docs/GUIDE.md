@@ -109,7 +109,7 @@ A server that pages with an opaque cursor can satisfy `fetchRows` through
   that cursor, the address of the first row, and the next cursor (null at the end).
 
 `createCursorProvider` seeks once and follows the next cursor only until the requested
-slice is full. `cursorWindowIssue` and `acceptCursorWindow` from `@granum/core/data`
+slice is full. `cursorWindowIssue` and `acceptCursorWindow` from `@granum-grid/core/data`
 expose the same window checks for a host's own transport.
 
 Random access is the hard part, and it is yours. `cursorAt` must find an address without
@@ -118,7 +118,7 @@ row-group offsets in a columnar file. SQL `OFFSET` reads every skipped row, so i
 not scale to deep addresses.
 
 ```ts
-import { createCursorProvider } from '@granum/react';
+import { createCursorProvider } from '@granum-grid/react';
 
 const logs = createCursorProvider(server, {
   id: 'logs',
@@ -130,7 +130,7 @@ const logs = createCursorProvider(server, {
 ### A file without a server: Parquet over HTTP
 
 A Parquet file's footer lists every row group's row count, so `rowCount` is exact and an
-address maps to one row group. [`@granum/parquet`](../packages/parquet/README.md)'s
+address maps to one row group. [`@granum-grid/parquet`](../packages/parquet/README.md)'s
 `createParquetProvider` reads the footer once with an HTTP range request, then downloads
 only the column chunks that hold the requested rows (only their pages when the file has a
 page index). It is a separate package with [hyparquet](https://github.com/hyparam/hyparquet)
@@ -148,9 +148,9 @@ with very large row groups and no page index costs far more per jump. The map's 
 come exact from the footer's statistics; its line reads one row group per map group and
 is labeled sampled.
 
-### SQL with an exact map: `@granum/sql`
+### SQL with an exact map: `@granum-grid/sql`
 
-[`@granum/sql`](../packages/sql/README.md) turns any relation DuckDB can read (a table, a
+[`@granum-grid/sql`](../packages/sql/README.md) turns any relation DuckDB can read (a table, a
 Parquet or CSV file, a query) into providers. The host passes one `query(sql, params,
 signal)` function; the package builds every statement. Each view (filters, a trusted
 `whereSql`, and a sort order) becomes a revision: its rows are copied in order into a
@@ -202,7 +202,7 @@ Open **debug** and enable **Dynamic row heights** in the signal demo to try wrap
 
 ```tsx
 import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi } from '@granum/react';
+import { GranumGrid, type GranumGridApi } from '@granum-grid/react';
 
 function Notes() {
   const api = useRef<GranumGridApi<Note>>(null);
@@ -255,7 +255,7 @@ Rows retain the leading row address and pixel offset while content changes, clam
 `goTo(index)` accepts a safe integer, clamps it to the dataset, jumps at once, and
 records history unless `history: 'skip'`. `onNavigate` fires after committed navigation,
 not on every scroll frame; subscribe to snapshots for continuous position. Keep live position in the engine
-instead of mirroring it in host state. `@granum/core` has no React, DOM, or network
+instead of mirroring it in host state. `@granum-grid/core` has no React, DOM, or network
 imports: `createEngine` takes numeric dimensions and normalized input. Snapshots keep their identity until a value
 changes, so React subscribes through `useSyncExternalStore`.
 
@@ -280,11 +280,11 @@ Those are application features; the playground builds all of them on the public 
   what is on screen".
 - `markers` adds host places, such as saved bookmarks, to the provider's markers for the
   map, N/P, snapping, and named-marker search.
-- `api.getView()`, `encodeView`, `decodeView`, and `readView` (from `@granum/core`)
+- `api.getView()`, `encodeView`, `decodeView`, and `readView` (from `@granum-grid/core`)
   save and validate a place. The library writes no browser storage.
 - Your provider's `fetchAggregates({ start, end, buckets: 1 }, signal)` returns a
   range's statistics with `exact`, `estimated`, or `unavailable` accuracy;
-  `checkBuckets` from `@granum/core/data` validates the response.
+  `checkBuckets` from `@granum-grid/core/data` validates the response.
 - `rangeProvider(provider, range)` reads a sub-range as its own provider, for a second
   explorer beside the first, without materializing rows.
 
@@ -301,7 +301,7 @@ shows **Back** and **Go to…**; diagnostics are under **debug** in the demo, an
 The demo's **Open full page** link opens the same location and selected range in a separate tab. Its URL updates while navigating and restores after reload. **Back to normal view** returns to the embedded demo in that tab, keeping the dataset, position, selection, and current debug and simulation settings. The **debug** button opens one panel in both layouts for behavior switches, reduced-motion emulation, row-height testing, and performance statistics. Generated datasets also expose simulated server latency from 0–10 seconds (default: 1 second); changes apply to new requests while cached rows remain instant. Real sources (the Parquet file, Hacker News, and your own file) do not expose simulated latency. For a host application, add a route that renders one `GranumGrid` with `layout="page"`, then pass a URL builder to the embedded instance:
 
 ```tsx
-import { encodeView, decodeView } from '@granum/react';
+import { encodeView, decodeView } from '@granum-grid/react';
 
 // Embedded instance:
 <GranumGrid
@@ -361,16 +361,16 @@ host supplies `onStats`. These defaults are not performance guarantees.
 
 ## Composition and packaging
 
-Granum Grid is a family of packages. `@granum/core` is framework-free: the engine
-(`@granum/core`), providers and the data session (`/data`), native scrolling and keys
-(`/dom`), and the map's pieces (`/map`). `@granum/react` builds the hook and components on
-it and re-exports what a React app needs, so a React app imports `@granum/react` and its
-stylesheet. Without React, `mount` from `@granum/core/dom` renders the rows explorer into
+Granum Grid is a family of packages. `@granum-grid/core` is framework-free: the engine
+(`@granum-grid/core`), providers and the data session (`/data`), native scrolling and keys
+(`/dom`), and the map's pieces (`/map`). `@granum-grid/react` builds the hook and components on
+it and re-exports what a React app needs, so a React app imports `@granum-grid/react` and its
+stylesheet. Without React, `mount` from `@granum-grid/core/dom` renders the rows explorer into
 any element and returns the same `GranumGridApi` handle; it is built from the same
-`@granum/core/dom` pieces as the hook. `mountMap` from `@granum/core/map` puts the dataset
+`@granum-grid/core/dom` pieces as the hook. `mountMap` from `@granum-grid/core/map` puts the dataset
 map beside that explorer or any other scroller through a small `MapTarget`; `AtlasRail`
-uses the same drag math. `@granum/parquet` and `@granum/sql` are providers that take their
-types from `@granum/core/data`.
+uses the same drag math. `@granum-grid/parquet` and `@granum-grid/sql` are providers that take their
+types from `@granum-grid/core/data`.
 
 `useGranumGrid` returns the `api` handle, the navigation `snapshot`, bounded row slots,
 viewport, row, and announcement prop getters, and display state: `selection`,
@@ -398,7 +398,7 @@ layouts, and styling hooks are in [STYLING.md](../STYLING.md).
 Pass `onRowActivate={({ row, index, rowNumber }) => ...}` to `GranumGrid` or
 `useGranumGrid` to inspect a loaded record in your own panel. `index` is zero-based;
 `rowNumber` is one-based. `RowActivationContext<Row>` is exported from both
-`@granum/react` and `@granum/react/headless`.
+`@granum-grid/react` and `@granum-grid/react/headless`.
 
 Click/tap activates a loaded row; Enter activates the focused loaded row. Arrow keys
 move row focus and scroll only enough to reveal it. Activation itself preserves the
@@ -449,7 +449,7 @@ interface GranumGridApi<Row> {
 ```
 
 Input, measurement, and animation adapters stay on the framework-independent engine in
-`@granum/core`, together with its raw `getLocation` and `restore`.
+`@granum-grid/core`, together with its raw `getLocation` and `restore`.
 
 - `openSearch(query)` opens the dialog without navigating and replaces the query in an
   already-open dialog; choosing a result navigates. Search closes when the dataset or

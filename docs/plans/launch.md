@@ -7,7 +7,7 @@ what to send.
 
 ## Order
 
-1. Settle the npm scope.
+1. Settle the npm scope (done: `@granum-grid`).
 2. Run the screen-reader session and pick the ARIA pattern. This now comes **before**
    publishing, because the pattern is public API: integrators write `role="gridcell"` in
    `renderRow` (README, GUIDE, every lesson). Changing it after 0.1.0 means asking each of
@@ -20,15 +20,11 @@ what to send.
 
 ## 1. The npm scope
 
-On 2026-10-15 the registry answered 200 for the `granum` scope with no public packages,
-and "Scope not found" for names nobody has. npmjs.com shows a **user** named `granum` with
-no packages. User names and organization names share one namespace, so no `granum`
-organization can be created, and `@granum` belongs to that account. `@granum-grid` was
-free.
-
-- If `granum` is the maintainer's own npm user: `npm login` as it, and step 4 works as written.
-- If not: rename to `@granum-grid/*` across packages, demo, docs, and consumer fixtures
-  (PUBLISHING.md step 1), then run `npm run release:check`. An agent can do the rename.
+Done 2026-10-15. The registry answered 200 for the `granum` scope with no public packages,
+and npmjs.com shows a **user** named `granum` with none. User names and organization names
+share one namespace, so `@granum` belongs to that account. The maintainer chose to rename:
+the packages are `@granum-grid/core`, `/react`, `/parquet`, and `/sql`, and the npm
+organization to create is `granum-grid`.
 
 ## 2. Screen-reader session (VoiceOver, about 30 minutes)
 
@@ -121,7 +117,7 @@ reports with `gh issue list --label integration-report`.
 > requests, about 2 MB per jump. It also opens a file you drop into DuckDB-WASM in the
 > tab (nothing leaves the page), and scrolls 4 billion synthetic log lines.
 >
-> Packages: `@granum/core` (no framework), `@granum/react`, and adapters for Parquet and SQL.
+> Packages: `@granum-grid/core` (no framework), `@granum-grid/react`, and adapters for Parquet and SQL.
 > The map also drives scrollers it does not own, such as TanStack Virtual or a plain
 > overflow list.
 >
@@ -131,7 +127,7 @@ reports with `gh issue list --label integration-report`.
 
 **DuckDB community** (Discord or discussions)
 
-> I built a scroller plus map for DuckDB results: `@granum/sql` turns a query into rows
+> I built a scroller plus map for DuckDB results: `@granum-grid/sql` turns a query into rows
 > you can scroll by address, an exact map of the whole result, and complete search. Each
 > filter or sort becomes a revision with its own row addresses. The playground runs it on
 > DuckDB-WASM in the tab, with the Parquet, JSON, and ICU extensions served from the site
@@ -140,7 +136,7 @@ reports with `gh issue list --label integration-report`.
 
 **hyparquet / HighTable** (a GitHub discussion on hyparam/hyparquet)
 
-> `@granum/parquet` reads Parquet over HTTP with hyparquet: footer once, then one row group
+> `@granum-grid/parquet` reads Parquet over HTTP with hyparquet: footer once, then one row group
 > per jump. Thank you for the library. Granum adds a whole-dataset map and typed jumps. The
 > map can drive a scroller it does not own through a small `MapTarget` (row count, visible
 > range, scroll to index), so it could sit beside HighTable. Would that be useful to you? And

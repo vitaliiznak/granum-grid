@@ -38,7 +38,7 @@ export interface MountOptions<Row> {
 }
 
 export interface MountedGrid<Row> {
-  /** The same handle as `@granum/react`'s `apiRef`: navigation, selection, and views. */
+  /** The same handle as `@granum-grid/react`'s `apiRef`: navigation, selection, and views. */
   readonly api: GranumGridApi<Row>;
   /** The scroll container; focus it for keyboard navigation. */
   readonly viewport: HTMLElement;
@@ -69,9 +69,9 @@ function defaultPlaceholder(slot: PendingRowSlot, element: HTMLElement, retry: (
 /**
  * Granum Grid without a framework: rows of any provider in a native scroller, with typed
  * jumps, history, keys, and measured heights, inside `element`. The same pieces drive
- * `@granum/react`; style it with `@granum/core/styles.css` or `base.css`. Add the dataset
+ * `@granum-grid/react`; style it with `@granum-grid/core/styles.css` or `base.css`. Add the dataset
  * map beside it with `mountMap(element, { target: gridTarget(grid.api) })` from
- * `@granum/core/map`.
+ * `@granum-grid/core/map`.
  */
 export function mount<Row>(element: HTMLElement, options: MountOptions<Row>): MountedGrid<Row> {
   const {

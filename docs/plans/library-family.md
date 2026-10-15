@@ -2,7 +2,7 @@
 
 Status: as of 2026-10-14, the code work is done: Phases 0–2, the package split and rename in
 Phase 3, Phase 4, and Phase 5, pushed to `main` on 2026-10-15. Everything left waits on the
-maintainer or other people: creating the `@granum` npm org and publishing, the screen
+maintainer or other people: creating the `granum-grid` npm org and publishing, the screen
 recording at release, finding integrators, and the screen-reader and device checks. The
 last code follow-up, serving DuckDB's extensions from the playground instead of
 extensions.duckdb.org, was done on 2026-10-15 (see Risks). The remaining human steps, in
@@ -68,29 +68,29 @@ barrier, and cuts most of the rest.
 
 ## Decisions needed before Phase 0
 
-| Decision                           | Recommendation                                                                                                                                                                                                               | Reason                                                                                                                                                                                                                                                                         |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Package names                      | `@granum/*` if the maintainer can create the npm org `granum`; otherwise `@granum-grid/*`. Unscoped `granum` is taken; `@granum/core`, `@granum/react`, and `granum-grid` return 404 today. Decide before the first publish. | A scope suits a family and drops "grid" from package names; the product is not a grid. Renaming after publication breaks imports.                                                                                                                                              |
-| How many packages                  | Four at 0.2: `core`, `react`, `parquet`, `sql`. The DOM controller and the map are subpaths of `core` (`/dom`, `/map`) until someone uses them alone.                                                                        | Data adapters bring their own peers. Fewer packages mean fewer versions, changelogs, and consumer tests.                                                                                                                                                                       |
-| Long-jump flights and `ViewCanvas` | Cut. Jumps are instant; the map's viewport marker moves and arriving rows fade in.                                                                                                                                           | Animated programmatic scrolling fights native scrolling; [HighTable hit the same conflict](https://rednegra.net/blog/20260212-virtual-scroll/). Removes flight state from the engine, 28 lines that read `traveling`, `flightSpan`, or `targetIndex`, and `createZoomMapping`. |
-| ARIA pattern                       | Decide in Phase 2 after one screen-reader session: `table` with rows and cells, or `grid` with real cell navigation. `table` if undecided.                                                                                   | Today's `grid` announces a pattern the keyboard does not support.                                                                                                                                                                                                              |
-| Bitcoin (Binance)                  | Cut. A market example, if wanted, becomes a static Parquet of candles through the Parquet adapter.                                                                                                                           | The README already says Binance blocks some regions; about 694 lines with a request budget and approximate summaries.                                                                                                                                                          |
-| Performance trace                  | Cut from the gallery. Keep the HTTP example page as the "your own server" recipe.                                                                                                                                            | 1.3K events undercut a billion-row pitch; about 800 lines with the import UI, recorder script, and fixture.                                                                                                                                                                    |
-| Media studio and film              | Freeze after the pending media work lands; move it to its own branch. A 60-second screen recording replaces the film at 0.2.                                                                                                 | Scrolling and the dataset list will change, and each change means re-rendering the film.                                                                                                                                                                                       |
-| CSS hook prefix and old names      | Rename `ds-*` once, together with the package names, before 0.2. Drop the `deepscroll-*` storage keys and wiki manifest name.                                                                                                | No users yet. The compatibility kept after the deepscroll rename protects nobody and will be breaking later.                                                                                                                                                                   |
+| Decision                           | Recommendation                                                                                                                                                                                                                                                                         | Reason                                                                                                                                                                                                                                                                         |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Package names                      | `@granum/*` if the maintainer can create the npm org `granum`; otherwise `@granum-grid/*`. Unscoped `granum` is taken; `@granum/core`, `@granum/react`, and `granum-grid` return 404 today. Decided 2026-10-15: `@granum-grid/*`, because an npm user named `granum` holds that scope. | A scope suits a family and drops "grid" from package names; the product is not a grid. Renaming after publication breaks imports.                                                                                                                                              |
+| How many packages                  | Four at 0.2: `core`, `react`, `parquet`, `sql`. The DOM controller and the map are subpaths of `core` (`/dom`, `/map`) until someone uses them alone.                                                                                                                                  | Data adapters bring their own peers. Fewer packages mean fewer versions, changelogs, and consumer tests.                                                                                                                                                                       |
+| Long-jump flights and `ViewCanvas` | Cut. Jumps are instant; the map's viewport marker moves and arriving rows fade in.                                                                                                                                                                                                     | Animated programmatic scrolling fights native scrolling; [HighTable hit the same conflict](https://rednegra.net/blog/20260212-virtual-scroll/). Removes flight state from the engine, 28 lines that read `traveling`, `flightSpan`, or `targetIndex`, and `createZoomMapping`. |
+| ARIA pattern                       | Decide in Phase 2 after one screen-reader session: `table` with rows and cells, or `grid` with real cell navigation. `table` if undecided.                                                                                                                                             | Today's `grid` announces a pattern the keyboard does not support.                                                                                                                                                                                                              |
+| Bitcoin (Binance)                  | Cut. A market example, if wanted, becomes a static Parquet of candles through the Parquet adapter.                                                                                                                                                                                     | The README already says Binance blocks some regions; about 694 lines with a request budget and approximate summaries.                                                                                                                                                          |
+| Performance trace                  | Cut from the gallery. Keep the HTTP example page as the "your own server" recipe.                                                                                                                                                                                                      | 1.3K events undercut a billion-row pitch; about 800 lines with the import UI, recorder script, and fixture.                                                                                                                                                                    |
+| Media studio and film              | Freeze after the pending media work lands; move it to its own branch. A 60-second screen recording replaces the film at 0.2.                                                                                                                                                           | Scrolling and the dataset list will change, and each change means re-rendering the film.                                                                                                                                                                                       |
+| CSS hook prefix and old names      | Rename `ds-*` once, together with the package names, before 0.2. Drop the `deepscroll-*` storage keys and wiki manifest name.                                                                                                                                                          | No users yet. The compatibility kept after the deepscroll rename protects nobody and will be breaking later.                                                                                                                                                                   |
 
 ## Target shape
 
 ```text
-@granum/core        framework-free, no dependencies, ships the CSS
+@granum-grid/core        framework-free, no dependencies, ships the CSS
   .                 engine, row sizes, mappings, navigation, history, saved views
   /data             provider contract, DataSession, PageCache, array and cursor helpers
   /dom              viewport controller: native scrolling, keys, measurement,
                     page layout, announcements; mount() for plain-DOM rows
   /map              map controller and canvas renderer; MapTarget adapters
-@granum/react       useGranumGrid, GranumGrid, AtlasRail, JumpBar as thin wrappers
-@granum/parquet     Parquet over HTTP range requests (peer: hyparquet)
-@granum/sql         SQL provider in DuckDB's dialect; the host passes query()
+@granum-grid/react       useGranumGrid, GranumGrid, AtlasRail, JumpBar as thin wrappers
+@granum-grid/parquet     Parquet over HTTP range requests (peer: hyparquet)
+@granum-grid/sql         SQL provider in DuckDB's dialect; the host passes query()
 ```
 
 Layer rule, lint-enforced since Phase 0 (`eslint.config.js`): `data` ← `core` ← `dom` ←
@@ -104,11 +104,11 @@ each cut lowers it. Targets after Phase 2: full React entry 22 KiB, CSS 28 KiB t
 
 Later, only when asked: `<granum-grid>` and `<granum-map>` custom elements on top of
 `/dom` and `/map`, one binding that works in Vue, Svelte, and Angular; then dedicated
-`@granum/vue` or `@granum/svelte` if an integrator needs more.
+`@granum-grid/vue` or `@granum-grid/svelte` if an integrator needs more.
 
 ## Features to build
 
-### `@granum/sql`: the integration barrier goes away
+### `@granum-grid/sql`: the integration barrier goes away
 
 - `createSqlProvider({ query, source, where, orderBy, metric, chapters, search })`.
   The host supplies `query(sql, params, signal)`: DuckDB-WASM in a worker, DuckDB on a
@@ -129,7 +129,7 @@ Later, only when asked: `<granum-grid>` and `<granum-map>` custom elements on to
 - DuckDB's dialect only. The guide says what another engine needs: a materialized order
   column or index. Postgres `OFFSET` is linear and does not qualify.
 
-### `@granum/parquet`
+### `@granum-grid/parquet`
 
 - Move `demo/src/data/parquet.ts` (511 lines, 8 unit tests) into the package. It already
   imports only types from the library. `hyparquet` becomes a peer with a tested range.
@@ -286,12 +286,12 @@ Exit: no behavior change besides the cuts, and budgets enforced.
    skipping (the provider writes integers into SQL), `query()` cannot be canceled
    (the playground uses `send()` with a 10 ms polling interval), and `OFFSET` paging is
    unusable. Measurements are in `packages/sql/README.md`.
-2. Done 2026-10-14: `@granum/parquet` lives in `packages/parquet` with hyparquet as a
+2. Done 2026-10-14: `@granum-grid/parquet` lives in `packages/parquet` with hyparquet as a
    peer. Decompressors are injected (`compressors`), `openParquetFile` takes an options
    object, and `file.largestRowGroupBytes` and `file.pageIndex` let the playground say
    what a jump costs. `test:package` installs its tarball beside `granum-grid` and reads
    the fixture through it; its budget is 3.3 KiB with hyparquet external.
-3. Done 2026-10-14 (browser test pending with the demo): `@granum/sql` in `packages/sql`.
+3. Done 2026-10-14 (browser test pending with the demo): `@granum-grid/sql` in `packages/sql`.
    `createSqlSource({ query, id, from })` describes columns; `open(view)` builds a revision
    table and returns a provider addressed by `rowid`, with exact overview and aggregates,
    wrapping search (text, predicates, dates), peaks, and chapters only when each period is
@@ -343,10 +343,11 @@ touchpad, an iPhone, and an Android phone, and run VoiceOver and NVDA.
 
 ### Phase 3: split, publish 0.2, find users (2–3 days, then ongoing)
 
-1. Done 2026-10-14: `granum-grid/` became `packages/core` (`@granum/core`: `.`, `/data`,
-   `/dom`, `/map`, `/internal`, CSS) and `packages/react` (`@granum/react`, `/headless`,
-   CSS copied from core). The maintainer chose the `@granum` scope (they create the npm
-   org) and the `gr-` CSS prefix. `test:package` packs all four and installs them together
+1. Done 2026-10-14: `granum-grid/` became `packages/core` (`@granum-grid/core`: `.`, `/data`,
+   `/dom`, `/map`, `/internal`, CSS) and `packages/react` (`@granum-grid/react`, `/headless`,
+   CSS copied from core). The maintainer chose the `@granum` scope and the `gr-` CSS
+   prefix; on 2026-10-15 the scope became `@granum-grid`, because an npm user named
+   `granum` holds `@granum`. `test:package` packs all four and installs them together
    in React 18.2 and 19 consumers; it also proves no core file imports React. The `ds-` →
    `gr-` rename followed, and [CHANGELOG.md](../../CHANGELOG.md) lists what changed since
    the GitHub-only `granum-grid` 0.1.0. Nothing was ever published, so the first npm
@@ -362,7 +363,7 @@ Exit: published, and new features frozen until three reports arrive.
 ### Phase 4: framework-free controller (4–6 days, 0.3)
 
 1. Done 2026-10-14, with a change of approach: instead of one `createGridController`, the
-   hook's framework-free work moved into `@granum/core/dom` pieces (`rowMapping`,
+   hook's framework-free work moved into `@granum-grid/core/dom` pieces (`rowMapping`,
    `rowWindow`, `createRowMeasurements`, `createRowRequests`, `observeViewport`,
    `jumpAnnouncement`, beside `bindScroll` and the key handlers). The React hook and the new
    `mount()` compose the same pieces, so there is one implementation with two thin
@@ -380,7 +381,7 @@ page passes its own spec.
 ### Phase 5: the map on its own (5–7 days, 0.3)
 
 1. Done 2026-10-14, smaller than planned. The drag math (sideways precision, marker and
-   peak snapping, grabbing the thumb) moved from `AtlasRail` into `@granum/core/map`
+   peak snapping, grabbing the thumb) moved from `AtlasRail` into `@granum-grid/core/map`
    (`beginScrub`, `moveScrub`, `rowAtPointer`), and `AtlasRail` now calls it. `mountMap`
    is a new plain-DOM map on the same pieces: profile, rows in view, markers, the drag, and
    slider keys. It is not the renderer under `AtlasRail`: hover previews, help, the axis,

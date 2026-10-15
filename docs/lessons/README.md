@@ -30,7 +30,7 @@ files. To run all five locally, follow [Setup](Setup.md#1-run-the-working-exampl
 Choose a lesson and follow its **Check your result** steps.
 
 You can copy the complete lesson code into your own app after installing the local
-package. The companion modules import the public `@granum/react` API; they do not rely
+package. The companion modules import the public `@granum-grid/react` API; they do not rely
 on the gallery's generators, layouts, or private library modules.
 
 ## After the lessons

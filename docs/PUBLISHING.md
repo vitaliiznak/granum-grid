@@ -2,14 +2,14 @@
 
 The publishable workspaces are four packages under `packages/`, all at version `0.1.0`, under Apache-2.0, released in lockstep:
 
-| Package           | Depends on                                         |
-| ----------------- | -------------------------------------------------- |
-| `@granum/core`    | nothing                                            |
-| `@granum/react`   | `@granum/core` (same version); React 18.2–19 peers |
-| `@granum/parquet` | `@granum/core` and hyparquet as peers              |
-| `@granum/sql`     | `@granum/core` as a peer                           |
+| Package                | Depends on                                              |
+| ---------------------- | ------------------------------------------------------- |
+| `@granum-grid/core`    | nothing                                                 |
+| `@granum-grid/react`   | `@granum-grid/core` (same version); React 18.2–19 peers |
+| `@granum-grid/parquet` | `@granum-grid/core` and hyparquet as peers              |
+| `@granum-grid/sql`     | `@granum-grid/core` as a peer                           |
 
-The repository root and demo are private npm workspaces. Each package has ESM exports, TypeScript declarations, and source maps; `@granum/core` ships the CSS, and `@granum/react` ships a copy so React users import one package.
+The repository root and demo are private npm workspaces. Each package has ESM exports, TypeScript declarations, and source maps; `@granum-grid/core` ships the CSS, and `@granum-grid/react` ships a copy so React users import one package.
 
 ## Verify and prepare the artifacts
 
@@ -22,7 +22,7 @@ npm run release:check
 
 [`release:check`](../AGENTS.md#validate-and-finish) ends with the package test. It packs each package through its `prepack` hook, core first, and installs the four exact archives together in temporary, independent React 18.2 and React 19 applications. It checks runtime imports, that core never imports React, SSR, styles, source maps, TypeScript declarations under NodeNext and Bundler resolution, and per-entry size budgets. Temporary consumers are removed even if a check fails. Consumer installation needs npm registry access unless cached.
 
-Only a successful package check copies the archives to `output/granum-core-0.1.0.tgz`, `granum-react-0.1.0.tgz`, `granum-parquet-0.1.0.tgz`, and `granum-sql-0.1.0.tgz`. Source files are included so maps resolve. Tests, the demo, media, and workspace tooling are excluded. The root `LICENSE` is copied into each package during its build.
+Only a successful package check copies the archives to `output/granum-grid-core-0.1.0.tgz`, `granum-grid-react-0.1.0.tgz`, `granum-grid-parquet-0.1.0.tgz`, and `granum-grid-sql-0.1.0.tgz`. Source files are included so maps resolve. Tests, the demo, media, and workspace tooling are excluded. The root `LICENSE` is copied into each package during its build.
 
 Run the browser suite before a release as well (the CI workflow runs it):
 
@@ -35,27 +35,27 @@ GitHub Actions also uploads the checked archives as the `npm-package` artifact. 
 
 ## First publication
 
-1. Create the npm organization `granum` (free for public packages) in the npm account that will own the packages, then sign in: `npm login --registry=https://registry.npmjs.org/` and `npm whoami --registry=https://registry.npmjs.org/`. If `granum` is unavailable, rename the scope (`@granum-grid/*` is the fallback) across the packages, demo, docs, and consumer fixtures, then re-run verification.
+1. Create the npm organization `granum-grid` (free for public packages) in the npm account that will own the packages, then sign in: `npm login --registry=https://registry.npmjs.org/` and `npm whoami --registry=https://registry.npmjs.org/`. (`@granum` belongs to an npm user named `granum`, so the packages use `@granum-grid`.)
 2. Confirm `repository` (with each package's `directory`), `homepage`, and `bugs` in `packages/*/package.json` still point to the public repository, then regenerate the archives.
 3. Inspect each archive without publishing, in dependency order:
 
    ```sh
    for name in core react parquet sql; do
-     npm publish ./output/granum-$name-0.1.0.tgz --dry-run --access public --registry=https://registry.npmjs.org/
+     npm publish ./output/granum-grid-$name-0.1.0.tgz --dry-run --access public --registry=https://registry.npmjs.org/
    done
    ```
 
-4. When ready to make the release public, publish the verified archives in the same order, core first, so `@granum/react`'s dependency resolves:
+4. When ready to make the release public, publish the verified archives in the same order, core first, so `@granum-grid/react`'s dependency resolves:
 
    ```sh
    for name in core react parquet sql; do
-     npm publish ./output/granum-$name-0.1.0.tgz --access public --registry=https://registry.npmjs.org/
+     npm publish ./output/granum-grid-$name-0.1.0.tgz --access public --registry=https://registry.npmjs.org/
    done
    ```
 
    Complete npm's authentication/2FA prompts if requested. These are the only steps that publish. A dry run does not verify publishing permissions, reserve names, or claim success.
 
-5. Verify each with `npm view @granum/core@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/` (and the other three), then replace the unpublished-release wording and local-archive install steps in the package READMEs, `docs/QUICK_START.md`, and `docs/lessons/Setup.md`.
+5. Verify each with `npm view @granum-grid/core@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/` (and the other three), then replace the unpublished-release wording and local-archive install steps in the package READMEs, `docs/QUICK_START.md`, and `docs/lessons/Setup.md`.
 
 6. Ask three developers outside the project to install the published packages, connect them to their own data, and file an [integration report](../.github/ISSUE_TEMPLATE/integration-report.md). Hold new features until their reports are in; their friction list becomes the roadmap.
 
@@ -63,11 +63,11 @@ Publishing a tarball uses its existing contents; it does not rebuild or run this
 
 ## Later releases
 
-The packages share one version. Bump all four from the repository root, keeping the lockfile and `@granum/react`'s exact dependency on `@granum/core` in step:
+The packages share one version. Bump all four from the repository root, keeping the lockfile and `@granum-grid/react`'s exact dependency on `@granum-grid/core` in step:
 
 ```sh
 npm version patch -w packages/core -w packages/react -w packages/parquet -w packages/sql --no-git-tag-version
-npm pkg set dependencies.@granum/core="$(node -p "require('./packages/core/package.json').version")" -w packages/react
+npm pkg set dependencies.@granum-grid/core="$(node -p "require('./packages/core/package.json').version")" -w packages/react
 npm install
 npm run release:check
 ```

@@ -17,8 +17,8 @@ has working code and checkpoints. For a direct setup recipe, use the
 | Learn through different datasets                | [Lessons](lessons/README.md)                                                                                                                             |
 | Adapt an existing array                         | [Array recipe](QUICK_START.md#use-your-own-array)                                                                                                   |
 | Load data from my server                        | [HTTP provider recipe](QUICK_START.md#connect-an-http-api) and [provider rules](GUIDE.md#provider-contract)                                         |
-| Read a Parquet file with no server              | [`@granum/parquet`](../packages/parquet/README.md)                                                                                                  |
-| Query SQL or a local file with an exact map     | [`@granum/sql`](../packages/sql/README.md)                                                                                                          |
+| Read a Parquet file with no server              | [`@granum-grid/parquet`](../packages/parquet/README.md)                                                                                                  |
+| Query SQL or a local file with an exact map     | [`@granum-grid/sql`](../packages/sql/README.md)                                                                                                          |
 | Sort, filter, or edit on the server             | [Server-owned ordering](GUIDE.md#server-owned-ordering)                                                                                             |
 | Add search or dataset summaries                 | [Provider capabilities](GUIDE.md#provider-capabilities), [search](GUIDE.md#search), and [host tools](GUIDE.md#selection-and-host-tools)             |
 | Navigate from my own buttons                    | [Custom controls](QUICK_START.md#build-custom-controls) and the [integration interface](GUIDE.md#integration-interface)                             |
@@ -34,7 +34,7 @@ has working code and checkpoints. For a direct setup recipe, use the
 | Prepare a release or deployment                 | [Publishing guide](PUBLISHING.md)                                                                                                                   |
 
 The exported types and tests establish what is currently implemented. The library
-source is in [`packages/`](../packages/): [`@granum/core`](../packages/core/README.md) and [`@granum/react`](../packages/react/README.md), plus the Parquet and SQL adapters.
+source is in [`packages/`](../packages/): [`@granum-grid/core`](../packages/core/README.md) and [`@granum-grid/react`](../packages/react/README.md), plus the Parquet and SQL adapters.
 
 ## Explore the examples
 

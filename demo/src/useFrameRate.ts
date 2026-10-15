@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react';
-import type { GranumGridApi } from '@granum/react';
+import type { GranumGridApi } from '@granum-grid/react';
 
 /**
  * Frames delivered while the explorer moves, for the debug panel. Sampling starts when the

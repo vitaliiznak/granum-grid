@@ -42,7 +42,7 @@ test('each dataset shows how it connects, with real provider code', async ({ pag
   await page.goto('/?dataset=file');
   await page.getByText('How this dataset connects', { exact: true }).click();
   await expect(page.locator('.provider-code code')).toContainText('createSqlSource');
-  await expect(page.getByRole('link', { name: '@granum/sql source' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: '@granum-grid/sql source' })).toHaveAttribute(
     'href',
     /packages\/sql\/src\/index\.ts$/,
   );

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import type { RowActivationContext } from '@granum/react';
+import type { RowActivationContext } from '@granum-grid/react';
 import './row-inspector.css';
 
 /** A host-owned, non-modal inspector: the grid remains available beside it. */

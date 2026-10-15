@@ -135,8 +135,8 @@ try {
           '@types/react-dom': consumer.reactDomTypes,
           typescript: installedVersion('typescript'),
         },
-        // @granum/react depends on @granum/core by version; resolve it to the packed archive.
-        overrides: { '@granum/core': local['@granum/core'] },
+        // @granum-grid/react depends on @granum-grid/core by version; resolve it to the packed archive.
+        overrides: { '@granum-grid/core': local['@granum-grid/core'] },
       }),
     );
     npm(

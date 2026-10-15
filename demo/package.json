@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.32.0",
-    "@granum/core": "*",
-    "@granum/parquet": "*",
-    "@granum/react": "*",
+    "@granum-grid/core": "*",
+    "@granum-grid/parquet": "*",
+    "@granum-grid/react": "*",
     "@tanstack/virtual-core": "3.17.11",
     "hyparquet": "1.31.2",
     "hyparquet-compressors": "1.1.2",

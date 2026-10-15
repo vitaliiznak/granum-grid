@@ -1,9 +1,9 @@
 import { memo, useMemo, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog.js';
-import type { Marker } from '@granum/core/data';
-import { clusterMarkers, leadMarker } from '@granum/core/map';
-import { rowToProgress } from '@granum/core/internal';
-import type { GranumGridEngine } from '@granum/core/internal';
+import type { Marker } from '@granum-grid/core/data';
+import { clusterMarkers, leadMarker } from '@granum-grid/core/map';
+import { rowToProgress } from '@granum-grid/core/internal';
+import type { GranumGridEngine } from '@granum-grid/core/internal';
 
 /** Markers listed per page in a group's dialog. */
 const PAGE_SIZE = 40;

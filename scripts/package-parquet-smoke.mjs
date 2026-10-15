@@ -2,18 +2,22 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { compressors } from 'hyparquet-compressors';
-import { createParquetProvider, estimateParquetRowBytes, openParquetFile } from '@granum/parquet';
+import {
+  createParquetProvider,
+  estimateParquetRowBytes,
+  openParquetFile,
+} from '@granum-grid/parquet';
 
-assert.match(import.meta.resolve('@granum/parquet'), /\/dist\/index\.js$/);
-assert.deepEqual(Object.keys(await import('@granum/parquet')).sort(), [
+assert.match(import.meta.resolve('@granum-grid/parquet'), /\/dist\/index\.js$/);
+assert.deepEqual(Object.keys(await import('@granum-grid/parquet')).sort(), [
   'createParquetProvider',
   'estimateParquetRowBytes',
   'openParquetFile',
 ]);
-// @granum/core is a type-only peer: the built JavaScript must not import it at runtime.
-const dist = new URL('.', import.meta.resolve('@granum/parquet'));
+// @granum-grid/core is a type-only peer: the built JavaScript must not import it at runtime.
+const dist = new URL('.', import.meta.resolve('@granum-grid/parquet'));
 for (const name of readdirSync(dist).filter((file) => file.endsWith('.js')))
-  assert.ok(!readFileSync(new URL(name, dist), 'utf8').includes('@granum/core'), name);
+  assert.ok(!readFileSync(new URL(name, dist), 'utf8').includes('@granum-grid/core'), name);
 
 // A range server for the fixture copied next to this script.
 const bytes = new Uint8Array(readFileSync(new URL('./readings.parquet', import.meta.url)));
@@ -39,5 +43,5 @@ assert.deepEqual(
 assert.ok(estimateParquetRowBytes(rows[0]) > 0);
 assert.equal((await provider.fetchOverview(10, signal)).length, 10);
 console.log(
-  `@granum/parquet: ${fileURLToPath(dist).split('node_modules/')[1]} reads rows and a map.`,
+  `@granum-grid/parquet: ${fileURLToPath(dist).split('node_modules/')[1]} reads rows and a map.`,
 );

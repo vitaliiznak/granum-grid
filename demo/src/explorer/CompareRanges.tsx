@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { GranumGrid, type GranumGridApi, type GranumGridProps, type RowRange } from '@granum/react';
-import { rangeProvider } from '@granum/core/data';
+import {
+  GranumGrid,
+  type GranumGridApi,
+  type GranumGridProps,
+  type RowRange,
+} from '@granum-grid/react';
+import { rangeProvider } from '@granum-grid/core/data';
 import { useModalDialog } from './hooks';
 import { RangeSummary } from './RangeSummary';
 

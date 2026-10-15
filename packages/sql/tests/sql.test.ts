@@ -1,6 +1,6 @@
 import { DuckDBInstance } from '@duckdb/node-api';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { checkBuckets } from '@granum/core/data';
+import { checkBuckets } from '@granum-grid/core/data';
 import { createSqlSource, plainValue, quoteIdentifier, type SqlQuery } from '../src/index';
 
 // 10,000 requests, 26 seconds apart from 2026-09-01: about three days of logs in time order.

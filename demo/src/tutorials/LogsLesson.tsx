@@ -1,7 +1,7 @@
 import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi } from '@granum/react';
+import { GranumGrid, type GranumGridApi } from '@granum-grid/react';
 import { logs, type Log } from './logs';
-import '@granum/react/styles.css';
+import '@granum-grid/react/styles.css';
 
 export default function Logs() {
   const api = useRef<GranumGridApi<Log>>(null);

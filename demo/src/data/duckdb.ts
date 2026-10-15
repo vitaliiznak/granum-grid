@@ -1,5 +1,5 @@
 import type { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import type { SqlQuery } from '@granum/sql';
+import type { SqlQuery } from '@granum-grid/sql';
 import { EXTENSIONS_PATH } from './duckdb-extensions';
 
 /**

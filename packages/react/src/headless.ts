@@ -1,5 +1,5 @@
 // Rows, navigation, selection, and input without explorer components or styles. The host
-// renders its own chrome; `@granum/react` adds the ready-made widgets on top of this hook.
+// renders its own chrome; `@granum-grid/react` adds the ready-made widgets on top of this hook.
 export { useGranumGrid } from './react/useGranumGrid.js';
 export type {
   UseGranumGridOptions,
@@ -7,9 +7,9 @@ export type {
   ScrollStats,
   RowActivationContext,
 } from './react/useGranumGrid.js';
-export type { GranumGridApi } from '@granum/core';
-export type { SavedView } from '@granum/core';
-// The provider contract's types only; data helpers stay in @granum/core/data.
+export type { GranumGridApi } from '@granum-grid/core';
+export type { SavedView } from '@granum-grid/core';
+// The provider contract's types only; data helpers stay in @granum-grid/core/data.
 export type {
   AggregateRequest,
   Bucket,
@@ -29,7 +29,7 @@ export type {
   SearchContext,
   SearchHelp,
   SearchResult,
-} from '@granum/core/data';
+} from '@granum-grid/core/data';
 export type {
   NavigationEvent,
   NavigationLocation,
@@ -37,4 +37,4 @@ export type {
   ScrollAlignment,
   ScrollToOptions,
   GoToOptions,
-} from '@granum/core';
+} from '@granum-grid/core';

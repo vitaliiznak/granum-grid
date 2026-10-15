@@ -23,7 +23,7 @@ browser debugging, and handoffs. No API key, backend, or AI service is needed.
 | Native scrolling, keys, event targets   | `packages/core/src/dom/` (framework-free)                                                                    |
 | Map drawing, peaks, markers, formats    | `packages/core/src/map/` (framework-free)                                                                    |
 | React components, hook, styles          | `packages/react/src/react/`, `packages/core/src/base.css`, `styles.css`, `STYLING.md`                        |
-| Data adapter packages                   | `packages/parquet/` (`@granum/parquet`), `packages/sql/` (`@granum/sql`)                                     |
+| Data adapter packages                   | `packages/parquet/` (`@granum-grid/parquet`), `packages/sql/` (`@granum-grid/sql`)                                     |
 | Demo providers and domain examples      | `demo/src/data/`, `demo/src/datasets/`, `demo/src/App.tsx`                                                   |
 | Film and screenshots (frozen studio)    | `media/README.md`; the studio is on the `media-studio` branch                                                |
 | Packaging, consumers, size budgets      | `scripts/build-package.mjs`, `package-test.mjs`, `size.mjs`, `docs/PUBLISHING.md`                            |
@@ -39,8 +39,8 @@ and tests before treating documentation as implemented behavior.
   half-open `[start, end)`. Large counts must not overflow through bitwise math.
 - Work and memory must remain bounded by the viewport, pages, or requested
   buckets, not total dataset size. Never scan billions of synthetic rows.
-- Packages: `@granum/core` (framework-free; layers `data/` ← `core/` ← `dom/` ← `map/`, each
-  importing only the ones below) and `@granum/react`, which reaches core only through its
+- Packages: `@granum-grid/core` (framework-free; layers `data/` ← `core/` ← `dom/` ← `map/`, each
+  importing only the ones below) and `@granum-grid/react`, which reaches core only through its
   entries (`/data`, `/dom`, `/map`, `/internal`). Nothing in core imports React; lint
   enforces all of this. The library must not import demo, media, domain-specific adapters, or
   model SDKs. ESM library imports use `.js` suffixes so published output resolves in Node.

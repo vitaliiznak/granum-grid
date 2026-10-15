@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { atEnd, type GranumGridEngine, type NavigationSnapshot } from '@granum/core/internal';
-import type { DataSession } from '@granum/core/internal';
-import type { DataProvider } from '@granum/core/data';
+import { atEnd, type GranumGridEngine, type NavigationSnapshot } from '@granum-grid/core/internal';
+import type { DataSession } from '@granum-grid/core/internal';
+import type { DataProvider } from '@granum-grid/core/data';
 
 /** Apply append-only row counts and count rows added while the reader is away from the end. */
 export function useFollowOutput<Row>(

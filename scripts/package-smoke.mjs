@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { createEngine } from '@granum/core';
-import { PageCache, createArrayProvider as arrayFromData } from '@granum/core/data';
-import { GranumGrid, useGranumGrid, AtlasRail, createArrayProvider } from '@granum/react';
-import { useGranumGrid as useHeadlessGrid } from '@granum/react/headless';
+import { createEngine } from '@granum-grid/core';
+import { PageCache, createArrayProvider as arrayFromData } from '@granum-grid/core/data';
+import { GranumGrid, useGranumGrid, AtlasRail, createArrayProvider } from '@granum-grid/react';
+import { useGranumGrid as useHeadlessGrid } from '@granum-grid/react/headless';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -19,10 +19,10 @@ function renderWithoutWarnings(element) {
     console.error = originalError;
   }
 }
-assert.match(import.meta.resolve('@granum/react'), /\/dist\/index\.js$/);
+assert.match(import.meta.resolve('@granum-grid/react'), /\/dist\/index\.js$/);
 // The runtime surface of each entry point is deliberately small; widen it on purpose.
 const entryValues = async (name) => Object.keys(await import(name)).sort();
-assert.deepEqual(await entryValues('@granum/react'), [
+assert.deepEqual(await entryValues('@granum-grid/react'), [
   'AtlasRail',
   'GranumGrid',
   'JumpBar',
@@ -32,12 +32,12 @@ assert.deepEqual(await entryValues('@granum/react'), [
   'encodeView',
   'useGranumGrid',
 ]);
-assert.deepEqual(await entryValues('@granum/react/headless'), ['useGranumGrid']);
-// @granum/core is framework-free: no file it ships imports React.
-const coreDist = fileURLToPath(new URL('.', import.meta.resolve('@granum/core')));
+assert.deepEqual(await entryValues('@granum-grid/react/headless'), ['useGranumGrid']);
+// @granum-grid/core is framework-free: no file it ships imports React.
+const coreDist = fileURLToPath(new URL('.', import.meta.resolve('@granum-grid/core')));
 for (const file of readdirSync(coreDist, { recursive: true }).filter((f) => f.endsWith('.js')))
   assert.ok(!/from ['"]react/.test(readFileSync(`${coreDist}/${file}`, 'utf8')), file);
-assert.deepEqual(await entryValues('@granum/core/dom'), [
+assert.deepEqual(await entryValues('@granum-grid/core/dom'), [
   'MAX_SCROLL',
   'NATIVE_SCROLL',
   'bindScroll',
@@ -57,7 +57,7 @@ assert.deepEqual(await entryValues('@granum/core/dom'), [
   'rowWindow',
   'scrollMapping',
 ]);
-assert.deepEqual(await entryValues('@granum/core/map'), [
+assert.deepEqual(await entryValues('@granum-grid/core/map'), [
   'FULL_SPEED',
   'GROUP_GAP',
   'PRECISION_STEPS',
@@ -160,9 +160,9 @@ const headlessModules = new Set();
   const source = readFileSync(fileURLToPath(url), 'utf8');
   for (const [, path] of source.matchAll(/(?:from|import)\s*['"](\.{1,2}\/[^'"]+)['"]/g))
     follow(new URL(path, url).href);
-})(import.meta.resolve('@granum/react/headless'));
+})(import.meta.resolve('@granum-grid/react/headless'));
 const components = [...headlessModules].filter((url) => /\/react\/[A-Z][^/]*\.js$/.test(url));
-assert.deepEqual(components, [], '@granum/react/headless must not load explorer components');
+assert.deepEqual(components, [], '@granum-grid/react/headless must not load explorer components');
 function HeadlessRows() {
   const grid = useHeadlessGrid({
     provider: { id: 'headless', revision: '1', rowCount: 1_000, fetchRows: async () => [] },
@@ -174,8 +174,11 @@ function HeadlessRows() {
   );
 }
 assert.match(renderWithoutWarnings(createElement(HeadlessRows)), /aria-rowcount="1000"/);
-const baseCss = readFileSync(new URL(import.meta.resolve('@granum/react/base.css')), 'utf8');
-const themeCss = readFileSync(new URL(import.meta.resolve('@granum/react/styles.css')), 'utf8');
+const baseCss = readFileSync(new URL(import.meta.resolve('@granum-grid/react/base.css')), 'utf8');
+const themeCss = readFileSync(
+  new URL(import.meta.resolve('@granum-grid/react/styles.css')),
+  'utf8',
+);
 assert.match(baseCss, /@layer granum/);
 assert.match(themeCss, /@import ['"]\.\/base.css['"]/);
 assert.ok(!themeCss.includes('!important'));

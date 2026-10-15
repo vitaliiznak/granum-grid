@@ -1,6 +1,6 @@
 import { useEffect, type RefObject } from 'react';
-import type { DataSession, GranumGridEngine } from '@granum/core/internal';
-import { createRowRequests } from '@granum/core/dom';
+import type { DataSession, GranumGridEngine } from '@granum-grid/core/internal';
+import { createRowRequests } from '@granum-grid/core/dom';
 import { useKeyed } from './useKeyed.js';
 
 interface RowRequestOptions {

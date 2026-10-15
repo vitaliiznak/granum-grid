@@ -46,7 +46,7 @@ export interface MountedMap {
   destroy(): void;
 }
 
-/** A Granum explorer's handle, from `@granum/react`'s `apiRef` or `mount()`, as a target. */
+/** A Granum explorer's handle, from `@granum-grid/react`'s `apiRef` or `mount()`, as a target. */
 export function gridTarget(api: GranumGridApi<unknown>): MapTarget {
   return {
     rowCount: () => api.getSnapshot().rowCount,
@@ -91,8 +91,8 @@ export function scrollerTarget(
 
 /**
  * The dataset map without a framework: the whole dataset's profile, the rows in view, named
- * places, and the same precise dragging as `@granum/react`'s `AtlasRail`, driving any
- * scroller through a `MapTarget`. Style it with `@granum/core/styles.css` or `base.css`.
+ * places, and the same precise dragging as `@granum-grid/react`'s `AtlasRail`, driving any
+ * scroller through a `MapTarget`. Style it with `@granum-grid/core/styles.css` or `base.css`.
  */
 export function mountMap(element: HTMLElement, options: MapOptions): MountedMap {
   const { target, ariaLabel = 'Dataset position', precision = true } = options;

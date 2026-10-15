@@ -6,7 +6,7 @@ import { logAt } from '../src/data/logs';
 import { syntheticProvider } from '../src/data/synthetic';
 import { parseTrace, traceProvider } from '../src/data/trace';
 import { parseJump } from '../../packages/core/src/core/navigation';
-import type { DataProvider } from '@granum/react';
+import type { DataProvider } from '@granum-grid/react';
 
 const signalProvider = signal.provider;
 

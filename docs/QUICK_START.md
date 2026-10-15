@@ -17,7 +17,7 @@ creating a new app with current Vite, use Node 22.12+.
 ## 1. Install the library
 
 This checkout is a pre-publication release. Install its local package archives to
-try the current code in another app: `@granum/react` and the `@granum/core` it depends
+try the current code in another app: `@granum-grid/react` and the `@granum-grid/core` it depends
 on.
 
 **In the Granum Grid repository root:**
@@ -29,15 +29,15 @@ npm pack --workspace=packages/core --workspace=packages/react --pack-destination
 ```
 
 If you already installed this checkout's dependencies, skip `npm ci`. Packing runs
-each package's build automatically and creates `output/granum-core-0.1.0.tgz` and
-`output/granum-react-0.1.0.tgz`. Use the filenames printed by npm if the version changes.
+each package's build automatically and creates `output/granum-grid-core-0.1.0.tgz` and
+`output/granum-grid-react-0.1.0.tgz`. Use the filenames printed by npm if the version changes.
 The archives contain the library, styles, types, and source maps; they do not include the
 demo or its data.
 
 **In your React app directory:**
 
 ```sh
-npm install /absolute/path/to/granum-grid/output/granum-core-0.1.0.tgz /absolute/path/to/granum-grid/output/granum-react-0.1.0.tgz
+npm install /absolute/path/to/granum-grid/output/granum-grid-core-0.1.0.tgz /absolute/path/to/granum-grid/output/granum-grid-react-0.1.0.tgz
 ```
 
 Replace the paths with the actual archive locations. Your app only needs the
@@ -54,7 +54,7 @@ From a directory outside this repository, create a small React + TypeScript app:
 npm create vite@latest my-explorer -- --template react-ts
 cd my-explorer
 npm install
-npm install /absolute/path/to/granum-grid/output/granum-core-0.1.0.tgz /absolute/path/to/granum-grid/output/granum-react-0.1.0.tgz
+npm install /absolute/path/to/granum-grid/output/granum-grid-core-0.1.0.tgz /absolute/path/to/granum-grid/output/granum-grid-react-0.1.0.tgz
 ```
 
 Follow the [Vite setup guide](https://vite.dev/guide/#scaffolding-your-first-vite-project)
@@ -68,8 +68,8 @@ Replace `src/App.tsx` in a Vite app with this complete component. In an existing
 app, render this component wherever you want the explorer.
 
 ```tsx
-import { GranumGrid, createArrayProvider } from '@granum/react';
-import '@granum/react/styles.css';
+import { GranumGrid, createArrayProvider } from '@granum-grid/react';
+import '@granum-grid/react/styles.css';
 
 type Reading = { value: number };
 
@@ -114,7 +114,7 @@ body {
 }
 ```
 
-In an existing app, keep your own global CSS. `@granum/react/styles.css` provides the
+In an existing app, keep your own global CSS. `@granum-grid/react/styles.css` provides the
 explorer's layout and theme; no demo stylesheet is needed. The height keeps the
 viewport bounded. `renderRow` controls your content, while the library handles
 loading, positioning, keyboard navigation, and focus.
@@ -149,8 +149,8 @@ array and its revision:
 
 ```tsx
 import { useMemo } from 'react';
-import { GranumGrid, createArrayProvider } from '@granum/react';
-import '@granum/react/styles.css';
+import { GranumGrid, createArrayProvider } from '@granum-grid/react';
+import '@granum-grid/react/styles.css';
 
 type Reading = { value: number };
 export function Readings({ rows, revision }: { rows: readonly Reading[]; revision: string }) {
@@ -183,7 +183,7 @@ must expose a known row count and a stable ordering for one dataset revision.
 This adapter expects an existing endpoint that returns a JSON array of readings:
 
 ```ts
-import type { DataProvider } from '@granum/react';
+import type { DataProvider } from '@granum-grid/react';
 
 type Reading = { value: number };
 type Snapshot = { id: string; revision: string; rowCount: number };
@@ -255,7 +255,7 @@ const searchHelp = {
     { name: 'duration', type: 'number', operators: ['>', '>=', '=', '<', '<='] },
     { name: 'name', type: 'text', operators: ['=', '!='] },
   ],
-} satisfies import('@granum/react').SearchHelp;
+} satisfies import('@granum-grid/react').SearchHelp;
 ```
 
 Put this on the provider alongside `search`. [Search](GUIDE.md#search) explains how
@@ -274,8 +274,8 @@ from a button or another part of your app:
 
 ```tsx
 import { useRef } from 'react';
-import { GranumGrid, type GranumGridApi, type DataProvider } from '@granum/react';
-import '@granum/react/styles.css';
+import { GranumGrid, type GranumGridApi, type DataProvider } from '@granum-grid/react';
+import '@granum-grid/react/styles.css';
 
 type Reading = { value: number };
 
@@ -334,7 +334,7 @@ parent render. Inline `onStats`, `onNavigate`, and `onSelectionChange` callbacks
 
 | Symptom                                                  | What to check                                                                                    |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| The explorer has no layout or theme                      | Import `@granum/react/styles.css` once. Use `base.css` only when supplying your own theme.       |
+| The explorer has no layout or theme                      | Import `@granum-grid/react/styles.css` once. Use `base.css` only when supplying your own theme.       |
 | A new Vite app is narrow or centered                     | Replace the starter `index.css` as shown above and remove any imported starter `App.css`.        |
 | Position or requests reset on every render               | Keep the provider's `id` and `revision` stable; change the revision only when rows change.       |
 | Rows show an error                                       | Check the response shape, exact requested count, revision, and HTTP status.                      |
@@ -350,5 +350,5 @@ parent render. Inline `onStats`, `onNavigate`, and `onSelectionChange` callbacks
 - [Documentation home](README.md): all guides and runnable examples.
 
 For a custom React UI, use `useGranumGrid`. For framework-independent engine and
-cache logic, use `@granum/core` and `@granum/core/data`; you supply the rendering
+cache logic, use `@granum-grid/core` and `@granum-grid/core/data`; you supply the rendering
 and input integration. The package still declares React and React DOM as peers.

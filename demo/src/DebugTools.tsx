@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import type { AtlasRailOptions, ScrollStats } from '@granum/react';
+import type { AtlasRailOptions, ScrollStats } from '@granum-grid/react';
 
 function BugIcon() {
   return (

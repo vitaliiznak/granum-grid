@@ -10,11 +10,11 @@ The UI and navigation run in the browser, with no Granum Grid backend. The playg
 
 ## Use it in React
 
-Not yet on npm: [build and install the local packages](docs/QUICK_START.md#1-install-the-library). React 18.2–19; `@granum/react` depends only on `@granum/core`.
+Not yet on npm: [build and install the local packages](docs/QUICK_START.md#1-install-the-library). React 18.2–19; `@granum-grid/react` depends only on `@granum-grid/core`.
 
 ```tsx
-import { GranumGrid, type DataProvider } from '@granum/react';
-import '@granum/react/styles.css';
+import { GranumGrid, type DataProvider } from '@granum-grid/react';
+import '@granum-grid/react/styles.css';
 
 type LogLine = { time: string; message: string };
 
@@ -51,10 +51,10 @@ It is a reading surface, not a spreadsheet grid. There is no column model, sorti
 
 | Package                                         | What it gives you                                                                                                                                              |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@granum/react`](packages/react/README.md)     | The explorer component, its map and search widgets, and the headless hook                                                                                      |
-| [`@granum/core`](packages/core/README.md)       | Framework-free: the navigation engine, the data session, `mount()` for the rows explorer, and `mountMap()` for the dataset map beside any scroller             |
-| [`@granum/parquet`](packages/parquet/README.md) | A Parquet file on any server that answers byte ranges, read one row group per jump, with a map from the footer's statistics                                    |
-| [`@granum/sql`](packages/sql/README.md)         | Any table DuckDB can read: each filter or sort becomes a revision with its own addresses, an exact map, and search that reads every row; bring your own DuckDB |
+| [`@granum-grid/react`](packages/react/README.md)     | The explorer component, its map and search widgets, and the headless hook                                                                                      |
+| [`@granum-grid/core`](packages/core/README.md)       | Framework-free: the navigation engine, the data session, `mount()` for the rows explorer, and `mountMap()` for the dataset map beside any scroller             |
+| [`@granum-grid/parquet`](packages/parquet/README.md) | A Parquet file on any server that answers byte ranges, read one row group per jump, with a map from the footer's statistics                                    |
+| [`@granum-grid/sql`](packages/sql/README.md)         | Any table DuckDB can read: each filter or sort becomes a revision with its own addresses, an exact map, and search that reads every row; bring your own DuckDB |
 
 None is on npm yet; `npm run test:package` installs each packed archive in clean React 18 and 19 projects.
 

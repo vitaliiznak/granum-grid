@@ -1,4 +1,4 @@
-import { createSqlSource, type SqlQuery } from '@granum/sql';
+import { createSqlSource, type SqlQuery } from '@granum-grid/sql';
 
 /** Any table DuckDB can read becomes rows, an exact map, and complete search. */
 export async function openRequests(query: SqlQuery, signal: AbortSignal) {

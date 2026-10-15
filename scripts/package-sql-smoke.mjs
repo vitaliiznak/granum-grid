@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { createSqlSource, plainValue, quoteIdentifier } from '@granum/sql';
+import { createSqlSource, plainValue, quoteIdentifier } from '@granum-grid/sql';
 
-assert.match(import.meta.resolve('@granum/sql'), /\/dist\/index\.js$/);
-assert.deepEqual(Object.keys(await import('@granum/sql')).sort(), [
+assert.match(import.meta.resolve('@granum-grid/sql'), /\/dist\/index\.js$/);
+assert.deepEqual(Object.keys(await import('@granum-grid/sql')).sort(), [
   'createSqlSource',
   'plainValue',
   'quoteIdentifier',
 ]);
-// @granum/core is a type-only peer: the built JavaScript must not import it at runtime.
-const dist = new URL('.', import.meta.resolve('@granum/sql'));
+// @granum-grid/core is a type-only peer: the built JavaScript must not import it at runtime.
+const dist = new URL('.', import.meta.resolve('@granum-grid/sql'));
 for (const name of readdirSync(dist).filter((file) => file.endsWith('.js')))
-  assert.ok(!readFileSync(new URL(name, dist), 'utf8').includes('@granum/core'), name);
+  assert.ok(!readFileSync(new URL(name, dist), 'utf8').includes('@granum-grid/core'), name);
 
 // A stand-in database: the package must build every statement itself.
 const statements = [];
@@ -45,4 +45,4 @@ assert.match(create, /WHERE "name" = \? ORDER BY "id"/);
 assert.deepEqual(params, ["o'brien"]);
 assert.equal(quoteIdentifier('x'), '"x"');
 assert.equal(plainValue(5n), 5);
-console.log('@granum/sql: built statements, parameters, and JSON-safe rows verified.');
+console.log('@granum-grid/sql: built statements, parameters, and JSON-safe rows verified.');

@@ -15,4 +15,4 @@ labels: integration-report
 
 **What you would remove.** Anything you had to turn off or work around.
 
-**Versions.** `@granum/react` and `@granum/core`, React, bundler, and browser.
+**Versions.** `@granum-grid/react` and `@granum-grid/core`, React, bundler, and browser.

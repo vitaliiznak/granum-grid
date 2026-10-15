@@ -5,7 +5,7 @@ import {
   type SqlProvider,
   type SqlSource,
   type SqlView,
-} from '@granum/sql';
+} from '@granum-grid/sql';
 import { loadDatabase, readerFor } from './data/duckdb';
 import { describeView, sqlDataset, sqlDetails, type SqlDetails } from './datasets/sql';
 import { formatCount, type DemoDataset } from './datasets/types';

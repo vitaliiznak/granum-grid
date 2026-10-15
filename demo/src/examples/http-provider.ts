@@ -1,4 +1,4 @@
-import type { DataProvider } from '@granum/react';
+import type { DataProvider } from '@granum-grid/react';
 
 type LogLine = { time: string; message: string };
 

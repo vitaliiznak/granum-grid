@@ -1,5 +1,5 @@
 // Framework-free DOM bindings. `mount` is a complete explorer without a framework; the
-// pieces below it are what `mount` and `@granum/react` are both built from: native
+// pieces below it are what `mount` and `@granum-grid/react` are both built from: native
 // scrolling, the mounted row window, row measurement, row requests, the viewport's size,
 // keys, announcements, and the event-target rules that keep host controls their own input.
 export { mount } from './mount.js';

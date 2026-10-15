@@ -1,5 +1,5 @@
 {
-  "name": "@granum/react",
+  "name": "@granum-grid/react",
   "version": "0.1.0",
   "description": "An overview-first React explorer for enormous indexed datasets: rows, a map of the whole dataset, typed jumps, and history",
   "license": "Apache-2.0",
@@ -52,7 +52,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
-    "@granum/core": "0.1.0"
+    "@granum-grid/core": "0.1.0"
   },
   "peerDependencies": {
     "react": ">=18.2.0 <20",

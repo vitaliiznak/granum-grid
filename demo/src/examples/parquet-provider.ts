@@ -1,4 +1,4 @@
-import { createParquetProvider, openParquetFile } from '@granum/parquet';
+import { createParquetProvider, openParquetFile } from '@granum-grid/parquet';
 
 /** A Parquet file on any server that answers byte ranges; there is no server of your own. */
 export async function openRemoteParquet(url: string, signal: AbortSignal) {

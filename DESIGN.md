@@ -121,7 +121,7 @@ Choices a contributor needs before changing the library, with options decided ag
   `checkBuckets`. The server owns sorting, filtering, and editing. The visited trail,
   marker snapping, and precision dragging stay: they are the map's
   behavior, which no other component provides. Considered and not taken: a
-  `@granum/react/explorer` entry for those tools (it would ship application decisions such
+  `@granum-grid/react/explorer` entry for those tools (it would ship application decisions such
   as storage keys and copy).
 
 - **Layers a host can stop at** ([reference](packages/react/README.md#layers)). The hook
@@ -131,11 +131,11 @@ Choices a contributor needs before changing the library, with options decided ag
   result as `grid`, not a hidden context, so each can be placed alone. Search runs
   through `DataSession.search`, so request statistics need no UI flag.
 
-- **A family of packages** (2026-10-14). `granum-grid` became `@granum/core` (engine, data
-  session, native scrolling, map pieces; no React) and `@granum/react`, in the pattern of
-  TanStack Virtual, with `@granum/parquet` and `@granum/sql` beside them. React reaches core
+- **A family of packages** (2026-10-14). `granum-grid` became `@granum-grid/core` (engine, data
+  session, native scrolling, map pieces; no React) and `@granum-grid/react`, in the pattern of
+  TanStack Virtual, with `@granum-grid/parquet` and `@granum-grid/sql` beside them. React reaches core
   only through package entries; what it needs beyond the public ones is in
-  `@granum/core/internal`, which carries no compatibility promise. `@granum/react` depends
+  `@granum-grid/core/internal`, which carries no compatibility promise. `@granum-grid/react` depends
   on core by exact version and ships a copy of its stylesheets, so React apps install one
   package. Versions move in lockstep. Considered and not taken: one package with subpaths
   (adapters would drag their peers in; a non-React binding would install React types),
@@ -212,7 +212,7 @@ Choices a contributor needs before changing the library, with options decided ag
 
 - **Lead with Parquet over HTTP range requests.** A Parquet footer lists every row
   group's row count, so the count is exact and any address costs one row group, with no
-  server. The adapter (`@granum/parquet`, in `packages/parquet`) loads hyparquet on first
+  server. The adapter (`@granum-grid/parquet`, in `packages/parquet`) loads hyparquet on first
   use, so the main bundle grows by about 7 KB gzipped, and takes decompressors from the
   host rather than depending on `hyparquet-compressors` itself. It refuses a
   server that ignores byte ranges rather than downloading the file, shares an in-flight
@@ -228,5 +228,5 @@ Choices a contributor needs before changing the library, with options decided ag
   index, and real files exist).
 
 - **Demo modules the dev server loads stay build-free.** `demo/src/data/trace.ts`
-  imports only types from `@granum/react`, and `searchIssue` stays internal to the
+  imports only types from `@granum-grid/react`, and `searchIssue` stays internal to the
   library, so the trace plugin and `npm run dev` work without a library build.

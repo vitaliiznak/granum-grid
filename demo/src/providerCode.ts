@@ -10,11 +10,11 @@ const GITHUB = 'https://github.com/vitaliiznak/granum-grid/blob/main/';
  * server looks like instead.
  */
 export const providerCode: Record<string, { code?: string; source: string; label: string }> = {
-  file: { code: sql, source: `${GITHUB}packages/sql/src/index.ts`, label: '@granum/sql' },
+  file: { code: sql, source: `${GITHUB}packages/sql/src/index.ts`, label: '@granum-grid/sql' },
   parquet: {
     code: parquet,
     source: `${GITHUB}packages/parquet/src/index.ts`,
-    label: '@granum/parquet',
+    label: '@granum-grid/parquet',
   },
   hackernews: { source: `${GITHUB}demo/src/data/hackernews.ts`, label: 'Hacker News adapter' },
   logs: { code: http, source: `${GITHUB}demo/src/data/logs.ts`, label: 'Log generator' },

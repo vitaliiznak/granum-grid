@@ -1,4 +1,4 @@
-# @granum/sql
+# @granum-grid/sql
 
 Rows, an exact map, and complete search from SQL, as a
 [Granum Grid](https://github.com/vitaliiznak/granum-grid) data provider. You pass one
@@ -15,13 +15,13 @@ which is how Granum Grid expects ordering to work
 
 ## Install
 
-Not yet on npm. `@granum/core` is a peer dependency; bring your own DuckDB.
+Not yet on npm. `@granum-grid/core` is a peer dependency; bring your own DuckDB.
 
 ## Use
 
 ```tsx
-import { GranumGrid } from '@granum/react';
-import { createSqlSource, type SqlQuery, type SqlRow } from '@granum/sql';
+import { GranumGrid } from '@granum-grid/react';
+import { createSqlSource, type SqlQuery, type SqlRow } from '@granum-grid/sql';
 
 // DuckDB-WASM: `connection` is an AsyncDuckDBConnection. A sent query can be canceled.
 const query: SqlQuery = async (sql, params, signal) => {

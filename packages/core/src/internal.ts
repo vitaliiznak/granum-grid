@@ -1,4 +1,4 @@
-// What `@granum/react` needs from the engine and data session beyond the public entries.
+// What `@granum-grid/react` needs from the engine and data session beyond the public entries.
 // No compatibility promise: these change with the bindings that use them.
 export { createGranumGridApi } from './core/api.js';
 export type { GranumGridApi } from './core/api.js';

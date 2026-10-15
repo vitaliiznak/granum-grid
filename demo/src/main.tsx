@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import '@granum/react/styles.css';
+import '@granum-grid/react/styles.css';
 import './styles.css';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -12,17 +12,17 @@ import {
   type GranumGridAppearance,
   type AtlasRailOptions,
   type GranumGridApi,
-} from '@granum/react';
-import { useGranumGrid as useHeadlessGrid, type Marker } from '@granum/react/headless';
-import { createEngine, readView, type NavigationController } from '@granum/core';
-import { PageCache, checkBuckets, rangeProvider } from '@granum/core/data';
-import { createParquetProvider, type ParquetRow } from '@granum/parquet';
-import { createSqlSource, type SqlProvider, type SqlRow } from '@granum/sql';
+} from '@granum-grid/react';
+import { useGranumGrid as useHeadlessGrid, type Marker } from '@granum-grid/react/headless';
+import { createEngine, readView, type NavigationController } from '@granum-grid/core';
+import { PageCache, checkBuckets, rangeProvider } from '@granum-grid/core/data';
+import { createParquetProvider, type ParquetRow } from '@granum-grid/parquet';
+import { createSqlSource, type SqlProvider, type SqlRow } from '@granum-grid/sql';
 import { createRef, useMemo, useState } from 'react';
-// @ts-expect-error The engine and its adapters live in @granum/core, not the React entry.
-import type { GranumGridEngine } from '@granum/react';
-// @ts-expect-error Cursor validation helpers live in @granum/core/data.
-import { acceptCursorWindow } from '@granum/react';
+// @ts-expect-error The engine and its adapters live in @granum-grid/core, not the React entry.
+import type { GranumGridEngine } from '@granum-grid/react';
+// @ts-expect-error Cursor validation helpers live in @granum-grid/core/data.
+import { acceptCursorWindow } from '@granum-grid/react';
 export const unusedRootImports: unknown[] = [acceptCursorWindow];
 export const removedRegions = (
   <GranumGrid

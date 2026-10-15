@@ -1,5 +1,5 @@
-// @granum/core: framework-independent navigation. Rows and providers are in
-// `@granum/core/data`, native scrolling and keys in `/dom`, map drawing in `/map`.
+// @granum-grid/core: framework-independent navigation. Rows and providers are in
+// `@granum-grid/core/data`, native scrolling and keys in `/dom`, map drawing in `/map`.
 export { createEngine } from './core/engine.js';
 export type {
   NavigationLocation,

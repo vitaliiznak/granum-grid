@@ -308,7 +308,7 @@
     }
   }
 }
-/* Skin: palette and type, matching @granum/react/styles.css. */
+/* Skin: palette and type, matching @granum-grid/react/styles.css. */
 @layer granum {
   :where(.gr-root:not([data-unstyled]) .gr-hint) {
     background: var(--gr-panel);

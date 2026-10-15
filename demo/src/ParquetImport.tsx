@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { openParquetFile } from '@granum/parquet';
+import { openParquetFile } from '@granum-grid/parquet';
 import {
   formatBytes,
   parquet,

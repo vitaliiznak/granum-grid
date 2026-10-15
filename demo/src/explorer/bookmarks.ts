@@ -1,5 +1,5 @@
-import { readView, type SavedView } from '@granum/core';
-import type { Marker } from '@granum/react';
+import { readView, type SavedView } from '@granum-grid/core';
+import type { Marker } from '@granum-grid/react';
 
 /** A saved view with a reader-given name. The playground stores these in localStorage. */
 export interface Bookmark extends SavedView {

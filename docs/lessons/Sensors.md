@@ -31,7 +31,7 @@ import {
   type AggregateRequest,
   type Bucket,
   type DataProvider,
-} from '@granum/react';
+} from '@granum-grid/react';
 
 export type Reading = { minute: number; celsius: number };
 
@@ -110,9 +110,9 @@ Replace `src/App.tsx` with this component:
 <!-- source: demo/src/tutorials/SensorsLesson.tsx -->
 ```tsx
 import { useRef, useState } from 'react';
-import { GranumGrid, type Bucket, type GranumGridApi } from '@granum/react';
+import { GranumGrid, type Bucket, type GranumGridApi } from '@granum-grid/react';
 import { sensors, type Reading } from './sensors';
-import '@granum/react/styles.css';
+import '@granum-grid/react/styles.css';
 
 const WARM = { start: 720, end: 740 };
 

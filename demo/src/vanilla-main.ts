@@ -1,6 +1,6 @@
-import { mount } from '@granum/core/dom';
-import type { DataProvider } from '@granum/core/data';
-import '@granum/core/styles.css';
+import { mount } from '@granum-grid/core/dom';
+import type { DataProvider } from '@granum-grid/core/data';
+import '@granum-grid/core/styles.css';
 import './example-page.css';
 
 type Reading = { time: string; value: number };

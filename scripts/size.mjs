@@ -9,28 +9,28 @@ import { fileURLToPath } from 'node:url';
 // Budgets ratchet down as the plan in docs/plans/library-family.md removes code; raise one
 // only on purpose, with the reason in the commit.
 const BUDGETS = {
-  '@granum/react': 25_600,
-  '@granum/react/headless': 12_100,
-  '@granum/core': 3_300,
-  '@granum/core/data': 4_100,
-  '@granum/core/dom': 10_700,
-  '@granum/core/map': 5_000,
-  '@granum/parquet': 3_500,
-  '@granum/sql': 4_200,
+  '@granum-grid/react': 25_600,
+  '@granum-grid/react/headless': 12_100,
+  '@granum-grid/core': 3_300,
+  '@granum-grid/core/data': 4_100,
+  '@granum-grid/core/dom': 10_700,
+  '@granum-grid/core/map': 5_000,
+  '@granum-grid/parquet': 3_500,
+  '@granum-grid/sql': 4_200,
   'base.css': 15_900,
   'styles.css': 19_200,
 };
 const workspace = fileURLToPath(new URL('../', import.meta.url));
 const built = (path) => `${workspace}packages/${path}`;
 const scripts = {
-  '@granum/react': built('react/dist/index.js'),
-  '@granum/react/headless': built('react/dist/headless.js'),
-  '@granum/core': built('core/dist/index.js'),
-  '@granum/core/data': built('core/dist/data/index.js'),
-  '@granum/core/dom': built('core/dist/dom/index.js'),
-  '@granum/core/map': built('core/dist/map/index.js'),
-  '@granum/parquet': built('parquet/dist/index.js'),
-  '@granum/sql': built('sql/dist/index.js'),
+  '@granum-grid/react': built('react/dist/index.js'),
+  '@granum-grid/react/headless': built('react/dist/headless.js'),
+  '@granum-grid/core': built('core/dist/index.js'),
+  '@granum-grid/core/data': built('core/dist/data/index.js'),
+  '@granum-grid/core/dom': built('core/dist/dom/index.js'),
+  '@granum-grid/core/map': built('core/dist/map/index.js'),
+  '@granum-grid/parquet': built('parquet/dist/index.js'),
+  '@granum-grid/sql': built('sql/dist/index.js'),
 };
 const sizes = {};
 for (const [entry, file] of Object.entries(scripts)) {

@@ -1,5 +1,5 @@
 // The dataset map without a framework: `mountMap` drives any scroller through a
-// `MapTarget`. Below it are the pieces `@granum/react`'s AtlasRail shares: the overview's
+// `MapTarget`. Below it are the pieces `@granum-grid/react`'s AtlasRail shares: the overview's
 // scale and accuracy, canvas drawing, the drag math with precision and snapping, peak
 // attraction, marker grouping, and number formats.
 export { gridTarget, mountMap, scrollerTarget } from './mount.js';
