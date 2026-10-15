@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createEngine } from '../src/core/engine';
-import { MAX_SCROLL, scrollMapping } from '../src/dom/scroll';
+import { MAX_SCROLL, bindScroll, scrollMapping } from '../src/dom/scroll';
 
 const engine = (rowCount: number, rowHeight = 32, height = 600) => {
   const e = createEngine({ rowCount, rowHeight });
@@ -49,5 +49,84 @@ describe('scroll mapping', () => {
     expect(mapping.toScroll(1)).toBe(120);
     expect(mapping.toScroll(2)).toBe(140);
     expect(mapping.toPosition(130)).toBe(1.5);
+  });
+});
+
+/** A scroll container as bindScroll sees it: an offset, a spacer child, event listeners. */
+function fakeScroller() {
+  const listeners = new Map<string, Set<() => void>>();
+  const on = (type: string) => listeners.get(type) ?? listeners.set(type, new Set()).get(type)!;
+  const node = () => ({ dataset: {}, style: {}, setAttribute() {}, remove() {} });
+  const element = {
+    scrollTop: 0,
+    ownerDocument: { createElement: node },
+    append() {},
+    addEventListener: (type: string, listener: () => void) => on(type).add(listener),
+    removeEventListener: (type: string, listener: () => void) => on(type).delete(listener),
+  };
+  const fire = (type: string) => on(type).forEach((listener) => listener());
+  return {
+    element: element as unknown as HTMLElement,
+    /** The browser reports the current offset, as it does once per frame. */
+    report: () => fire('scroll'),
+    wheel: () => fire('wheel'),
+  };
+}
+
+describe('native scroll binding', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('keeps a wheel step that lands just before the pause re-anchors the offset', () => {
+    vi.useFakeTimers();
+    const e = engine(100_000_000, 40, 400);
+    const { element, report } = fakeScroller();
+    const unbind = bindScroll(element, e);
+    try {
+      e.goTo(73_500_000);
+      report();
+      const anchored = element.scrollTop;
+      // A new viewport size schedules a re-anchor after the pause.
+      e.setViewport(410);
+      vi.advanceTimersByTime(140);
+      // A 400-pixel wheel step: the browser moves the offset now and reports it next frame,
+      // after the re-anchor is due.
+      element.scrollTop = anchored + 400;
+      vi.advanceTimersByTime(20);
+      report();
+      expect(e.getSnapshot().position).toBe(73_500_010);
+      // Once the scrolling pauses, the offset re-anchors to the rows.
+      vi.advanceTimersByTime(200);
+      expect(element.scrollTop).toBeCloseTo(scrollMapping(e).toScroll(73_500_010), 6);
+      expect(e.getSnapshot().position).toBe(73_500_010);
+    } finally {
+      unbind();
+      e.destroy();
+    }
+  });
+
+  it('does not cancel a wheel step the browser has not applied yet (Firefox)', () => {
+    vi.useFakeTimers();
+    const e = engine(100_000_000, 40, 400);
+    const { element, report, wheel } = fakeScroller();
+    const unbind = bindScroll(element, e);
+    try {
+      e.goTo(73_500_000);
+      report();
+      const anchored = element.scrollTop;
+      e.setViewport(410);
+      vi.advanceTimersByTime(140);
+      // Firefox dispatches the wheel event, then scrolls off the main thread a few
+      // milliseconds later, unless a script sets the offset first.
+      wheel();
+      vi.advanceTimersByTime(20);
+      if (element.scrollTop === anchored) element.scrollTop = anchored + 400;
+      report();
+      expect(e.getSnapshot().position).toBe(73_500_010);
+    } finally {
+      unbind();
+      e.destroy();
+    }
   });
 });

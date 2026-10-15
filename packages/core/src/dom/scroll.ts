@@ -77,7 +77,10 @@ interface Scroller {
   set(offset: number): void;
   /** The viewport height the spacer adds to the scroll range. */
   viewport(): number;
-  listen(type: 'scroll' | 'resize' | 'keydown', listener: (event: Event) => void): () => void;
+  listen(
+    type: 'scroll' | 'wheel' | 'touchmove' | 'resize' | 'keydown',
+    listener: (event: Event) => void,
+  ): () => void;
   spacer: HTMLElement;
   destroy(): void;
 }
@@ -97,9 +100,9 @@ function elementScroller(element: HTMLElement, viewport: () => number): Scroller
     },
     viewport,
     listen(type, listener) {
-      if (type !== 'scroll') return () => {};
-      element.addEventListener('scroll', listener, { passive: true });
-      return () => element.removeEventListener('scroll', listener);
+      if (type === 'resize' || type === 'keydown') return () => {};
+      element.addEventListener(type, listener, { passive: true });
+      return () => element.removeEventListener(type, listener);
     },
     spacer,
     destroy: () => spacer.remove(),
@@ -185,6 +188,12 @@ export function bindScroll(
   const anchor = () => scrollTo(mapping.toScroll(engine.getSnapshot().position));
   const settle = () => {
     settleTimer = undefined;
+    // A wheel step moves the offset at once but reports it on the next frame. Take it in
+    // first: anchoring now would overwrite it. Real movement schedules another settle.
+    if (Math.abs(scroller.get() - current) >= 0.5) {
+      scroll();
+      if (settleTimer !== undefined) return;
+    }
     engine.visit();
     anchor();
   };
@@ -250,7 +259,16 @@ export function bindScroll(
     else later();
   });
 
-  const offs = [scroller.listen('scroll', scroll)];
+  // Input about to scroll. Firefox applies a wheel step off the main thread, so the offset
+  // still reads as before; an anchor now would cancel the step. Wait for the pause instead.
+  const input = () => {
+    if (settleTimer !== undefined) later();
+  };
+  const offs = [
+    scroller.listen('scroll', scroll),
+    scroller.listen('wheel', input),
+    scroller.listen('touchmove', input),
+  ];
   if (page) {
     offs.push(
       scroller.listen('resize', () => {
