@@ -56,10 +56,13 @@ test('a local Parquet file opens through DuckDB and is never uploaded', async ({
   baseURL,
 }) => {
   const outside: string[] = [];
+  const extensions: string[] = [];
   page.on('request', (request) => {
+    const url = new URL(request.url());
     // A blob: URL (WebKit reads the chosen file through one) has the page's own origin.
-    if (new URL(request.url()).origin !== new URL(baseURL!).origin)
+    if (url.origin !== new URL(baseURL!).origin)
       outside.push(`${request.method()} ${request.url()}`);
+    else if (url.pathname.endsWith('.duckdb_extension.wasm')) extensions.push(url.pathname);
   });
   await page.goto('/?dataset=file');
   await page.getByLabel('Open a Parquet, CSV, or JSON file').setInputFiles(FIXTURE);
@@ -74,12 +77,12 @@ test('a local Parquet file opens through DuckDB and is never uploaded', async ({
   await expect(
     page.getByRole('grid', { name: 'File rows' }).getByRole('gridcell', { name: 'reading 735' }),
   ).toBeVisible();
-  // DuckDB fetches its signed Parquet reader (and ICU) for the pinned version; nothing else
-  // leaves the page, and nothing is sent.
-  expect(outside.length).toBeGreaterThan(0);
-  for (const request of outside)
-    expect(request).toMatch(
-      /^GET https:\/\/extensions\.duckdb\.org\/v\d+\.\d+\.\d+\/wasm_eh\/\w+\.duckdb_extension\.wasm$/,
-    );
+  // DuckDB's signed Parquet reader (and ICU) come from this site, so nothing leaves the page.
+  expect(outside).toEqual([]);
+  expect(extensions).toEqual(
+    expect.arrayContaining([
+      expect.stringMatching(/\/duckdb-extensions\/v[\d.]+\/wasm_eh\/parquet\./),
+    ]),
+  );
   expect(pageErrors).toEqual([]);
 });

@@ -1,5 +1,6 @@
 import type { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import type { SqlQuery } from '@granum/sql';
+import { EXTENSIONS_PATH } from './duckdb-extensions';
 
 /**
  * One DuckDB-WASM database for the page, loaded the first time a visitor opens a file. The
@@ -42,7 +43,10 @@ async function start(): Promise<Database> {
   const db: AsyncDuckDB = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), new Worker(worker));
   await db.instantiate(wasm);
   await db.open({ query: { queryPollingInterval: POLLING_MS } });
-  const idle: AsyncDuckDBConnection[] = [];
+  const idle: AsyncDuckDBConnection[] = [await db.connect()];
+  // Load the Parquet, JSON, and ICU readers from this site, not extensions.duckdb.org.
+  const repository = new URL(`${import.meta.env.BASE_URL}${EXTENSIONS_PATH}`, document.baseURI);
+  await idle[0]!.query(`SET custom_extension_repository = ${literal(repository.href)}`);
 
   const query: SqlQuery = async (sql, params, signal) => {
     signal.throwIfAborted();

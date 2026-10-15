@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
+import { duckdbExtensionsPlugin } from './server/duckdb-extensions';
 import { traceApiPlugin } from './server/trace';
 
 const source = (path: string) => fileURLToPath(new URL(`../packages/${path}`, import.meta.url));
@@ -23,7 +24,7 @@ export const granumGridSource = [
 export default defineConfig({
   // The same static build works at a domain root or a GitHub Pages project path.
   base: './',
-  plugins: [react(), traceApiPlugin()],
+  plugins: [react(), traceApiPlugin(), duckdbExtensionsPlugin()],
   build: {
     rollupOptions: {
       input: {

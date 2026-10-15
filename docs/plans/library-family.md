@@ -3,9 +3,9 @@
 Status: as of 2026-10-14, the code work is done: Phases 0–2, the package split and rename in
 Phase 3, Phase 4, and Phase 5, pushed to `main` on 2026-10-15. Everything left waits on the
 maintainer or other people: creating the `@granum` npm org and publishing, the screen
-recording at release, finding integrators, and the screen-reader and device checks. One
-code follow-up stays open: serving DuckDB's extensions from the playground instead of
-extensions.duckdb.org (see Risks). It extends [next-steps.md](next-steps.md); that plan's
+recording at release, finding integrators, and the screen-reader and device checks. The
+last code follow-up, serving DuckDB's extensions from the playground instead of
+extensions.duckdb.org, was done on 2026-10-15 (see Risks). It extends [next-steps.md](next-steps.md); that plan's
 remaining work (publish to npm, cut three generated datasets) folded into Phase 0 and
 Phase 3 below.
 
@@ -305,8 +305,10 @@ Exit: no behavior change besides the cuts, and budgets enforced.
    30 ms. `demo/tests/sql.spec.ts` passes in Chromium, Firefox, and WebKit and on the
    production build. Found on the way: DuckDB-WASM downloads its Parquet, JSON, and ICU
    readers (signed extensions) from extensions.duckdb.org, so the page says so instead of
-   "nothing leaves the page"; self-hosting them at build time, with checksums, is a
-   follow-up. Done later the same day: **Link to this row** for the Parquet set (bundled or
+   "nothing leaves the page". Done 2026-10-15: the build downloads them once, checks
+   pinned SHA-256 hashes, and serves them beside the page (`demo/server/duckdb-extensions.ts`);
+   the page sets `custom_extension_repository` to that copy, and the page says nothing
+   leaves it. Done later the same day: **Link to this row** for the Parquet set (bundled or
    pasted URL) copies a link that reopens the file at that row, and every dataset's intro
    has **How this dataset connects**, showing type-checked example modules
    (`demo/src/examples`, imported with `?raw`) and the adapter's source; generated sets say
@@ -410,11 +412,16 @@ Arrow IPC, and a minimal column header with widths.
 
 ## Risks
 
-- **Third-party code at run time.** DuckDB-WASM fetches its extensions from
-  extensions.duckdb.org for the pinned engine version. DuckDB checks their signatures, but
-  the playground still depends on that host and tells it a file is being opened. Fix:
-  download the extensions at build time with recorded checksums and point
-  `custom_extension_repository` at the deployed copy.
+- **Third-party code at run time.** Resolved 2026-10-15. DuckDB-WASM fetched its
+  Parquet, JSON, and ICU extensions from extensions.duckdb.org, so the playground depended
+  on that host and told it a file was being opened. The demo's Vite plugin
+  (`demo/server/duckdb-extensions.ts`) now downloads those three files for DuckDB v1.4.3
+  (`wasm_eh`), refuses any whose SHA-256 differs from the pinned one, serves them in dev,
+  and emits them into the build (about 10 MB, 3 MB gzipped, fetched only when a file needs
+  them). The page points `custom_extension_repository` at that copy, and DuckDB still
+  checks the signatures. Bumping `@duckdb/duckdb-wasm` fails the build until the list is
+  updated. The build, not the visitor, now needs extensions.duckdb.org. A condition that
+  needs any other extension fails with DuckDB's error instead of reaching another host.
 
 - **Native scrolling with variable heights at billions of rows is unproven.** HighTable
   supports fixed heights only. Fallback: ship native scrolling for fixed heights and keep
@@ -445,6 +452,12 @@ Baseline on 2026-10-14: `npm run check` passed with 140 unit tests.
 
 Phase 0 steps 3–4 (2026-10-14): `npm run lint` and `npm run check` pass (140 unit tests);
 a probe file importing React and `react/` from `core/` fails lint as intended.
+
+Extensions on this site (2026-10-15): `npm run lint`, `npm run check` (148 unit tests), and
+`npm run build` pass; `demo/tests/sql.spec.ts` passes in Chromium, Firefox, and WebKit on
+the dev server and in Firefox and WebKit on the production build, now asserting that no
+request leaves the page; `npm run test:pages` opens a Parquet file under a project path. A
+corrupted cache file is downloaded again, and a wrong pinned hash fails the build.
 
 ## Next action
 

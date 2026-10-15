@@ -47,9 +47,8 @@ export function DemoLimitations({
             <p>
               <strong>A database in this tab.</strong> DuckDB-WASM, about 8 MB, loads the first time
               you open a file or make the sample. It reads your file in place and never uploads it;
-              it fetches its Parquet and JSON readers, signed extensions, from
-              extensions.duckdb.org. Reloading the page forgets the file, so a link cannot reopen
-              it.
+              its Parquet and JSON readers, DuckDB’s signed extensions, come from this site too.
+              Reloading the page forgets the file, so a link cannot reopen it.
             </p>
             <p>
               <strong>What a revision costs.</strong> Each filter or sort copies the matching rows,

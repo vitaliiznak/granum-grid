@@ -8,6 +8,7 @@ import { preview } from 'vite';
 // With PAGES_URL, exercise the same navigation on the published site.
 const root = fileURLToPath(new URL('../demo/', import.meta.url));
 const output = fileURLToPath(new URL('../output/playwright/pages-smoke/', import.meta.url));
+const fixture = new URL('../packages/parquet/tests/fixtures/readings.parquet', import.meta.url);
 let server;
 let browser;
 let context;
@@ -84,9 +85,29 @@ try {
     page.getByRole('grid', { name: 'Sensor readings' }).locator('[data-status="ready"]').first(),
   ).toBeVisible();
   assert.deepEqual(errors, [], 'Tutorials must load and navigate under the project path');
+
+  // DuckDB's extensions come from the deployed copy under the project path, not another host.
+  const requests = [];
+  context.on('request', (request) => requests.push(new URL(request.url())));
+  const fileURL = new URL(site);
+  fileURL.searchParams.set('dataset', 'file');
+  await page.goto(fileURL.href);
+  await page.getByLabel('Open a Parquet, CSV, or JSON file').setInputFiles(fileURLToPath(fixture));
+  await expect(page.getByTestId('position')).toHaveText('Row 1 of 1,000', { timeout: 60_000 });
+  const outside = requests.filter((url) => url.protocol !== 'blob:' && url.origin !== site.origin);
+  assert.deepEqual(outside.map(String), [], 'Opening a file must not reach another host');
+  assert.ok(
+    requests.some(
+      (url) =>
+        url.pathname.startsWith(`${site.pathname}duckdb-extensions/v`) &&
+        url.pathname.endsWith('/parquet.duckdb_extension.wasm'),
+    ),
+    'DuckDB must load its Parquet reader from the deployed copy',
+  );
+  assert.deepEqual(errors, [], 'A local Parquet file must open under the project path');
   await context.tracing.stop();
   console.log(
-    `Pages smoke passed: ${site.href} (worker data, jump, full-page reload, home, tutorials).`,
+    `Pages smoke passed: ${site.href} (worker data, jump, full-page reload, home, tutorials, DuckDB file).`,
   );
 } catch (error) {
   if (context) await context.tracing.stop({ path: `${output}/trace.zip` }).catch(() => {});
