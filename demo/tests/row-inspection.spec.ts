@@ -89,7 +89,11 @@ test('a clipboard failure and dataset changes stay explicit', async ({ page }) =
   await expect(panel).toContainText('reading 2');
   await panel.getByRole('button', { name: 'Copy record' }).click();
   await expect(panel.getByRole('status')).toHaveText('Could not copy. Try again.');
-  await page.getByRole('button', { name: /Server logs/ }).click();
+  // The open panel covers part of the gallery, and how much depends on the fonts; the
+  // keyboard reaches the card wherever it sits.
+  const logs = page.getByRole('button', { name: /Server logs/ });
+  await logs.press('Enter');
+  await expect(logs).toHaveAttribute('aria-pressed', 'true');
   await expect(panel).not.toBeVisible();
   await page.getByRole('button', { name: /Web pages \(Parquet\)/ }).click();
   await expect(page.getByRole('heading', { name: 'readings.parquet' })).toBeVisible();
